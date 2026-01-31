@@ -3,7 +3,7 @@
 ## Runtime & Languages
 
 - **Backend**: Python 3.14+ (deferred annotations, PEP 695 type parameter syntax)
-- **Frontend**: TypeScript strict mode with Svelte 5 + SvelteKit
+- **Frontend**: TypeScript strict mode with Svelte 5 + SvelteKit 2
 - **Package Management**: uv (backend), Bun (frontend)
 
 ---
@@ -43,28 +43,37 @@
 ### Framework
 
 - **Svelte 5** - Runes-only (no legacy stores, no `$:` reactive statements, no `export let`)
-- **SvelteKit** - file-based routing, SSR/SSG/CSR support
+- **SvelteKit 2** - file-based routing, SSR/SSG/CSR support
 - **Bun** - runtime, package manager, and build tool
+- **svelte-adapter-bun** - production adapter for Bun runtime
 
 ### UI Components
 
-- **shadcn-svelte** - accessible, customizable component library (Svelte 5 port of shadcn/ui)
+- **shadcn-svelte** - accessible, customizable component library (Svelte 5 port)
+- **bits-ui** - headless component primitives (shadcn-svelte dependency)
+- **mode-watcher** - dark mode management
+- **@lucide/svelte** - icon library
+- **svelte-sonner** - toast notifications
 
 ### Styling
 
 - **UnoCSS** - atomic CSS engine with on-demand generation
   - `presetWind4` - Tailwind CSS 4 compatible utilities
   - `presetShadcn` - shadcn/ui CSS variable and theme support
+  - `presetIcons` - icon support with on-demand loading
+  - `presetAnimations` - animation utilities
+  - `transformerVariantGroup` - variant grouping syntax
 
 ### Key Libraries
 
 - **openapi-fetch** + **openapi-typescript** - type-safe API client from OpenAPI spec
-- **sveltekit-superforms** + **zod** - form validation
-- **@sveltejs/enhanced-img** - image optimization
+- **sveltekit-superforms** + **zod** - form validation with progressive enhancement
+- **@sveltejs/enhanced-img** - image optimization (AVIF/WebP, responsive srcsets)
 
 ### Dev Tools
 
 - **Vitest** - testing with `@testing-library/svelte`
+- **Playwright** - E2E testing
 - **TypeScript** - strict mode with `noUncheckedIndexedAccess`
 
 ---
@@ -104,11 +113,11 @@ alembic downgrade -1
 # Install dependencies
 bun install
 
-# Run development server
-bun run dev
+# Run development server (--bun forces Bun runtime)
+bun --bun run dev
 
 # Build for production
-bun --bun run vite build
+bun --bun run build
 
 # Run production build
 bun ./build/index.js
@@ -116,8 +125,14 @@ bun ./build/index.js
 # Run tests
 bun test
 
+# E2E tests
+bunx playwright test
+
 # Generate API types from OpenAPI spec
 bunx openapi-typescript ./api/openapi.json -o ./src/lib/api/types.d.ts
+
+# Add shadcn-svelte components
+bunx shadcn-svelte@latest add button dialog form
 ```
 
 ---
@@ -154,26 +169,98 @@ bunx openapi-typescript ./api/openapi.json -o ./src/lib/api/types.d.ts
 - Never expose internal details (stack traces, file paths) in responses
 
 ### Frontend: Svelte 5 Runes
-- Use `$state()` for reactive variables (deep proxy by default)
-- Use `$derived()` for computed values (not `$effect`)
-- Use `$effect()` only for side effects (DOM, subscriptions)
-- Use `$props()` with TypeScript interface for component props
-- Use `$bindable()` for two-way binding (opt-in only)
-- Use snippets (`{#snippet}` / `{@render}`) instead of slots
+
+Runes are explicit compiler instructions for reactivity, replacing Svelte 4's implicit patterns.
+
+- **`$state()`** - reactive variables with deep proxy by default
+  - Use `$state.raw()` for large immutable data (requires full reassignment)
+  - Use `$state.snapshot()` to extract plain objects from proxies
+- **`$derived()`** - computed values with automatic memoization
+  - Use `$derived.by()` for complex multi-statement derivations
+  - Never use `$effect` to derive state
+- **`$effect()`** - side effects only (DOM, subscriptions, localStorage)
+  - Return cleanup function for resource management
+- **`$props()`** - type-safe component props with TypeScript interface
+  - Use `generics` attribute for generic components
+- **`$bindable()`** - explicit opt-in for two-way binding
+- **Snippets** - replace slots entirely
+  - Use `{#snippet name()}` to define, `{@render name()}` to render
+  - Use `children` snippet for default content
+
+### Frontend: Class-Based State
+
+Encapsulate reactive logic in `.svelte.ts` files:
+
+```typescript
+// counter.svelte.ts
+export class Counter {
+  count = $state(0);
+  doubled = $derived(this.count * 2);
+  increment = () => this.count++;
+}
+```
 
 ### Frontend: SvelteKit Data Loading
-- Use `+page.server.ts` for sensitive operations (DB, secrets, cookies)
-- Use `+page.ts` for external APIs and non-serializable data
-- Use `Promise.all()` for parallel data fetching (avoid waterfalls)
+
+- **`+page.server.ts`** - server-only (DB, secrets, cookies, auth)
+- **`+page.ts`** - universal load (runs server + client during navigation)
 - Use `depends()` + `invalidate()` for cache invalidation
 - Return promises without `await` for streaming non-critical data
+- Use `error()` and `redirect()` from `@sveltejs/kit` for control flow
 
-### Frontend: Forms
-- Use SvelteKit form actions with `use:enhance` for progressive enhancement
+### Frontend: Forms with Progressive Enhancement
+
+```svelte
+<script lang="ts">
+  import { enhance } from '$app/forms';
+  let { form } = $props();
+</script>
+
+<form method="POST" action="?/create" use:enhance>
+  <input name="title" value={form?.title ?? ''} />
+  <button>Create</button>
+</form>
+```
+
+- Use SvelteKit form actions with `use:enhance`
 - Use `sveltekit-superforms` + `zod` for validation
 - Forms work without JavaScript when using actions
 
 ### Frontend: API Integration
+
 - Generate TypeScript types from backend OpenAPI spec
 - Use `openapi-fetch` for type-safe API calls
 - Define `App.Locals`, `App.Error`, `App.PageData` in `app.d.ts`
+
+### Frontend: State Management Decision Tree
+
+1. **Single component** → `$state()` / `$derived()`
+2. **Parent-child** → `$props()` with `$bindable()` if needed
+3. **Component subtree** → Context API with `setContext`/`getContext`
+4. **Global client-only** → `.svelte.ts` module state
+5. **Global with SSR** → Context API initialized in `+layout.svelte`
+6. **Persist across refreshes** → localStorage (client) or cookies (SSR)
+7. **URL-shareable** → `$page.url.searchParams`
+
+**SSR Warning**: Module-level `$state` is shared between all users on the server. Use context for per-request state.
+
+---
+
+## Anti-Patterns to Avoid
+
+### Frontend (Svelte 5)
+- ❌ Using `$:` reactive statements → Use `$derived()`
+- ❌ Using `export let` → Use `let { prop } = $props()`
+- ❌ Using `<slot>` → Use `{@render children?.()}`
+- ❌ Using `writable`/`readable` stores → Use `.svelte.ts` with `$state`
+- ❌ Using `$effect` to derive state → Use `$derived`
+- ❌ Destructuring reactive proxies → Breaks reactivity
+- ❌ `bun run dev` without `--bun` → Still uses Node.js
+- ❌ Module-level `$state` with SSR → Shared between users
+- ❌ Accessing `localStorage` during SSR → Guard with `browser` check
+
+### Backend
+- ❌ Blocking event loop with sync I/O → Use `sync_to_thread=True`
+- ❌ Lazy loading in async contexts → Use explicit eager loading
+- ❌ Validating msgspec Structs at init → Validation only during decode
+- ❌ Sharing database sessions across concurrent tasks → Create per-task sessions

@@ -69,12 +69,14 @@ zondarr/
     ├── src/
     │   ├── lib/
     │   │   ├── components/        # Reusable UI components
+    │   │   │   └── ui/            # shadcn-svelte components
     │   │   ├── server/            # Server-only code ($lib/server)
     │   │   │   ├── db/
     │   │   │   └── api/
     │   │   ├── api/               # API client (openapi-fetch)
     │   │   │   ├── client.ts
     │   │   │   └── types.d.ts     # Generated from OpenAPI spec
+    │   │   ├── stores/            # Reactive state (.svelte.ts files)
     │   │   ├── utils/             # Utility functions
     │   │   └── types/             # Shared TypeScript types
     │   │
@@ -92,12 +94,16 @@ zondarr/
     │   │
     │   ├── app.css                # Global styles (UnoCSS)
     │   ├── app.d.ts               # App-level types (Locals, Error, PageData)
+    │   ├── app.html               # HTML template
     │   └── hooks.server.ts        # Server hooks (auth, middleware)
     │
     ├── static/
     ├── tests/
+    │   ├── *.svelte.test.ts       # Component tests (Vitest)
+    │   └── e2e/                   # E2E tests (Playwright)
     ├── svelte.config.js
     ├── vite.config.ts
+    ├── uno.config.ts              # UnoCSS configuration
     ├── tsconfig.json
     ├── bunfig.toml
     └── package.json
@@ -139,19 +145,24 @@ zondarr/
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Routes (+page.svelte, +layout.svelte)                      │
-│  - File-based routing                                       │
+│  - File-based routing with route groups                     │
 │  - SSR/SSG/CSR per route                                    │
 │  - Form actions with progressive enhancement                │
 ├─────────────────────────────────────────────────────────────┤
 │  Load Functions (+page.ts, +page.server.ts)                 │
-│  - Data fetching                                            │
-│  - Server-only for sensitive ops                            │
-│  - Streaming for non-critical data                          │
+│  - Data fetching with streaming support                     │
+│  - Server-only for sensitive ops (DB, secrets, cookies)     │
+│  - Universal load for external APIs                         │
 ├─────────────────────────────────────────────────────────────┤
 │  Components ($lib/components)                               │
-│  - Svelte 5 Runes ($state, $derived, $props)                │
-│  - Snippets for composition                                 │
+│  - Svelte 5 Runes ($state, $derived, $props, $bindable)     │
+│  - Snippets for composition ({#snippet}, {@render})         │
 │  - shadcn-svelte components + UnoCSS utilities              │
+├─────────────────────────────────────────────────────────────┤
+│  Reactive State ($lib/stores/*.svelte.ts)                   │
+│  - Class-based state with $state and $derived               │
+│  - Context API for component subtrees                       │
+│  - No legacy stores (writable/readable)                     │
 ├─────────────────────────────────────────────────────────────┤
 │  API Client ($lib/api)                                      │
 │  - openapi-fetch for type-safe calls                        │
@@ -187,9 +198,11 @@ Dependencies flow downward only. Upper layers depend on abstractions (protocols)
 | Components | PascalCase `.svelte` | `ServerCard.svelte` |
 | Routes | kebab-case folders | `media-servers/[id]/` |
 | Route groups | `(groupname)` | `(app)/`, `(public)/` |
-| Stores/composables | camelCase `.svelte.ts` | `createCounter.svelte.ts` |
+| Reactive modules | camelCase `.svelte.ts` | `createCounter.svelte.ts` |
 | Types | PascalCase | `MediaServer`, `Invitation` |
 | API client | `$lib/api/client.ts` | - |
+| Snippets | camelCase | `{#snippet headerContent()}` |
+| Props interface | PascalCase | `interface Props { ... }` |
 
 ## Database Models
 
@@ -221,3 +234,5 @@ Dependencies flow downward only. Upper layers depend on abstractions (protocols)
 ### Frontend
 - `tests/` - Vitest + @testing-library/svelte
 - Use `flushSync()` when testing reactive updates in `.svelte.ts` modules
+- Files using Runes in tests must have `.svelte.test.ts` extension
+- E2E tests with Playwright in `tests/e2e/`
