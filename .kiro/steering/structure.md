@@ -1,71 +1,109 @@
 # Project Structure
 
 ```
-backend/
-├── src/zondarr/
-│   ├── __init__.py
-│   ├── app.py                 # Litestar application factory (create_app)
-│   ├── config.py              # Settings msgspec.Struct, load_settings()
-│   │
-│   ├── core/
+zondarr/
+├── backend/
+│   ├── src/zondarr/
 │   │   ├── __init__.py
-│   │   ├── database.py        # Engine creation, session factory, lifespan
-│   │   ├── exceptions.py      # ZondarrError hierarchy
-│   │   └── types.py           # Shared type aliases
-│   │
-│   ├── media/
-│   │   ├── __init__.py
-│   │   ├── protocol.py        # MediaClient Protocol (typing.Protocol)
-│   │   ├── registry.py        # ClientRegistry singleton
-│   │   ├── types.py           # Capability enum, LibraryInfo, ExternalUser
-│   │   ├── exceptions.py      # MediaClientError, UnknownServerTypeError
-│   │   └── clients/
+│   │   ├── app.py                 # Litestar application factory (create_app)
+│   │   ├── config.py              # Settings msgspec.Struct, load_settings()
+│   │   │
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── database.py        # Engine creation, session factory, lifespan
+│   │   │   ├── exceptions.py      # ZondarrError hierarchy
+│   │   │   └── types.py           # Shared type aliases
+│   │   │
+│   │   ├── media/
+│   │   │   ├── __init__.py
+│   │   │   ├── protocol.py        # MediaClient Protocol (typing.Protocol)
+│   │   │   ├── registry.py        # ClientRegistry singleton
+│   │   │   ├── types.py           # Capability enum, LibraryInfo, ExternalUser
+│   │   │   ├── exceptions.py      # MediaClientError, UnknownServerTypeError
+│   │   │   └── clients/
+│   │   │       ├── __init__.py
+│   │   │       ├── jellyfin.py    # JellyfinClient (jellyfin-sdk)
+│   │   │       └── plex.py        # PlexClient (python-plexapi + asyncio.to_thread)
+│   │   │
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py            # Base, TimestampMixin, UUIDPrimaryKeyMixin
+│   │   │   ├── media_server.py    # ServerType enum, MediaServer, Library
+│   │   │   ├── invitation.py      # Invitation, association tables
+│   │   │   └── identity.py        # Identity, User
+│   │   │
+│   │   ├── repositories/
+│   │   │   ├── __init__.py
+│   │   │   ├── base.py            # Repository[T: Base] generic base
+│   │   │   ├── media_server.py    # MediaServerRepository
+│   │   │   ├── invitation.py      # InvitationRepository
+│   │   │   ├── identity.py        # IdentityRepository
+│   │   │   └── user.py            # UserRepository
+│   │   │
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── media_server.py    # MediaServerService
+│   │   │   └── invitation.py      # InvitationService
+│   │   │
+│   │   └── api/
 │   │       ├── __init__.py
-│   │       ├── jellyfin.py    # JellyfinClient (jellyfin-sdk)
-│   │       └── plex.py        # PlexClient (python-plexapi + asyncio.to_thread)
+│   │       ├── health.py          # HealthController (/health, /live, /ready)
+│   │       ├── schemas.py         # Request/response msgspec Structs
+│   │       └── errors.py          # Exception handlers, ErrorResponse
 │   │
-│   ├── models/
-│   │   ├── __init__.py
-│   │   ├── base.py            # Base, TimestampMixin, UUIDPrimaryKeyMixin
-│   │   ├── media_server.py    # ServerType enum, MediaServer, Library
-│   │   ├── invitation.py      # Invitation, association tables
-│   │   └── identity.py        # Identity, User
+│   ├── migrations/
+│   │   ├── env.py                 # Alembic async config
+│   │   └── versions/
+│   │       └── 001_initial.py     # Initial schema migration
 │   │
-│   ├── repositories/
-│   │   ├── __init__.py
-│   │   ├── base.py            # Repository[T: Base] generic base
-│   │   ├── media_server.py    # MediaServerRepository
-│   │   ├── invitation.py      # InvitationRepository
-│   │   ├── identity.py        # IdentityRepository
-│   │   └── user.py            # UserRepository
+│   ├── tests/
+│   │   ├── conftest.py            # Shared fixtures
+│   │   ├── unit/                  # Unit tests
+│   │   ├── property/              # Property-based tests (Hypothesis)
+│   │   └── integration/           # Integration tests
 │   │
-│   ├── services/
-│   │   ├── __init__.py
-│   │   ├── media_server.py    # MediaServerService
-│   │   └── invitation.py      # InvitationService
-│   │
-│   └── api/
-│       ├── __init__.py
-│       ├── health.py          # HealthController (/health, /live, /ready)
-│       ├── schemas.py         # Request/response msgspec Structs
-│       └── errors.py          # Exception handlers, ErrorResponse
+│   ├── alembic.ini
+│   └── pyproject.toml
 │
-├── migrations/
-│   ├── env.py                 # Alembic async config
-│   └── versions/
-│       └── 001_initial.py     # Initial schema migration
-│
-├── tests/
-│   ├── conftest.py            # Shared fixtures
-│   ├── unit/                  # Unit tests
-│   ├── property/              # Property-based tests (Hypothesis)
-│   └── integration/           # Integration tests
-│
-├── alembic.ini
-└── pyproject.toml
+└── frontend/
+    ├── src/
+    │   ├── lib/
+    │   │   ├── components/        # Reusable UI components
+    │   │   ├── server/            # Server-only code ($lib/server)
+    │   │   │   ├── db/
+    │   │   │   └── api/
+    │   │   ├── api/               # API client (openapi-fetch)
+    │   │   │   ├── client.ts
+    │   │   │   └── types.d.ts     # Generated from OpenAPI spec
+    │   │   ├── utils/             # Utility functions
+    │   │   └── types/             # Shared TypeScript types
+    │   │
+    │   ├── routes/
+    │   │   ├── +layout.svelte     # Root layout
+    │   │   ├── +page.svelte       # Home page
+    │   │   ├── (app)/             # Authenticated routes (admin dashboard)
+    │   │   │   ├── +layout.svelte
+    │   │   │   ├── servers/       # Media server management
+    │   │   │   ├── invitations/   # Invitation management
+    │   │   │   └── users/         # User/identity management
+    │   │   ├── (public)/          # Public routes
+    │   │   │   └── invite/[code]/ # Invitation redemption
+    │   │   └── api/               # API routes (if needed)
+    │   │
+    │   ├── app.css                # Global styles (UnoCSS)
+    │   ├── app.d.ts               # App-level types (Locals, Error, PageData)
+    │   └── hooks.server.ts        # Server hooks (auth, middleware)
+    │
+    ├── static/
+    ├── tests/
+    ├── svelte.config.js
+    ├── vite.config.ts
+    ├── tsconfig.json
+    ├── bunfig.toml
+    └── package.json
 ```
 
-## Architecture Layers
+## Backend Architecture Layers
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -96,9 +134,41 @@ backend/
 └─────────────────────────────────────────────────────────────┘
 ```
 
+## Frontend Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Routes (+page.svelte, +layout.svelte)                      │
+│  - File-based routing                                       │
+│  - SSR/SSG/CSR per route                                    │
+│  - Form actions with progressive enhancement                │
+├─────────────────────────────────────────────────────────────┤
+│  Load Functions (+page.ts, +page.server.ts)                 │
+│  - Data fetching                                            │
+│  - Server-only for sensitive ops                            │
+│  - Streaming for non-critical data                          │
+├─────────────────────────────────────────────────────────────┤
+│  Components ($lib/components)                               │
+│  - Svelte 5 Runes ($state, $derived, $props)                │
+│  - Snippets for composition                                 │
+│  - shadcn-svelte components + UnoCSS utilities              │
+├─────────────────────────────────────────────────────────────┤
+│  API Client ($lib/api)                                      │
+│  - openapi-fetch for type-safe calls                        │
+│  - Types generated from OpenAPI spec                        │
+├─────────────────────────────────────────────────────────────┤
+│  Server Hooks (hooks.server.ts)                             │
+│  - Authentication middleware                                │
+│  - Protected route guards                                   │
+│  - Error handling                                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
 Dependencies flow downward only. Upper layers depend on abstractions (protocols) of lower layers.
 
 ## Naming Conventions
+
+### Backend
 
 | Type | Convention | Example |
 |------|------------|---------|
@@ -110,6 +180,17 @@ Dependencies flow downward only. Upper layers depend on abstractions (protocols)
 | Enums | PascalCase with UPPER values | `ServerType.JELLYFIN` |
 | Association tables | `{entity1}_{entity2}` | `invitation_servers` |
 
+### Frontend
+
+| Type | Convention | Example |
+|------|------------|---------|
+| Components | PascalCase `.svelte` | `ServerCard.svelte` |
+| Routes | kebab-case folders | `media-servers/[id]/` |
+| Route groups | `(groupname)` | `(app)/`, `(public)/` |
+| Stores/composables | camelCase `.svelte.ts` | `createCounter.svelte.ts` |
+| Types | PascalCase | `MediaServer`, `Invitation` |
+| API client | `$lib/api/client.ts` | - |
+
 ## Database Models
 
 | Model | Table | Key Fields |
@@ -120,8 +201,23 @@ Dependencies flow downward only. Upper layers depend on abstractions (protocols)
 | Identity | `identities` | id, display_name, email, expires_at, enabled |
 | User | `users` | id, identity_id, media_server_id, external_user_id, username |
 
+## Frontend Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Landing/home page |
+| `/(app)/servers` | Media server management |
+| `/(app)/invitations` | Invitation management |
+| `/(app)/users` | User/identity management |
+| `/(public)/invite/[code]` | Invitation redemption (public) |
+
 ## Testing Organization
 
+### Backend
 - `tests/unit/` - Specific examples, edge cases, mocked dependencies
 - `tests/property/` - Hypothesis property tests (100+ iterations per property)
 - `tests/integration/` - Full stack tests, migration tests
+
+### Frontend
+- `tests/` - Vitest + @testing-library/svelte
+- Use `flushSync()` when testing reactive updates in `.svelte.ts` modules
