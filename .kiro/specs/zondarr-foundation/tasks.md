@@ -7,7 +7,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
 ## Tasks
 
 - [ ] 1. Project Setup and Configuration
-  - [ ] 1.1 Update pyproject.toml with dependencies and tooling configuration
+  - [x] 1.1 Update pyproject.toml with dependencies and tooling configuration
     - Add all production dependencies (litestar, msgspec, granian, sqlalchemy, etc.)
     - Add dev dependencies (pytest, hypothesis, ruff, basedpyright)
     - Configure ruff, basedpyright, and pytest settings
