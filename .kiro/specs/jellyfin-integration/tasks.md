@@ -227,7 +227,7 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - [x] 9.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 9.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
 
-- [ ] 10. Implement RedemptionService
+- [x] 10. Implement RedemptionService
   - [x] 10.1 Create RedemptionService with redeem method
     - Validate invitation
     - Create users on each target server via JellyfinClient
@@ -277,19 +277,19 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - [x] 10.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 10.7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
 
-  - [-] 10.8 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
+  - [x] 10.8 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
 
 - [ ] 11. Implement JoinController
-  - [~] 11.1 Create JoinController with redemption endpoint
+  - [x] 11.1 Create JoinController with redemption endpoint
     - POST /api/v1/join/{code} - redeem invitation
     - Public endpoint (no auth required)
     - Return RedemptionResponse on success
     - Return RedemptionErrorResponse on failure
     - _Requirements: 14.1, 14.2, 14.10, 15.5_
-    - [~] 11.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [~] 11.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
+    - [x] 11.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 11.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
 
-  - [~] 11.2 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
+  - [-] 11.2 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses) - see "Core rules"
 
 - [~] 12. Checkpoint - Redemption flow complete
   - Ensure all redemption tests pass, ask the user if questions arise.
