@@ -87,7 +87,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
   - [x] 4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
   - [x] 4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 5. Media Client Protocol and Registry
+- [x] 5. Media Client Protocol and Registry
   - [x] 5.1 Implement media types
     - Create `media/types.py` with Capability enum, LibraryInfo, ExternalUser structs
     - _Requirements: 3.7_
@@ -139,13 +139,13 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 5.7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 6. Repository Layer
-  - [ ] 6.1 Implement base repository
+  - [x] 6.1 Implement base repository
     - Create `repositories/base.py` with generic Repository[T] class
     - Implement get_by_id, get_all, create, delete with error wrapping
     - Use PEP 695 type parameter syntax
     - _Requirements: 5.1, 5.6_
-    - [ ] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 6.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 6.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 6.2 Implement MediaServerRepository
     - Create `repositories/media_server.py`
