@@ -251,7 +251,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 9.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 9.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 10. Application Factory
+- [x] 10. Application Factory
   - [x] 10.1 Implement database module
     - Create `core/database.py` with engine creation and session factory
     - Implement lifespan context manager for connection pool
@@ -260,7 +260,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 10.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 10.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 10.2 Implement application factory
+  - [x] 10.2 Implement application factory
     - Create `app.py` with create_app() function
     - Configure dependency injection with Provide
     - Register media clients in registry
@@ -268,8 +268,8 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - Configure structlog plugin
     - Register exception handlers
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.6, 7.7_
-    - [ ] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 10.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 10.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 11. Database Migrations
   - [ ] 11.1 Initialize Alembic
