@@ -1,0 +1,13 @@
+{
+  "name": "zondarr-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "prek install",
+    "lint": "prek run --all-files",
+    "lint:staged": "prek run"
+  },
+  "devDependencies": {
+    "@j178/prek": "^0.3.1"
+  }
+}

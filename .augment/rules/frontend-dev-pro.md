@@ -20,7 +20,7 @@ Runes are function-like symbols prefixed with `$` that provide explicit compiler
   // Basic reactive state
   let count = $state(0);
   let user = $state<User | null>(null);
-  
+
   // Deep reactivity (default) — mutations are tracked granularly
   let todos = $state([
     { done: false, text: 'learn runes' }
@@ -60,7 +60,7 @@ export class Counter {
 <script lang="ts">
   let count = $state(0);
   let doubled = $derived(count * 2);
-  
+
   // Complex derivations with $derived.by()
   let total = $derived.by(() => {
     let sum = 0;
@@ -78,11 +78,11 @@ export class Counter {
 <script lang="ts">
   let canvas: HTMLCanvasElement;
   let size = $state(50);
-  
+
   $effect(() => {
     const ctx = canvas.getContext('2d');
     ctx.fillRect(0, 0, size, size);
-    
+
     // Cleanup function runs before re-execution and on destroy
     return () => ctx.clearRect(0, 0, canvas.width, canvas.height);
   });
@@ -100,7 +100,7 @@ export class Counter {
     count?: number;
     onClick: (e: MouseEvent) => void;
   }
-  
+
   let { name, count = 0, onClick }: Props = $props();
 </script>
 ```
@@ -209,9 +209,9 @@ export const actions: Actions = {
   create: async ({ request }) => {
     const formData = await request.formData();
     const title = formData.get('title');
-    
+
     if (!title) return fail(400, { title, missing: true });
-    
+
     await db.post.create({ data: { title } });
     redirect(303, '/posts');
   }
@@ -249,13 +249,13 @@ export const actions: Actions = {
 <!-- Table.svelte -->
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  
+
   interface Props<T> {
     data: T[];
     header: Snippet;
     row: Snippet<[T]>;
   }
-  
+
   let { data, header, row }: Props<any> = $props();
 </script>
 
@@ -276,7 +276,7 @@ export const actions: Actions = {
   {#snippet header()}
     <th>Name</th><th>Price</th>
   {/snippet}
-  
+
   {#snippet row(item)}
     <td>{item.name}</td><td>{item.price}</td>
   {/snippet}
@@ -499,7 +499,7 @@ Components install to `$lib/components/ui/`—**you own the code**, not a depend
   import { superForm } from 'sveltekit-superforms';
   import { zodClient } from 'sveltekit-superforms/adapters';
   import { schema } from './schema';
-  
+
   let { data } = $props();
   const form = superForm(data.form, { validators: zodClient(schema) });
   const { form: formData, enhance } = form;
@@ -598,7 +598,7 @@ import Counter from './Counter.svelte';
 test('Counter increments', async () => {
   const user = userEvent.setup();
   render(Counter);
-  
+
   await user.click(screen.getByRole('button'));
   expect(screen.getByRole('button')).toHaveTextContent('1');
 });
@@ -617,7 +617,7 @@ test('user can login', async ({ page }) => {
   await page.fill('input[name="email"]', 'user@test.com');
   await page.fill('input[name="password"]', 'password');
   await page.click('button[type="submit"]');
-  
+
   await expect(page).toHaveURL('/dashboard');
 });
 ```
@@ -633,9 +633,9 @@ Svelte 5 achieves **up to 50% smaller bundle sizes** through its signals runtime
 ### Image optimization with @sveltejs/enhanced-img
 
 ```svelte
-<enhanced:img 
-  src="$lib/assets/hero.jpg" 
-  alt="Hero" 
+<enhanced:img
+  src="$lib/assets/hero.jpg"
+  alt="Hero"
   fetchpriority="high"
   sizes="(min-width:1920px) 1280px, 640px"
 />

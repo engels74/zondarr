@@ -19,31 +19,31 @@ graph TB
         HC[Health Controller]
         MSC[MediaServer Controller]
     end
-    
+
     subgraph "Service Layer"
         MSS[MediaServer Service]
         IS[Invitation Service]
     end
-    
+
     subgraph "Repository Layer"
         MSR[MediaServer Repository]
         IR[Invitation Repository]
         IDR[Identity Repository]
         UR[User Repository]
     end
-    
+
     subgraph "Media Layer"
         CR[Client Registry]
         MCP[Media Client Protocol]
         JC[Jellyfin Client Stub]
         PC[Plex Client Stub]
     end
-    
+
     subgraph "Data Layer"
         DB[(Database)]
         Models[SQLAlchemy Models]
     end
-    
+
     HC --> MSS
     MSC --> MSS
     MSS --> MSR
@@ -52,13 +52,13 @@ graph TB
     IS --> IDR
     IS --> UR
     IS --> CR
-    
+
     MSR --> Models
     IR --> Models
     IDR --> Models
     UR --> Models
     Models --> DB
-    
+
     CR --> MCP
     JC -.-> MCP
     PC -.-> MCP
@@ -222,32 +222,32 @@ from typing import Annotated
 
 class Settings(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """Application settings loaded from environment variables.
-    
+
     Uses Python 3.14 deferred annotations - no forward reference quotes needed.
     """
-    
+
     # Database
     database_url: Annotated[str, msgspec.Meta(
         description="Database connection URL (sqlite+aiosqlite:// or postgresql+asyncpg://)"
     )] = "sqlite+aiosqlite:///./zondarr.db"
-    
+
     # Server
     host: str = "0.0.0.0"
     port: Annotated[int, msgspec.Meta(ge=1, le=65535)] = 8000
     debug: bool = False
-    
+
     # Security
     secret_key: Annotated[str, msgspec.Meta(min_length=32)]
 
 
 def load_settings() -> Settings:
     """Load and validate settings from environment variables.
-    
+
     Uses walrus operator for cleaner required value handling.
     Raises ConfigurationError if required values are missing.
     """
     from .core.exceptions import ConfigurationError
-    
+
     # Check required values first (fail fast)
     if (secret_key := os.environ.get("SECRET_KEY")) is None:
         raise ConfigurationError(
@@ -255,7 +255,7 @@ def load_settings() -> Settings:
             "MISSING_CONFIG",
             field="SECRET_KEY",
         )
-    
+
     # Build settings dict for validation via msgspec.convert
     settings_dict = {
         "database_url": os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./zondarr.db"),
@@ -264,7 +264,7 @@ def load_settings() -> Settings:
         "debug": os.environ.get("DEBUG", "").lower() in ("true", "1", "yes"),
         "secret_key": secret_key,
     }
-    
+
     # msgspec.convert validates constraints
     return msgspec.convert(settings_dict, Settings)
 ```
@@ -281,33 +281,33 @@ from .types import LibraryInfo, ExternalUser, Capability
 
 class MediaClient(Protocol):
     """Protocol defining the interface for media server clients.
-    
+
     Implementations must support async context manager for connection lifecycle.
     Uses Python 3.14 deferred annotations - no forward reference quotes needed.
     Uses Self type for proper return type in subclasses.
     """
-    
+
     @classmethod
     def capabilities(cls) -> set[Capability]:
         """Return the set of capabilities this client supports."""
         ...
-    
+
     async def __aenter__(self) -> Self:
         """Enter async context, establishing connection."""
         ...
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit async context, cleaning up resources."""
         ...
-    
+
     async def test_connection(self) -> bool:
         """Test connectivity to the media server."""
         ...
-    
+
     async def get_libraries(self) -> Sequence[LibraryInfo]:
         """Retrieve all libraries from the media server."""
         ...
-    
+
     async def create_user(
         self,
         username: str,
@@ -316,18 +316,18 @@ class MediaClient(Protocol):
     ) -> ExternalUser:
         """Create a new user on the media server."""
         ...
-    
+
     async def delete_user(self, external_user_id: str) -> bool:
         """Delete a user from the media server."""
         ...
-    
+
     async def set_user_enabled(self, external_user_id: str, /, *, enabled: bool) -> bool:
         """Enable or disable a user on the media server.
-        
+
         Uses positional-only for external_user_id, keyword-only for enabled.
         """
         ...
-    
+
     async def set_library_access(
         self,
         external_user_id: str,
@@ -350,39 +350,39 @@ from .exceptions import UnknownServerTypeError
 
 class ClientRegistry:
     """Singleton registry for media client implementations.
-    
+
     Uses ClassVar for singleton instance storage.
     """
-    
+
     _instance: ClassVar[ClientRegistry | None] = None
     _clients: dict[ServerType, type[MediaClient]]
-    
+
     def __new__(cls) -> ClientRegistry:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance._clients = {}
         return cls._instance
-    
+
     def register(self, server_type: ServerType, client_class: type[MediaClient]) -> None:
         """Register a client implementation for a server type."""
         self._clients[server_type] = client_class
-    
+
     def get_client_class(self, server_type: ServerType) -> type[MediaClient]:
         """Get the client class for a server type.
-        
+
         Uses walrus operator for cleaner lookup.
         """
         if (client_class := self._clients.get(server_type)) is None:
             raise UnknownServerTypeError(server_type)
         return client_class
-    
+
     def get_capabilities(self, server_type: ServerType) -> set[Capability]:
         """Get capabilities for a server type."""
         return self.get_client_class(server_type).capabilities()
-    
+
     def create_client(self, server_type: ServerType, /, *, url: str, api_key: str) -> MediaClient:
         """Create a client instance for a media server.
-        
+
         Uses positional-only for server_type, keyword-only for credentials.
         """
         client_class = self.get_client_class(server_type)
@@ -412,18 +412,18 @@ from ..exceptions import MediaClientError
 
 class PlexClient:
     """Plex media server client.
-    
+
     Uses python-plexapi (PlexAPI v4.18+) for server communication.
     PlexAPI is synchronous, so operations use asyncio.to_thread().
-    
+
     Full implementation in Phase 3.
     """
-    
+
     def __init__(self, *, url: str, api_key: str) -> None:
         self.url = url
         self.api_key = api_key
         self._server = None  # PlexServer instance
-    
+
     @classmethod
     def capabilities(cls) -> set[Capability]:
         return {
@@ -432,20 +432,20 @@ class PlexClient:
             Capability.LIBRARY_ACCESS,
             # Plex-specific capabilities added in Phase 3
         }
-    
+
     async def __aenter__(self) -> Self:
         # Will use asyncio.to_thread() for PlexServer connection
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         pass
-    
+
     async def test_connection(self) -> bool:
         raise NotImplementedError("Plex client implementation in Phase 3")
-    
+
     async def get_libraries(self) -> Sequence[LibraryInfo]:
         raise NotImplementedError("Plex client implementation in Phase 3")
-    
+
     async def create_user(
         self,
         username: str,
@@ -453,13 +453,13 @@ class PlexClient:
         email: str | None = None,
     ) -> ExternalUser:
         raise NotImplementedError("Plex client implementation in Phase 3")
-    
+
     async def delete_user(self, external_user_id: str) -> bool:
         raise NotImplementedError("Plex client implementation in Phase 3")
-    
+
     async def set_user_enabled(self, external_user_id: str, /, *, enabled: bool) -> bool:
         raise NotImplementedError("Plex client implementation in Phase 3")
-    
+
     async def set_library_access(
         self,
         external_user_id: str,
@@ -471,18 +471,18 @@ class PlexClient:
 # media/clients/jellyfin.py (stub for foundation phase)
 class JellyfinClient:
     """Jellyfin media server client.
-    
+
     Uses jellyfin-sdk (webysther/jellyfin-sdk-python) - a modern Python 3.13+ SDK
     with high-level abstractions, method chaining, and JSONPath support.
-    
+
     Full implementation in Phase 2.
     """
-    
+
     def __init__(self, *, url: str, api_key: str) -> None:
         self.url = url
         self.api_key = api_key
         self._api = None  # jellyfin.api instance
-    
+
     @classmethod
     def capabilities(cls) -> set[Capability]:
         return {
@@ -493,22 +493,22 @@ class JellyfinClient:
             Capability.DOWNLOAD_PERMISSION,
             # Jellyfin-specific capabilities added in Phase 2
         }
-    
+
     async def __aenter__(self) -> Self:
         # Initialize jellyfin-sdk api
         # import jellyfin
         # self._api = jellyfin.api(self.url, self.api_key)
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
         pass
-    
+
     async def test_connection(self) -> bool:
         raise NotImplementedError("Jellyfin client implementation in Phase 2")
-    
+
     async def get_libraries(self) -> Sequence[LibraryInfo]:
         raise NotImplementedError("Jellyfin client implementation in Phase 2")
-    
+
     async def create_user(
         self,
         username: str,
@@ -516,13 +516,13 @@ class JellyfinClient:
         email: str | None = None,
     ) -> ExternalUser:
         raise NotImplementedError("Jellyfin client implementation in Phase 2")
-    
+
     async def delete_user(self, external_user_id: str) -> bool:
         raise NotImplementedError("Jellyfin client implementation in Phase 2")
-    
+
     async def set_user_enabled(self, external_user_id: str, /, *, enabled: bool) -> bool:
         raise NotImplementedError("Jellyfin client implementation in Phase 2")
-    
+
     async def set_library_access(
         self,
         external_user_id: str,
@@ -546,16 +546,16 @@ from ..core.exceptions import RepositoryError
 
 class Repository[T: Base]:
     """Generic repository providing common CRUD operations.
-    
+
     Uses PEP 695 type parameter syntax: class Repository[T: Base]
     T is bounded to Base model type.
     """
-    
+
     model: type[T]
-    
+
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
-    
+
     async def get_by_id(self, id: UUID) -> T | None:
         """Retrieve an entity by its ID."""
         try:
@@ -566,7 +566,7 @@ class Repository[T: Base]:
                 operation="get_by_id",
                 original=e,
             )
-    
+
     async def get_all(self) -> Sequence[T]:
         """Retrieve all entities."""
         try:
@@ -578,7 +578,7 @@ class Repository[T: Base]:
                 operation="get_all",
                 original=e,
             )
-    
+
     async def create(self, entity: T) -> T:
         """Persist a new entity."""
         try:
@@ -591,7 +591,7 @@ class Repository[T: Base]:
                 operation="create",
                 original=e,
             )
-    
+
     async def delete(self, entity: T) -> None:
         """Remove an entity."""
         try:
@@ -623,10 +623,10 @@ class HealthStatus(msgspec.Struct):
 
 class HealthController(Controller):
     """Health check endpoints for monitoring and orchestration."""
-    
+
     path = "/health"
     tags = ["Health"]
-    
+
     @get("/", include_in_schema=False)
     async def health_check(self, session: AsyncSession) -> Response[HealthStatus]:
         """Overall health check including all dependencies."""
@@ -641,19 +641,19 @@ class HealthController(Controller):
             ),
             status_code=HTTP_200_OK if all_healthy else HTTP_503_SERVICE_UNAVAILABLE,
         )
-    
+
     @get("/live", include_in_schema=False)
     async def liveness(self) -> dict[str, str]:
         """Kubernetes liveness probe - always returns OK if process is running."""
         return {"status": "alive"}
-    
+
     @get("/ready", include_in_schema=False)
     async def readiness(self, session: AsyncSession) -> Response[dict[str, str]]:
         """Kubernetes readiness probe - checks if ready to serve traffic."""
         if await self._check_database(session):
             return Response({"status": "ready"}, status_code=HTTP_200_OK)
         return Response({"status": "not ready"}, status_code=HTTP_503_SERVICE_UNAVAILABLE)
-    
+
     async def _check_database(self, session: AsyncSession) -> bool:
         """Check database connectivity."""
         try:
@@ -717,16 +717,16 @@ async def provide_db_session(state: State) -> AsyncGenerator[AsyncSession, None]
 
 def create_app(settings: Settings | None = None) -> Litestar:
     """Application factory for creating Litestar app instances.
-    
+
     Supports dependency injection override for testing.
     """
     if settings is None:
         settings = load_settings()
-    
+
     # Register media clients
     registry.register(ServerType.JELLYFIN, JellyfinClient)
     registry.register(ServerType.PLEX, PlexClient)
-    
+
     return Litestar(
         route_handlers=[HealthController],
         lifespan=[db_lifespan],
@@ -779,10 +779,10 @@ class Base(DeclarativeBase):
 
 class TimestampMixin:
     """Mixin providing created_at and updated_at timestamps.
-    
+
     Uses timezone-aware UTC datetimes.
     """
-    
+
     created_at: Mapped[datetime] = mapped_column(
         default=lambda: datetime.now(UTC),
         server_default=func.now(),
@@ -794,7 +794,7 @@ class TimestampMixin:
 
 class UUIDPrimaryKeyMixin:
     """Mixin providing UUID primary key."""
-    
+
     id: Mapped[UUID] = mapped_column(
         primary_key=True,
         default=uuid4,
@@ -820,15 +820,15 @@ class ServerType(StrEnum):
 
 class MediaServer(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """A media server instance (Plex or Jellyfin)."""
-    
+
     __tablename__ = "media_servers"
-    
+
     name: Mapped[str] = mapped_column(String(255))
     server_type: Mapped[ServerType]
     url: Mapped[str] = mapped_column(String(2048))
     api_key: Mapped[str] = mapped_column(String(512))  # Encrypted at rest
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+
     # Relationships - use selectinload for collections to avoid N+1
     libraries: Mapped[list["Library"]] = relationship(
         back_populates="media_server",
@@ -838,14 +838,14 @@ class MediaServer(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
 class Library(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """A content library within a media server."""
-    
+
     __tablename__ = "libraries"
-    
+
     media_server_id: Mapped[UUID] = mapped_column(ForeignKey("media_servers.id"))
     external_id: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(255))
     library_type: Mapped[str] = mapped_column(String(50))
-    
+
     # Relationships - use joined for single relations
     media_server: Mapped["MediaServer"] = relationship(
         back_populates="libraries",
@@ -880,7 +880,7 @@ invitation_libraries = Table(
 
 class Invitation(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "invitations"
-    
+
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     expires_at: Mapped[datetime | None] = mapped_column(default=None)
     max_uses: Mapped[int | None] = mapped_column(Integer, default=None)
@@ -888,7 +888,7 @@ class Invitation(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     duration_days: Mapped[int | None] = mapped_column(Integer, default=None)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[str | None] = mapped_column(String(255), default=None)
-    
+
     # Relationships
     target_servers: Mapped[list["MediaServer"]] = relationship(
         secondary=invitation_servers,
@@ -910,12 +910,12 @@ from .base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class Identity(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "identities"
-    
+
     display_name: Mapped[str] = mapped_column(String(255))
     email: Mapped[str | None] = mapped_column(String(255), default=None)
     expires_at: Mapped[datetime | None] = mapped_column(default=None)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+
     # Relationships
     users: Mapped[list["User"]] = relationship(
         back_populates="identity",
@@ -924,14 +924,14 @@ class Identity(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
-    
+
     identity_id: Mapped[UUID] = mapped_column(ForeignKey("identities.id"))
     media_server_id: Mapped[UUID] = mapped_column(ForeignKey("media_servers.id"))
     external_user_id: Mapped[str] = mapped_column(String(255))
     username: Mapped[str] = mapped_column(String(255))
     expires_at: Mapped[datetime | None] = mapped_column(default=None)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
-    
+
     # Relationships
     identity: Mapped["Identity"] = relationship(back_populates="users")
     media_server: Mapped["MediaServer"] = relationship()
@@ -1093,7 +1093,7 @@ class HealthCheckResponse(msgspec.Struct):
 # core/exceptions.py
 class ZondarrError(Exception):
     """Base exception for all Zondarr errors."""
-    
+
     def __init__(self, message: str, error_code: str, **context):
         super().__init__(message)
         self.message = message
@@ -1106,21 +1106,21 @@ class ConfigurationError(ZondarrError):
 
 class RepositoryError(ZondarrError):
     """Raised when a repository operation fails."""
-    
+
     def __init__(self, message: str, operation: str, original: Exception | None = None):
         super().__init__(message, "REPOSITORY_ERROR", operation=operation)
         self.original = original
 
 class ValidationError(ZondarrError):
     """Raised when input validation fails."""
-    
+
     def __init__(self, message: str, field_errors: dict[str, list[str]]):
         super().__init__(message, "VALIDATION_ERROR")
         self.field_errors = field_errors
 
 class NotFoundError(ZondarrError):
     """Raised when a requested resource is not found."""
-    
+
     def __init__(self, resource_type: str, identifier: str):
         super().__init__(
             f"{resource_type} not found: {identifier}",
@@ -1132,7 +1132,7 @@ class NotFoundError(ZondarrError):
 # media/exceptions.py
 class MediaClientError(ZondarrError):
     """Raised when a media client operation fails."""
-    
+
     def __init__(self, message: str, operation: str, server_url: str, cause: str):
         super().__init__(
             message,
@@ -1144,7 +1144,7 @@ class MediaClientError(ZondarrError):
 
 class UnknownServerTypeError(ZondarrError):
     """Raised when an unknown server type is requested."""
-    
+
     def __init__(self, server_type: str):
         super().__init__(
             f"Unknown server type: {server_type}",
@@ -1271,7 +1271,7 @@ class TestRegistryProperties:
     """
     Feature: zondarr-foundation, Property 7: Registry Singleton Behavior
     """
-    
+
     @settings(max_examples=100)
     @given(st.integers(min_value=2, max_value=10))
     def test_singleton_identity(self, num_instances: int):
@@ -1280,11 +1280,11 @@ class TestRegistryProperties:
         first = instances[0]
         for instance in instances[1:]:
             assert instance is first
-    
+
     """
     Feature: zondarr-foundation, Property 6: Registry Raises Error for Unknown Types
     """
-    
+
     @settings(max_examples=100)
     @given(st.text(min_size=1, max_size=50).filter(lambda x: x not in ("jellyfin", "plex")))
     def test_unknown_type_raises_error(self, unknown_type: str):
@@ -1311,13 +1311,13 @@ class TestHealthEndpoints:
         app = create_app()
         with TestClient(app) as client:
             yield client
-    
+
     def test_liveness_always_returns_200(self, client):
         """Liveness probe returns 200 if process is running."""
         response = client.get("/health/live")
         assert response.status_code == 200
         assert response.json()["status"] == "alive"
-    
+
     def test_health_returns_degraded_when_db_fails(self, client):
         """Health returns 503 when database is unreachable."""
         with patch("zondarr.api.health.HealthController._check_database", return_value=False):

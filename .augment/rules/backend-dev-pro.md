@@ -483,7 +483,7 @@ app = Litestar(
 class DateRange(Struct):
     start_date: datetime
     end_date: datetime
-    
+
     def __post_init__(self):
         if self.start_date >= self.end_date:
             raise ValueError("start_date must be before end_date")
@@ -491,7 +491,7 @@ class DateRange(Struct):
 class PriceRange(Struct):
     min_price: Decimal
     max_price: Decimal
-    
+
     def __post_init__(self):
         if self.min_price > self.max_price:
             raise ValueError("min_price cannot exceed max_price")
@@ -839,7 +839,7 @@ async def get_dashboard_data(session: AsyncSession, user_id: int) -> dict:
         notifications_task = tg.create_task(
             session.scalars(select(Notification).where(Notification.user_id == user_id, Notification.read == False))
         )
-    
+
     return {
         "user": user_task.result(),
         "recent_orders": orders_task.result().all(),
@@ -901,11 +901,11 @@ import pytest
 def create_app(session_factory=None):
     if session_factory is None:
         session_factory = production_session_factory
-    
+
     async def provide_session():
         async with session_factory() as session:
             yield session
-    
+
     return Litestar(
         route_handlers=[UserController],
         dependencies={"session": Provide(provide_session)},
@@ -1294,7 +1294,7 @@ local = utc_now.astimezone(ZoneInfo("America/New_York"))
 
 **Tooling:**
 - `autopep695` — Auto-converts old TypeVar syntax to PEP 695
-- `pyupgrade` — Modernizes type annotations  
+- `pyupgrade` — Modernizes type annotations
 - `ruff --select=UP` — Upgrades deprecated patterns
 
 **Free-threaded adoption checklist:**
