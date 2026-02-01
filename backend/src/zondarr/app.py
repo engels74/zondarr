@@ -33,6 +33,7 @@ from zondarr.api.errors import (
 )
 from zondarr.api.health import HealthController
 from zondarr.api.invitations import InvitationController
+from zondarr.api.join import JoinController
 from zondarr.config import Settings, load_settings
 from zondarr.core.database import db_lifespan, provide_db_session
 from zondarr.core.exceptions import NotFoundError, ValidationError
@@ -67,6 +68,7 @@ def _create_openapi_config() -> OpenAPIConfig:
             Tag(name="Health", description="Health check endpoints"),
             Tag(name="Media Servers", description="Media server management"),
             Tag(name="Invitations", description="Invitation management"),
+            Tag(name="Join", description="Public invitation redemption"),
             Tag(name="Users", description="User and identity management"),
         ],
         security=[{"BearerToken": []}],
@@ -132,7 +134,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
     _register_media_clients()
 
     return Litestar(
-        route_handlers=[HealthController, InvitationController],
+        route_handlers=[HealthController, InvitationController, JoinController],
         lifespan=[db_lifespan],
         state=State({"settings": settings}),
         dependencies={
