@@ -35,6 +35,7 @@ from zondarr.api.health import HealthController
 from zondarr.api.invitations import InvitationController
 from zondarr.api.join import JoinController
 from zondarr.api.servers import ServerController
+from zondarr.api.users import UserController
 from zondarr.config import Settings, load_settings
 from zondarr.core.database import db_lifespan, provide_db_session
 from zondarr.core.exceptions import NotFoundError, ValidationError
@@ -140,6 +141,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
             InvitationController,
             JoinController,
             ServerController,
+            UserController,
         ],
         lifespan=[db_lifespan],
         state=State({"settings": settings}),
