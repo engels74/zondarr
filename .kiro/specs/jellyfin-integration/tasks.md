@@ -46,12 +46,12 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - [x] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 2.3 Implement set_user_enabled method
+  - [x] 2.3 Implement set_user_enabled method
     - Get current user and policy
     - Update IsDisabled flag based on enabled parameter
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
-    - [ ] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 2.4 Write property test for enable/disable mapping
     - **Property 4: Enable/Disable Maps to IsDisabled Correctly**

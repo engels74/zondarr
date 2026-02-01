@@ -334,28 +334,100 @@ class JellyfinClient:
 
     async def set_user_enabled(
         self,
-        _external_user_id: str,
+        external_user_id: str,
         /,
         *,
-        _enabled: bool,
+        enabled: bool,
     ) -> bool:
         """Enable or disable a user on the Jellyfin server.
 
-        Changes the enabled status of a user account.
+        Retrieves the current user and their policy via jellyfin-sdk,
+        then updates the IsDisabled flag based on the enabled parameter.
 
         Args:
-            _external_user_id: The user's unique identifier on the server
+            external_user_id: The user's unique identifier on the server
                 (positional-only).
-            _enabled: Whether the user should be enabled (keyword-only).
+            enabled: Whether the user should be enabled (keyword-only).
+                True sets IsDisabled=False, False sets IsDisabled=True.
 
         Returns:
             True if the status was successfully changed, False if the user
-            was not found.
+            was not found on the server.
 
         Raises:
-            NotImplementedError: This is a stub implementation.
+            MediaClientError: If the client is not initialized (use async context manager).
+            MediaClientError: If the status change fails for reasons other than user not found.
         """
-        raise NotImplementedError("Jellyfin client implementation in Phase 2")
+        if self._api is None:
+            raise MediaClientError(
+                "Client not initialized - use async context manager",
+                operation="set_user_enabled",
+                server_url=self.url,
+                cause="API client is None - __aenter__ was not called",
+            )
+
+        try:
+            # Step 1: Get current user via jellyfin-sdk users.get
+            # jellyfin-sdk lacks type stubs, so returns Any
+            user = self._api.users.get(external_user_id)  # pyright: ignore[reportAny]
+
+            if user is None:
+                return False
+
+            # Step 2: Get current policy from user
+            # jellyfin-sdk may use Policy or policy attribute
+            # Using Any type since jellyfin-sdk lacks type stubs
+            policy = None
+            if hasattr(user, "Policy"):  # pyright: ignore[reportAny]
+                policy = user.Policy  # pyright: ignore[reportAny]
+            elif hasattr(user, "policy"):  # pyright: ignore[reportAny]
+                policy = user.policy  # pyright: ignore[reportAny]
+
+            if policy is None:
+                raise MediaClientError(
+                    "Failed to retrieve user policy from Jellyfin response",
+                    operation="set_user_enabled",
+                    server_url=self.url,
+                    cause="User object has no Policy or policy attribute",
+                )
+
+            # Step 3: Update IsDisabled flag based on enabled parameter
+            # enabled=True means IsDisabled=False, enabled=False means IsDisabled=True
+            if hasattr(policy, "IsDisabled"):  # pyright: ignore[reportAny]
+                policy.IsDisabled = not enabled
+            elif hasattr(policy, "is_disabled"):  # pyright: ignore[reportAny]
+                policy.is_disabled = not enabled
+            else:
+                raise MediaClientError(
+                    "Failed to update IsDisabled flag in user policy",
+                    operation="set_user_enabled",
+                    server_url=self.url,
+                    cause="Policy object has no IsDisabled or is_disabled attribute",
+                )
+
+            # Step 4: Update user policy via jellyfin-sdk
+            self._api.users.update_policy(  # pyright: ignore[reportAny]
+                external_user_id, policy
+            )
+
+            return True
+
+        except MediaClientError:
+            # Re-raise our own errors
+            raise
+        except Exception as exc:
+            error_msg = str(exc).lower()
+            # Check for user not found error - return False per Requirements 5.5
+            if "not found" in error_msg or "404" in error_msg:
+                return False
+
+            # Re-raise other errors as MediaClientError per Requirements 5.6
+            raise MediaClientError(
+                f"Failed to update user enabled status on Jellyfin server: {exc}",
+                operation="set_user_enabled",
+                server_url=self.url,
+                cause=str(exc),
+            ) from exc
 
     async def set_library_access(
         self,
