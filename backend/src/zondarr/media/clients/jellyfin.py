@@ -540,3 +540,134 @@ class JellyfinClient:
                 server_url=self.url,
                 cause=str(exc),
             ) from exc
+
+    async def update_permissions(
+        self,
+        external_user_id: str,
+        /,
+        *,
+        permissions: dict[str, bool],
+    ) -> bool:
+        """Update user permissions by mapping universal permissions to Jellyfin policy.
+
+        Retrieves the current user and their policy via jellyfin-sdk,
+        then maps universal permission names to Jellyfin-specific policy fields
+        and updates the policy.
+
+        Permission mapping (per Requirements 7.3-7.6):
+        - can_download → EnableContentDownloading
+        - can_stream → EnableMediaPlayback
+        - can_sync → EnableSyncTranscoding
+        - can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
+
+        Args:
+            external_user_id: The user's unique identifier on the server
+                (positional-only).
+            permissions: Dictionary mapping universal permission names to boolean
+                values (keyword-only). Only provided keys are updated.
+
+        Returns:
+            True if permissions were successfully updated, False if the user
+            was not found on the server.
+
+        Raises:
+            MediaClientError: If the client is not initialized (use async context manager).
+            MediaClientError: If the permission update fails for reasons other
+                than user not found.
+        """
+        if self._api is None:
+            raise MediaClientError(
+                "Client not initialized - use async context manager",
+                operation="update_permissions",
+                server_url=self.url,
+                cause="API client is None - __aenter__ was not called",
+            )
+
+        try:
+            # Step 1: Get current user via jellyfin-sdk users.get (Requirement 7.2)
+            # jellyfin-sdk lacks type stubs, so returns Any
+            user = self._api.users.get(external_user_id)  # pyright: ignore[reportAny]
+
+            if user is None:
+                return False
+
+            # Step 2: Get current policy from user (Requirement 7.2)
+            # jellyfin-sdk may use Policy or policy attribute
+            policy = None
+            if hasattr(user, "Policy"):  # pyright: ignore[reportAny]
+                policy = user.Policy  # pyright: ignore[reportAny]
+            elif hasattr(user, "policy"):  # pyright: ignore[reportAny]
+                policy = user.policy  # pyright: ignore[reportAny]
+
+            if policy is None:
+                raise MediaClientError(
+                    "Failed to retrieve user policy from Jellyfin response",
+                    operation="update_permissions",
+                    server_url=self.url,
+                    cause="User object has no Policy or policy attribute",
+                )
+
+            # Step 3: Map universal permissions to Jellyfin policy fields
+            # Only update fields that are provided in the permissions dict
+
+            # can_download → EnableContentDownloading (Requirement 7.3)
+            if "can_download" in permissions:
+                value = permissions["can_download"]
+                if hasattr(policy, "EnableContentDownloading"):  # pyright: ignore[reportAny]
+                    policy.EnableContentDownloading = value
+                elif hasattr(policy, "enable_content_downloading"):  # pyright: ignore[reportAny]
+                    policy.enable_content_downloading = value
+
+            # can_stream → EnableMediaPlayback (Requirement 7.4)
+            if "can_stream" in permissions:
+                value = permissions["can_stream"]
+                if hasattr(policy, "EnableMediaPlayback"):  # pyright: ignore[reportAny]
+                    policy.EnableMediaPlayback = value
+                elif hasattr(policy, "enable_media_playback"):  # pyright: ignore[reportAny]
+                    policy.enable_media_playback = value
+
+            # can_sync → EnableSyncTranscoding (Requirement 7.5)
+            if "can_sync" in permissions:
+                value = permissions["can_sync"]
+                if hasattr(policy, "EnableSyncTranscoding"):  # pyright: ignore[reportAny]
+                    policy.EnableSyncTranscoding = value
+                elif hasattr(policy, "enable_sync_transcoding"):  # pyright: ignore[reportAny]
+                    policy.enable_sync_transcoding = value
+
+            # can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding (Requirement 7.6)
+            if "can_transcode" in permissions:
+                value = permissions["can_transcode"]
+                # Set EnableAudioPlaybackTranscoding
+                if hasattr(policy, "EnableAudioPlaybackTranscoding"):  # pyright: ignore[reportAny]
+                    policy.EnableAudioPlaybackTranscoding = value
+                elif hasattr(policy, "enable_audio_playback_transcoding"):  # pyright: ignore[reportAny]
+                    policy.enable_audio_playback_transcoding = value
+                # Set EnableVideoPlaybackTranscoding
+                if hasattr(policy, "EnableVideoPlaybackTranscoding"):  # pyright: ignore[reportAny]
+                    policy.EnableVideoPlaybackTranscoding = value
+                elif hasattr(policy, "enable_video_playback_transcoding"):  # pyright: ignore[reportAny]
+                    policy.enable_video_playback_transcoding = value
+
+            # Step 4: Update user policy via jellyfin-sdk (Requirement 7.7)
+            self._api.users.update_policy(  # pyright: ignore[reportAny]
+                external_user_id, policy
+            )
+
+            return True
+
+        except MediaClientError:
+            # Re-raise our own errors
+            raise
+        except Exception as exc:
+            error_msg = str(exc).lower()
+            # Check for user not found error - return False
+            if "not found" in error_msg or "404" in error_msg:
+                return False
+
+            # Re-raise other errors as MediaClientError (Requirement 7.8)
+            raise MediaClientError(
+                f"Failed to update permissions on Jellyfin server: {exc}",
+                operation="update_permissions",
+                server_url=self.url,
+                cause=str(exc),
+            ) from exc
