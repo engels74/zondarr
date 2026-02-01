@@ -69,54 +69,54 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
 
   - [x] 2.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 3. Checkpoint - Verify core PlexClient functionality
+- [x] 3. Checkpoint - Verify core PlexClient functionality
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement PlexClient user creation
-  - [ ] 4.1 Implement Friend user creation via inviteFriend
+- [-] 4. Implement PlexClient user creation
+  - [x] 4.1 Implement Friend user creation via inviteFriend
     - Use asyncio.to_thread() to call account.inviteFriend()
     - Return ExternalUser with email as identifier
     - Raise MediaClientError with USER_ALREADY_EXISTS on duplicate
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
-    - [ ] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.2 Write property test for Friend creation
+  - [x] 4.2 Write property test for Friend creation
     - **Property 4: Friend Creation Returns Valid ExternalUser**
     - **Validates: Requirements 4.1, 4.2**
-    - [ ] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.3 Implement Home User creation via createHomeUser
+  - [x] 4.3 Implement Home User creation via createHomeUser
     - Use asyncio.to_thread() to call account.createHomeUser()
     - Return ExternalUser with Plex user ID as identifier
     - Raise MediaClientError with USERNAME_TAKEN on duplicate
     - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5_
-    - [ ] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.4 Write property test for Home User creation
+  - [x] 4.4 Write property test for Home User creation
     - **Property 5: Home User Creation Returns Valid ExternalUser**
     - **Validates: Requirements 5.1, 5.2**
-    - [ ] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.5 Implement create_user method with user type routing
+  - [x] 4.5 Implement create_user method with user type routing
     - Accept plex_user_type parameter (default FRIEND)
     - Route to _create_friend if FRIEND and email provided
     - Route to _create_home_user if HOME
     - Raise MediaClientError with EMAIL_REQUIRED if FRIEND without email
     - _Requirements: 6.1, 6.2, 6.3, 6.4, 6.5_
-    - [ ] 4.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.6 Write property test for user type routing
+  - [x] 4.6 Write property test for user type routing
     - **Property 6: User Type Routing Correctness**
     - **Validates: Requirements 6.1, 6.2, 6.3, 6.4**
-    - [ ] 4.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 4.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 4.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 4.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 4.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [-] 4.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 5. Implement PlexClient user management
   - [ ] 5.1 Implement delete_user method

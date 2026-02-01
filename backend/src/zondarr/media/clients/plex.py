@@ -203,14 +203,164 @@ class PlexClient:
                 cause=str(exc),
             ) from exc
 
+    async def _create_friend(self, email: str) -> ExternalUser:
+        """Create a Friend user via inviteFriend.
+
+        Sends an invitation to an existing Plex.tv account. The user must
+        have an existing Plex account or create one to accept the invitation.
+
+        Args:
+            email: The email address of the Plex.tv account to invite.
+
+        Returns:
+            An ExternalUser with the email as external_user_id and username.
+
+        Raises:
+            MediaClientError: If the client is not initialized.
+            MediaClientError: If the user is already a Friend (USER_ALREADY_EXISTS).
+            MediaClientError: If the invitation fails for other reasons.
+        """
+        if self._account is None or self._server is None:
+            raise MediaClientError(
+                "Client not initialized - use async context manager",
+                operation="create_friend",
+                server_url=self.url,
+                cause="API client is None - __aenter__ was not called",
+            )
+
+        try:
+
+            def _invite() -> object:
+                assert self._account is not None  # noqa: S101
+                assert self._server is not None  # noqa: S101
+                # plexapi lacks type stubs, inviteFriend returns MyPlexUser
+                # We pass the server to share with the friend
+                return self._account.inviteFriend(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                    user=email,
+                    server=self._server,
+                )
+
+            user = await asyncio.to_thread(_invite)
+            # plexapi MyPlexUser has id and username attributes
+            user_id: str = str(getattr(user, "id", email))
+            username: str = getattr(user, "username", None) or email
+
+            log.info(
+                "plex_friend_created",
+                url=self.url,
+                email=email,
+                user_id=user_id,
+            )
+
+            return ExternalUser(
+                external_user_id=user_id,
+                username=username,
+                email=email,
+            )
+
+        except MediaClientError:
+            raise
+        except Exception as exc:
+            error_str = str(exc).lower()
+            # Check for duplicate user error
+            if "already" in error_str or "shared" in error_str:
+                raise MediaClientError(
+                    f"User with email {email} is already a Friend",
+                    operation="create_friend",
+                    server_url=self.url,
+                    cause=str(exc),
+                    error_code="USER_ALREADY_EXISTS",
+                ) from exc
+
+            raise MediaClientError(
+                f"Failed to invite Friend: {exc}",
+                operation="create_friend",
+                server_url=self.url,
+                cause=str(exc),
+            ) from exc
+
+    async def _create_home_user(self, username: str) -> ExternalUser:
+        """Create a Home User via createHomeUser.
+
+        Creates a managed user within the Plex Home. Home Users do not
+        require an external Plex.tv account.
+
+        Args:
+            username: The username for the new Home User.
+
+        Returns:
+            An ExternalUser with the Plex user ID as external_user_id.
+
+        Raises:
+            MediaClientError: If the client is not initialized.
+            MediaClientError: If the username is already taken (USERNAME_TAKEN).
+            MediaClientError: If Home User creation fails for other reasons.
+        """
+        if self._account is None or self._server is None:
+            raise MediaClientError(
+                "Client not initialized - use async context manager",
+                operation="create_home_user",
+                server_url=self.url,
+                cause="API client is None - __aenter__ was not called",
+            )
+
+        try:
+
+            def _create() -> object:
+                assert self._account is not None  # noqa: S101
+                assert self._server is not None  # noqa: S101
+                # plexapi lacks type stubs, createHomeUser returns MyPlexUser
+                return self._account.createHomeUser(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+                    user=username,
+                    server=self._server,
+                )
+
+            user = await asyncio.to_thread(_create)
+            # plexapi MyPlexUser has id attribute
+            user_id: str = str(getattr(user, "id", ""))
+
+            log.info(
+                "plex_home_user_created",
+                url=self.url,
+                username=username,
+                user_id=user_id,
+            )
+
+            return ExternalUser(
+                external_user_id=user_id,
+                username=username,
+                email=None,
+            )
+
+        except MediaClientError:
+            raise
+        except Exception as exc:
+            error_str = str(exc).lower()
+            # Check for duplicate username error
+            if "taken" in error_str or "exists" in error_str or "already" in error_str:
+                raise MediaClientError(
+                    f"Username '{username}' is already taken",
+                    operation="create_home_user",
+                    server_url=self.url,
+                    cause=str(exc),
+                    error_code="USERNAME_TAKEN",
+                ) from exc
+
+            raise MediaClientError(
+                f"Failed to create Home User: {exc}",
+                operation="create_home_user",
+                server_url=self.url,
+                cause=str(exc),
+            ) from exc
+
     async def create_user(
         self,
-        _username: str,
-        _password: str,
+        username: str,
+        password: str,
         /,
         *,
-        _email: str | None = None,
-        _plex_user_type: PlexUserType = PlexUserType.FRIEND,
+        email: str | None = None,
+        plex_user_type: PlexUserType = PlexUserType.FRIEND,
     ) -> ExternalUser:
         """Create a new user on the Plex server.
 
@@ -222,10 +372,10 @@ class PlexClient:
         is handled through Plex.tv accounts or managed Home Users.
 
         Args:
-            _username: The username for the new account (positional-only).
-            _password: Ignored for Plex (positional-only).
-            _email: Email address for Friend invitations (keyword-only).
-            _plex_user_type: Type of user to create - FRIEND or HOME (keyword-only).
+            username: The username for the new account (positional-only).
+            password: Ignored for Plex (positional-only).
+            email: Email address for Friend invitations (keyword-only).
+            plex_user_type: Type of user to create - FRIEND or HOME (keyword-only).
 
         Returns:
             An ExternalUser object with the created user's details.
@@ -236,8 +386,21 @@ class PlexClient:
             MediaClientError: If the user already exists.
             MediaClientError: If user creation fails for other reasons.
         """
-        # Stub - will be implemented in task 4
-        raise NotImplementedError("Plex create_user implementation in task 4")
+        _ = password  # Explicitly ignore password parameter
+
+        if plex_user_type == PlexUserType.FRIEND:
+            if email is None:
+                raise MediaClientError(
+                    "Email is required for Friend invitations",
+                    operation="create_user",
+                    server_url=self.url,
+                    cause="plex_user_type is FRIEND but email was not provided",
+                    error_code="EMAIL_REQUIRED",
+                )
+            return await self._create_friend(email)
+
+        # plex_user_type == PlexUserType.HOME
+        return await self._create_home_user(username)
 
     async def delete_user(self, _external_user_id: str, /) -> bool:
         """Delete a user from the Plex server.
