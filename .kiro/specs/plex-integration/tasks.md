@@ -6,68 +6,68 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
 
 ## Tasks
 
-- [ ] 1. Add plexapi dependency and extend media types
-  - [ ] 1.1 Add plexapi package to project dependencies
+- [x] 1. Add plexapi dependency and extend media types
+  - [x] 1.1 Add plexapi package to project dependencies
     - Run `uv add plexapi` in the backend directory
     - Verify plexapi version >= 4.18.0
     - _Requirements: 18.1_
-    - [ ] 1.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 1.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 1.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 1.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 1.2 Add PlexUserType enum to media/types.py
+  - [x] 1.2 Add PlexUserType enum to media/types.py
     - Add `PlexUserType` StrEnum with FRIEND and HOME values
     - Follow existing Capability enum pattern
     - _Requirements: 6.1_
-    - [ ] 1.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 1.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 1.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 1.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 1.3 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [x] 1.3 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 2. Implement PlexClient core functionality
-  - [ ] 2.1 Implement PlexClient connection management
+- [x] 2. Implement PlexClient core functionality
+  - [x] 2.1 Implement PlexClient connection management
     - Implement `__init__` with url and api_key parameters
     - Implement `__aenter__` using asyncio.to_thread() to create PlexServer and MyPlexAccount
     - Implement `__aexit__` to clean up resources
     - Implement `capabilities()` returning CREATE_USER, DELETE_USER, LIBRARY_ACCESS
     - _Requirements: 1.1, 1.2, 2.1, 2.2, 2.3, 2.4, 2.5_
-    - [ ] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.2 Write property test for context manager round-trip
+  - [x] 2.2 Write property test for context manager round-trip
     - **Property 1: Context Manager Round-Trip**
     - **Validates: Requirements 1.1, 1.2**
-    - [ ] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.3 Implement test_connection method
+  - [x] 2.3 Implement test_connection method
     - Use asyncio.to_thread() to query server info
     - Return True on success, False on any exception
     - Do not raise exceptions for connection failures
     - _Requirements: 1.3, 1.4, 1.5_
-    - [ ] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.4 Write property test for test_connection return values
+  - [x] 2.4 Write property test for test_connection return values
     - **Property 2: Connection Test Return Value Correctness**
     - **Validates: Requirements 1.3, 1.4, 1.5**
-    - [ ] 2.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.5 Implement get_libraries method
+  - [x] 2.5 Implement get_libraries method
     - Use asyncio.to_thread() to call server.library.sections()
     - Map each section to LibraryInfo with key as external_id, title as name, type as library_type
     - Raise MediaClientError if client not initialized or on API failure
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
-    - [ ] 2.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.6 Write property test for get_libraries
+  - [x] 2.6 Write property test for get_libraries
     - **Property 3: Library Retrieval Produces Valid Structs**
     - **Validates: Requirements 3.1, 3.2**
-    - [ ] 2.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 2.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 2.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [x] 2.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 3. Checkpoint - Verify core PlexClient functionality
   - Ensure all tests pass, ask the user if questions arise.
