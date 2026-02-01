@@ -73,15 +73,15 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - [x] 3.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 3.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 3.3 Implement update_permissions method
+  - [x] 3.3 Implement update_permissions method
     - Map universal permissions to Jellyfin policy fields
     - can_download → EnableContentDownloading
     - can_stream → EnableMediaPlayback
     - can_sync → EnableSyncTranscoding
     - can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
-    - [ ] 3.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 3.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 3.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 3.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 3.4 Write property test for permission mapping
     - **Property 6: Permission Mapping Correctness**
