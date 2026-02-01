@@ -32,7 +32,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 1.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 1.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 2. Core Exceptions and Types
+- [x] 2. Core Exceptions and Types
   - [x] 2.1 Implement exception hierarchy
     - Create `core/exceptions.py` with ZondarrError base class
     - Add ConfigurationError, RepositoryError, ValidationError, NotFoundError
@@ -47,12 +47,12 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 3. Database Models
-  - [ ] 3.1 Implement base model and mixins
+  - [x] 3.1 Implement base model and mixins
     - Create `models/base.py` with Base, TimestampMixin, UUIDPrimaryKeyMixin
     - Use timezone-aware UTC datetimes
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
-    - [ ] 3.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 3.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 3.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 3.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 3.2 Implement MediaServer and Library models
     - Create `models/media_server.py` with ServerType enum, MediaServer, Library
