@@ -100,13 +100,13 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 5.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 5.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 5.3 Implement MediaClient protocol
+  - [x] 5.3 Implement MediaClient protocol
     - Create `media/protocol.py` with MediaClient Protocol class
     - Define all async methods with proper type hints
     - Use Self type and positional-only/keyword-only parameters
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.10_
-    - [ ] 5.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 5.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 5.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 5.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 5.4 Implement ClientRegistry singleton
     - Create `media/registry.py` with ClientRegistry class
