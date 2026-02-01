@@ -105,23 +105,23 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
 - [x] 4. Checkpoint - JellyfinClient complete
   - Ensure all JellyfinClient tests pass, ask the user if questions arise.
 
-- [ ] 5. Add API schemas for invitations
-  - [ ] 5.1 Add invitation request/response schemas to api/schemas.py
+- [x] 5. Add API schemas for invitations
+  - [x] 5.1 Add invitation request/response schemas to api/schemas.py
     - CreateInvitationRequest with server_ids, code, expires_at, max_uses, duration_days, library_ids, permissions
     - UpdateInvitationRequest with mutable fields only
     - InvitationResponse and InvitationDetailResponse with computed fields
     - InvitationListResponse with pagination
     - _Requirements: 9.1, 9.7, 10.1, 10.5, 11.1, 11.2_
-    - [ ] 5.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 5.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 5.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 5.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 5.2 Add validation/redemption schemas
+  - [x] 5.2 Add validation/redemption schemas
     - InvitationValidationResponse with valid, failure_reason, servers, libraries
     - RedeemInvitationRequest with username, password, email
     - RedemptionResponse and RedemptionErrorResponse
     - _Requirements: 13.1, 13.3, 14.1, 14.2_
-    - [ ] 5.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 5.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 5.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 5.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 6. Extend InvitationService with CRUD operations
   - [ ] 6.1 Add code generation with collision handling

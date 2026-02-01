@@ -53,6 +53,14 @@ PositiveInt = Annotated[int, msgspec.Meta(gt=0)]
 # Non-negative integer for use counts
 NonNegativeInt = Annotated[int, msgspec.Meta(ge=0)]
 
+# Username for redemption (lowercase, starts with letter)
+Username = Annotated[
+    str, msgspec.Meta(min_length=3, max_length=32, pattern=r"^[a-z][a-z0-9_]*$")
+]
+
+# Password for redemption (minimum 8 characters)
+Password = Annotated[str, msgspec.Meta(min_length=8, max_length=128)]
+
 
 # =============================================================================
 # Error Response Schemas
@@ -224,58 +232,77 @@ class MediaServerWithLibrariesResponse(msgspec.Struct, omit_defaults=True):
 # =============================================================================
 
 
-class InvitationCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+class CreateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """Request to create an invitation.
 
     Attributes:
+        server_ids: List of media server IDs this invitation grants access to.
         code: Unique invitation code (if not provided, one will be generated).
         expires_at: Optional expiration timestamp.
         max_uses: Optional maximum number of redemptions.
         duration_days: Optional duration in days for user access after redemption.
-        server_ids: List of media server IDs this invitation grants access to.
         library_ids: Optional list of specific library IDs to grant access to.
+        permissions: Optional permission overrides (can_download, can_stream, etc.).
     """
 
+    server_ids: list[UUID]
     code: InvitationCode | None = None
     expires_at: datetime | None = None
     max_uses: PositiveInt | None = None
     duration_days: PositiveInt | None = None
-    server_ids: list[UUID]
     library_ids: list[UUID] | None = None
+    permissions: dict[str, bool] | None = None
 
 
-class InvitationUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Request to update an invitation.
+# Alias for backwards compatibility
+InvitationCreate = CreateInvitationRequest
+
+
+class UpdateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to update an invitation (mutable fields only).
 
     All fields are optional - only provided fields will be updated.
+    Immutable fields (code, use_count, created_at, created_by) cannot be updated.
 
     Attributes:
         expires_at: Optional expiration timestamp.
         max_uses: Optional maximum number of redemptions.
         duration_days: Optional duration in days for user access after redemption.
         enabled: Whether the invitation is currently active.
+        server_ids: List of media server IDs this invitation grants access to.
+        library_ids: Optional list of specific library IDs to grant access to.
+        permissions: Optional permission overrides (can_download, can_stream, etc.).
     """
 
     expires_at: datetime | None = None
     max_uses: PositiveInt | None = None
     duration_days: PositiveInt | None = None
     enabled: bool | None = None
+    server_ids: list[UUID] | None = None
+    library_ids: list[UUID] | None = None
+    permissions: dict[str, bool] | None = None
+
+
+# Alias for backwards compatibility
+InvitationUpdate = UpdateInvitationRequest
 
 
 class InvitationResponse(msgspec.Struct, omit_defaults=True):
-    """Invitation response.
+    """Invitation response with computed fields.
 
     Attributes:
         id: Unique identifier for the invitation.
         code: Unique invitation code.
+        use_count: Current number of times the invitation has been redeemed.
+        enabled: Whether the invitation is currently active.
+        created_at: When the invitation was created.
         expires_at: Optional expiration timestamp.
         max_uses: Optional maximum number of redemptions.
-        use_count: Current number of times the invitation has been redeemed.
         duration_days: Optional duration in days for user access after redemption.
-        enabled: Whether the invitation is currently active.
         created_by: Optional identifier of who created the invitation.
-        created_at: When the invitation was created.
         updated_at: When the invitation was last modified.
+        is_active: Computed field: enabled AND not expired AND use_count < max_uses.
+        remaining_uses: Computed field: max_uses - use_count if max_uses set.
     """
 
     id: UUID
@@ -288,6 +315,8 @@ class InvitationResponse(msgspec.Struct, omit_defaults=True):
     duration_days: int | None = None
     created_by: str | None = None
     updated_at: datetime | None = None
+    is_active: bool = True
+    remaining_uses: int | None = None
 
 
 class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
@@ -296,16 +325,18 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
     Attributes:
         id: Unique identifier for the invitation.
         code: Unique invitation code.
-        expires_at: Optional expiration timestamp.
-        max_uses: Optional maximum number of redemptions.
         use_count: Current number of times the invitation has been redeemed.
-        duration_days: Optional duration in days for user access after redemption.
         enabled: Whether the invitation is currently active.
-        created_by: Optional identifier of who created the invitation.
         created_at: When the invitation was created.
-        updated_at: When the invitation was last modified.
         target_servers: List of media servers this invitation grants access to.
         allowed_libraries: List of specific libraries this invitation grants access to.
+        expires_at: Optional expiration timestamp.
+        max_uses: Optional maximum number of redemptions.
+        duration_days: Optional duration in days for user access after redemption.
+        created_by: Optional identifier of who created the invitation.
+        updated_at: When the invitation was last modified.
+        is_active: Computed field: enabled AND not expired AND use_count < max_uses.
+        remaining_uses: Computed field: max_uses - use_count if max_uses set.
     """
 
     id: UUID
@@ -320,6 +351,63 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
     duration_days: int | None = None
     created_by: str | None = None
     updated_at: datetime | None = None
+    is_active: bool = True
+    remaining_uses: int | None = None
+
+
+class InvitationListResponse(msgspec.Struct, kw_only=True):
+    """Paginated invitation list response.
+
+    Attributes:
+        items: List of invitations for the current page.
+        total: Total number of invitations matching the query.
+        page: Current page number (1-indexed).
+        page_size: Number of items per page.
+        has_next: Whether there are more pages available.
+    """
+
+    items: list[InvitationResponse]
+    total: int
+    page: int
+    page_size: int
+    has_next: bool
+
+
+# =============================================================================
+# Invitation Validation/Redemption Schemas
+# =============================================================================
+
+
+class InvitationValidationResponse(msgspec.Struct, omit_defaults=True):
+    """Response from invitation validation endpoint.
+
+    Attributes:
+        valid: Whether the invitation code is valid for redemption.
+        failure_reason: Specific reason if invalid (not_found, disabled, expired, max_uses_reached).
+        target_servers: List of media servers the invitation grants access to (if valid).
+        allowed_libraries: List of specific libraries the invitation grants access to (if valid).
+        duration_days: Duration in days for user access after redemption (if valid).
+    """
+
+    valid: bool
+    failure_reason: str | None = None
+    target_servers: list[MediaServerResponse] | None = None
+    allowed_libraries: list[LibraryResponse] | None = None
+    duration_days: int | None = None
+
+
+class RedeemInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to redeem an invitation.
+
+    Attributes:
+        username: Username for the new accounts (3-32 chars, lowercase, starts with letter).
+        password: Password for the new accounts (minimum 8 characters).
+        email: Optional email address for the identity.
+    """
+
+    username: Username
+    password: Password
+    email: EmailStr | None = None
 
 
 # =============================================================================
@@ -434,6 +522,45 @@ class IdentityWithUsersResponse(msgspec.Struct, omit_defaults=True):
     email: str | None = None
     expires_at: datetime | None = None
     updated_at: datetime | None = None
+
+
+# =============================================================================
+# Redemption Response Schemas
+# =============================================================================
+
+
+class RedemptionResponse(msgspec.Struct, omit_defaults=True):
+    """Response from successful invitation redemption.
+
+    Attributes:
+        success: Always True for successful redemption.
+        identity_id: ID of the created identity.
+        users_created: List of users created on each target server.
+        message: Optional success message.
+    """
+
+    success: bool
+    identity_id: UUID
+    users_created: list[UserResponse]
+    message: str | None = None
+
+
+class RedemptionErrorResponse(msgspec.Struct, kw_only=True):
+    """Response from failed invitation redemption.
+
+    Attributes:
+        success: Always False for failed redemption.
+        error_code: Machine-readable error code (e.g., USERNAME_TAKEN, SERVER_ERROR).
+        message: Human-readable error description.
+        failed_server: Name of the server that failed (if applicable).
+        partial_users: List of users that were created before failure (for rollback info).
+    """
+
+    success: bool = False
+    error_code: str
+    message: str
+    failed_server: str | None = None
+    partial_users: list[UserResponse] | None = None
 
 
 # =============================================================================
