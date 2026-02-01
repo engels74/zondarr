@@ -188,7 +188,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
   - [x] 7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
   - [x] 7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 8. Service Layer
+- [x] 8. Service Layer
   - [x] 8.1 Implement MediaServerService
     - Create `services/media_server.py`
     - Implement add, update, remove, test_connection methods
@@ -214,13 +214,13 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 8.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 9. API Layer
-  - [ ] 9.1 Implement API schemas
+  - [x] 9.1 Implement API schemas
     - Create `api/schemas.py` with msgspec Structs
     - Define ErrorResponse, MediaServerCreate, MediaServerResponse, etc.
     - Use Meta annotations for validation constraints
     - _Requirements: 7.3, 9.1_
-    - [ ] 9.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 9.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 9.2 Implement error handlers
     - Create `api/errors.py` with exception handlers
