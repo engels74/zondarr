@@ -216,3 +216,36 @@ class MediaClient(Protocol):
             MediaClientError: If the operation fails due to server error.
         """
         ...
+
+    async def update_permissions(
+        self,
+        external_user_id: str,
+        /,
+        *,
+        permissions: dict[str, bool],
+    ) -> bool:
+        """Update user permissions by mapping universal permissions to server-specific settings.
+
+        Maps universal permission names to server-specific policy fields.
+        Only provided keys are updated; other permissions remain unchanged.
+
+        Universal permission mapping:
+        - can_download: Whether the user can download content
+        - can_stream: Whether the user can stream/play content
+        - can_sync: Whether the user can sync content for offline use
+        - can_transcode: Whether the user can use transcoding
+
+        Args:
+            external_user_id: The user's unique identifier on the media server
+                (positional-only).
+            permissions: Dictionary mapping universal permission names to boolean
+                values (keyword-only).
+
+        Returns:
+            True if permissions were successfully updated, False if the user
+            was not found.
+
+        Raises:
+            MediaClientError: If the operation fails due to server error.
+        """
+        ...
