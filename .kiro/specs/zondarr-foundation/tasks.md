@@ -130,13 +130,13 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 5.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 5.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 5.7 Write property tests for registry
+  - [x] 5.7 Write property tests for registry
     - **Property 5: Registry Returns Correct Client**
     - **Property 6: Registry Raises Error for Unknown Types**
     - **Property 7: Registry Singleton Behavior**
     - **Validates: Requirements 4.2, 4.3, 4.4, 4.5**
-    - [ ] 5.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 5.7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 5.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 5.7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 6. Repository Layer
   - [ ] 6.1 Implement base repository
