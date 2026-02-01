@@ -189,13 +189,13 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
   - [x] 7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 8. Service Layer
-  - [ ] 8.1 Implement MediaServerService
+  - [x] 8.1 Implement MediaServerService
     - Create `services/media_server.py`
     - Implement add, update, remove, test_connection methods
     - Validate connection before persisting
     - _Requirements: 6.1, 6.2, 6.3_
-    - [ ] 8.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 8.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 8.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 8.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 8.2 Implement InvitationService
     - Create `services/invitation.py`
