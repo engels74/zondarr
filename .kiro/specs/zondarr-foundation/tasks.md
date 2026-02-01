@@ -116,12 +116,12 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 5.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 5.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 5.5 Implement Jellyfin client stub
+  - [x] 5.5 Implement Jellyfin client stub
     - Create `media/clients/jellyfin.py` with JellyfinClient class
     - Implement capabilities() and stub methods with NotImplementedError
     - _Requirements: 4.6_
-    - [ ] 5.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 5.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 5.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 5.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 5.6 Implement Plex client stub
     - Create `media/clients/plex.py` with PlexClient class
