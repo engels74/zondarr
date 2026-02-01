@@ -222,14 +222,14 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 9.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 9.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 9.2 Implement error handlers
+  - [x] 9.2 Implement error handlers
     - Create `api/errors.py` with exception handlers
     - Handle ValidationError, NotFoundError, and generic exceptions
     - Include correlation IDs in responses and logs
     - Never expose internal details
     - _Requirements: 9.2, 9.3, 9.4, 9.5, 9.6_
-    - [ ] 9.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 9.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 9.3 Implement health controller
     - Create `api/health.py` with HealthController
