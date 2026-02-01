@@ -8,6 +8,7 @@ repositories and external systems. Services handle:
 - External system integration
 """
 
+from zondarr.services.invitation import InvitationService, InvitationValidationFailure
 from zondarr.services.media_server import MediaServerService
 
-__all__ = ["MediaServerService"]
+__all__ = ["InvitationService", "InvitationValidationFailure", "MediaServerService"]

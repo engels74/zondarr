@@ -197,14 +197,14 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 8.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 8.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 8.2 Implement InvitationService
+  - [x] 8.2 Implement InvitationService
     - Create `services/invitation.py`
     - Implement create, validate, redeem methods
     - Check expiration, use count, enabled status on redemption
     - Return specific error reasons for validation failures
     - _Requirements: 6.4, 6.5, 6.6_
-    - [ ] 8.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 8.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 8.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 8.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 8.3 Write property tests for services
     - **Property 10: Service Validates Before Persisting**
