@@ -206,12 +206,12 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 8.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 8.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 8.3 Write property tests for services
+  - [x] 8.3 Write property tests for services
     - **Property 10: Service Validates Before Persisting**
     - **Property 11: Invitation Validation Checks All Conditions**
     - **Validates: Requirements 6.3, 6.5, 6.6**
-    - [ ] 8.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 8.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 8.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 8.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 9. API Layer
   - [ ] 9.1 Implement API schemas
