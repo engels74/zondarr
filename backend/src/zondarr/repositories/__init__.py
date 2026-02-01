@@ -6,6 +6,7 @@ RepositoryError for consistent error handling.
 """
 
 from zondarr.repositories.base import Repository
+from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 
-__all__ = ["MediaServerRepository", "Repository"]
+__all__ = ["InvitationRepository", "MediaServerRepository", "Repository"]

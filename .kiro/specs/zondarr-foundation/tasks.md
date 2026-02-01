@@ -154,12 +154,12 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 6.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 6.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 6.3 Implement InvitationRepository
+  - [x] 6.3 Implement InvitationRepository
     - Create `repositories/invitation.py`
     - Add get_by_code, get_active, increment_use_count, disable methods
     - _Requirements: 5.3_
-    - [ ] 6.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 6.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 6.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 6.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 6.4 Implement IdentityRepository
     - Create `repositories/identity.py`
