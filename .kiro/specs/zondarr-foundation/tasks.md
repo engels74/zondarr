@@ -138,7 +138,7 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 5.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 5.7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 6. Repository Layer
+- [x] 6. Repository Layer
   - [x] 6.1 Implement base repository
     - Create `repositories/base.py` with generic Repository[T] class
     - Implement get_by_id, get_all, create, delete with error wrapping
@@ -175,18 +175,18 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 6.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 6.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 6.6 Write property tests for repositories
+  - [x] 6.6 Write property tests for repositories
     - **Property 8: Repository CRUD Round-Trip**
     - **Property 9: Repository Wraps Database Errors**
     - **Validates: Requirements 5.2, 5.3, 5.4, 5.5, 5.6**
-    - [ ] 6.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 6.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 6.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 6.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-- [ ] 7. Checkpoint - Verify repository layer
+- [x] 7. Checkpoint - Verify repository layer
   - Ensure all repositories compile and type check
   - Run `basedpyright` to check type errors
-  - [ ] 7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-  - [ ] 7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+  - [x] 7.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+  - [x] 7.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 8. Service Layer
   - [ ] 8.1 Implement MediaServerService
