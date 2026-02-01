@@ -75,11 +75,11 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 3.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 3.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 3.5 Write property tests for model serialization
+  - [-] 3.5 Write property tests for model serialization
     - **Property 3: Model Serialization Round-Trip**
     - **Validates: Requirements 2.7**
-    - [ ] 3.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 3.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 3.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 3.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 4. Checkpoint - Verify models compile
   - Ensure all models import correctly and relationships are valid
