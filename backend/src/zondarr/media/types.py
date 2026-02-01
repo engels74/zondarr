@@ -37,6 +37,26 @@ class Capability(StrEnum):
     DOWNLOAD_PERMISSION = "download_permission"
 
 
+class PlexUserType(StrEnum):
+    """Type of Plex user to create.
+
+    Plex supports two distinct user types with different creation methods
+    and capabilities. This enum is used to route user creation to the
+    appropriate Plex API method.
+
+    Attributes:
+        FRIEND: External Plex.tv account invited via inviteFriend().
+            Requires the user's email address. The invited user must
+            have an existing Plex account or create one.
+        HOME: Managed user within Plex Home via createHomeUser().
+            Does not require an external Plex account. The user is
+            managed entirely within the server owner's Plex Home.
+    """
+
+    FRIEND = "friend"
+    HOME = "home"
+
+
 class LibraryInfo(msgspec.Struct, omit_defaults=True, kw_only=True):
     """Information about a library retrieved from a media server.
 
