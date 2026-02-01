@@ -239,11 +239,11 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 9.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 9.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 9.4 Write property tests for health endpoints
+  - [x] 9.4 Write property tests for health endpoints
     - **Property 12: Health Endpoints Return Correct Status**
     - **Validates: Requirements 8.4, 8.5, 8.6, 8.7**
-    - [ ] 9.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 9.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 9.5 Write property tests for error handling
     - **Property 13: Error Responses Are Safe and Traceable**
