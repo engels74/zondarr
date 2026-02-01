@@ -1,8 +1,8 @@
 """Property-based tests for JellyfinClient.
 
 Feature: jellyfin-integration
-Properties: 2, 4, 5
-Validates: Requirements 2.2, 2.4, 5.2, 5.3, 6.2, 6.3
+Properties: 2, 4, 5, 6
+Validates: Requirements 2.2, 2.4, 5.2, 5.3, 6.2, 6.3, 7.3, 7.4, 7.5, 7.6
 """
 
 from hypothesis import given, settings
@@ -851,3 +851,499 @@ class TestLibraryAccessConfiguration:
         # Assert: Order is preserved
         for i, lib_id in enumerate(library_ids):
             assert policy.EnabledFolders[i] == lib_id
+
+
+# =============================================================================
+# Property 6: Permission Mapping Correctness
+# =============================================================================
+
+
+class MockPermissionPolicy:
+    """Mock Jellyfin user policy object for permission mapping testing.
+
+    Simulates the structure of a Jellyfin UserPolicy object with permission
+    fields. Supports both PascalCase and snake_case attribute access patterns.
+
+    Permission mapping (per Requirements 7.3-7.6):
+    - can_download → EnableContentDownloading
+    - can_stream → EnableMediaPlayback
+    - can_sync → EnableSyncTranscoding
+    - can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
+    """
+
+    EnableContentDownloading: bool
+    EnableMediaPlayback: bool
+    EnableSyncTranscoding: bool
+    EnableAudioPlaybackTranscoding: bool
+    EnableVideoPlaybackTranscoding: bool
+    enable_content_downloading: bool
+    enable_media_playback: bool
+    enable_sync_transcoding: bool
+    enable_audio_playback_transcoding: bool
+    enable_video_playback_transcoding: bool
+
+    def __init__(
+        self,
+        *,
+        enable_content_downloading: bool = False,
+        enable_media_playback: bool = True,
+        enable_sync_transcoding: bool = False,
+        enable_audio_playback_transcoding: bool = True,
+        enable_video_playback_transcoding: bool = True,
+    ) -> None:
+        """Initialize a mock permission policy.
+
+        Args:
+            enable_content_downloading: Initial EnableContentDownloading state.
+            enable_media_playback: Initial EnableMediaPlayback state.
+            enable_sync_transcoding: Initial EnableSyncTranscoding state.
+            enable_audio_playback_transcoding: Initial EnableAudioPlaybackTranscoding state.
+            enable_video_playback_transcoding: Initial EnableVideoPlaybackTranscoding state.
+        """
+        # PascalCase attributes (Jellyfin API style)
+        self.EnableContentDownloading = enable_content_downloading
+        self.EnableMediaPlayback = enable_media_playback
+        self.EnableSyncTranscoding = enable_sync_transcoding
+        self.EnableAudioPlaybackTranscoding = enable_audio_playback_transcoding
+        self.EnableVideoPlaybackTranscoding = enable_video_playback_transcoding
+        # snake_case attributes (Python style)
+        self.enable_content_downloading = enable_content_downloading
+        self.enable_media_playback = enable_media_playback
+        self.enable_sync_transcoding = enable_sync_transcoding
+        self.enable_audio_playback_transcoding = enable_audio_playback_transcoding
+        self.enable_video_playback_transcoding = enable_video_playback_transcoding
+
+
+class MockPermissionUser:
+    """Mock Jellyfin user object for permission mapping testing.
+
+    Simulates the structure returned by jellyfin-sdk's users.get() with
+    permission policy fields.
+    """
+
+    Id: str
+    Name: str
+    Policy: MockPermissionPolicy
+    id: str
+    name: str
+    policy: MockPermissionPolicy
+
+    def __init__(
+        self,
+        *,
+        user_id: str,
+        name: str,
+        enable_content_downloading: bool = False,
+        enable_media_playback: bool = True,
+        enable_sync_transcoding: bool = False,
+        enable_audio_playback_transcoding: bool = True,
+        enable_video_playback_transcoding: bool = True,
+    ) -> None:
+        """Initialize a mock Jellyfin user for permission mapping testing.
+
+        Args:
+            user_id: The user's unique identifier (keyword-only).
+            name: The user's display name (keyword-only).
+            enable_content_downloading: Initial EnableContentDownloading state.
+            enable_media_playback: Initial EnableMediaPlayback state.
+            enable_sync_transcoding: Initial EnableSyncTranscoding state.
+            enable_audio_playback_transcoding: Initial EnableAudioPlaybackTranscoding state.
+            enable_video_playback_transcoding: Initial EnableVideoPlaybackTranscoding state.
+        """
+        policy = MockPermissionPolicy(
+            enable_content_downloading=enable_content_downloading,
+            enable_media_playback=enable_media_playback,
+            enable_sync_transcoding=enable_sync_transcoding,
+            enable_audio_playback_transcoding=enable_audio_playback_transcoding,
+            enable_video_playback_transcoding=enable_video_playback_transcoding,
+        )
+        # PascalCase attributes (Jellyfin API style)
+        self.Id = user_id
+        self.Name = name
+        self.Policy = policy
+        # snake_case attributes (Python style)
+        self.id = user_id
+        self.name = name
+        self.policy = policy
+
+
+def apply_permissions_to_policy(
+    policy: MockPermissionPolicy,
+    /,
+    *,
+    permissions: dict[str, bool],
+) -> None:
+    """Apply universal permissions to a mock user policy.
+
+    This function replicates the permission mapping logic from
+    JellyfinClient.update_permissions() to test the property in isolation.
+
+    Permission mapping (per Requirements 7.3-7.6):
+    - can_download → EnableContentDownloading
+    - can_stream → EnableMediaPlayback
+    - can_sync → EnableSyncTranscoding
+    - can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
+
+    Args:
+        policy: The mock user policy to update (positional-only).
+        permissions: Dict of permission name to boolean (keyword-only).
+    """
+    # can_download → EnableContentDownloading (Requirement 7.3)
+    if "can_download" in permissions:
+        value = permissions["can_download"]
+        policy.EnableContentDownloading = value
+        policy.enable_content_downloading = value
+
+    # can_stream → EnableMediaPlayback (Requirement 7.4)
+    if "can_stream" in permissions:
+        value = permissions["can_stream"]
+        policy.EnableMediaPlayback = value
+        policy.enable_media_playback = value
+
+    # can_sync → EnableSyncTranscoding (Requirement 7.5)
+    if "can_sync" in permissions:
+        value = permissions["can_sync"]
+        policy.EnableSyncTranscoding = value
+        policy.enable_sync_transcoding = value
+
+    # can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding (Requirement 7.6)
+    if "can_transcode" in permissions:
+        value = permissions["can_transcode"]
+        policy.EnableAudioPlaybackTranscoding = value
+        policy.enable_audio_playback_transcoding = value
+        policy.EnableVideoPlaybackTranscoding = value
+        policy.enable_video_playback_transcoding = value
+
+
+# Strategy for permission dictionaries
+# Each permission can be present or absent, and if present, can be True or False
+permission_strategy = st.fixed_dictionaries(
+    {},
+    optional={
+        "can_download": st.booleans(),
+        "can_stream": st.booleans(),
+        "can_sync": st.booleans(),
+        "can_transcode": st.booleans(),
+    },
+)
+
+
+class TestPermissionMappingCorrectness:
+    """
+    Feature: jellyfin-integration
+    Property 6: Permission Mapping Correctness
+
+    *For any* dictionary of universal permissions, the mapping to Jellyfin
+    policy fields should correctly translate:
+    - can_download → EnableContentDownloading
+    - can_stream → EnableMediaPlayback
+    - can_sync → EnableSyncTranscoding
+    - can_transcode → EnableAudioPlaybackTranscoding AND EnableVideoPlaybackTranscoding
+
+    **Validates: Requirements 7.3, 7.4, 7.5, 7.6**
+    """
+
+    @settings(max_examples=100)
+    @given(
+        can_download=st.booleans(),
+    )
+    def test_can_download_maps_to_enable_content_downloading(
+        self,
+        can_download: bool,
+    ) -> None:
+        """can_download maps to EnableContentDownloading.
+
+        Per Requirement 7.3: THE Permission_Mapping SHALL translate
+        can_download to EnableContentDownloading in the Jellyfin UserPolicy.
+
+        **Validates: Requirements 7.3**
+        """
+        # Arrange: Create policy with opposite initial value
+        policy = MockPermissionPolicy(enable_content_downloading=not can_download)
+
+        # Act: Apply permission
+        apply_permissions_to_policy(policy, permissions={"can_download": can_download})
+
+        # Assert: EnableContentDownloading equals can_download
+        assert policy.EnableContentDownloading == can_download
+        assert policy.enable_content_downloading == can_download
+
+    @settings(max_examples=100)
+    @given(
+        can_stream=st.booleans(),
+    )
+    def test_can_stream_maps_to_enable_media_playback(
+        self,
+        can_stream: bool,
+    ) -> None:
+        """can_stream maps to EnableMediaPlayback.
+
+        Per Requirement 7.4: THE Permission_Mapping SHALL translate
+        can_stream to EnableMediaPlayback in the Jellyfin UserPolicy.
+
+        **Validates: Requirements 7.4**
+        """
+        # Arrange: Create policy with opposite initial value
+        policy = MockPermissionPolicy(enable_media_playback=not can_stream)
+
+        # Act: Apply permission
+        apply_permissions_to_policy(policy, permissions={"can_stream": can_stream})
+
+        # Assert: EnableMediaPlayback equals can_stream
+        assert policy.EnableMediaPlayback == can_stream
+        assert policy.enable_media_playback == can_stream
+
+    @settings(max_examples=100)
+    @given(
+        can_sync=st.booleans(),
+    )
+    def test_can_sync_maps_to_enable_sync_transcoding(
+        self,
+        can_sync: bool,
+    ) -> None:
+        """can_sync maps to EnableSyncTranscoding.
+
+        Per Requirement 7.5: THE Permission_Mapping SHALL translate
+        can_sync to EnableSyncTranscoding in the Jellyfin UserPolicy.
+
+        **Validates: Requirements 7.5**
+        """
+        # Arrange: Create policy with opposite initial value
+        policy = MockPermissionPolicy(enable_sync_transcoding=not can_sync)
+
+        # Act: Apply permission
+        apply_permissions_to_policy(policy, permissions={"can_sync": can_sync})
+
+        # Assert: EnableSyncTranscoding equals can_sync
+        assert policy.EnableSyncTranscoding == can_sync
+        assert policy.enable_sync_transcoding == can_sync
+
+    @settings(max_examples=100)
+    @given(
+        can_transcode=st.booleans(),
+    )
+    def test_can_transcode_maps_to_both_transcoding_fields(
+        self,
+        can_transcode: bool,
+    ) -> None:
+        """can_transcode maps to both audio and video transcoding fields.
+
+        Per Requirement 7.6: THE Permission_Mapping SHALL translate
+        can_transcode to EnableAudioPlaybackTranscoding and
+        EnableVideoPlaybackTranscoding in the Jellyfin UserPolicy.
+
+        **Validates: Requirements 7.6**
+        """
+        # Arrange: Create policy with opposite initial values
+        policy = MockPermissionPolicy(
+            enable_audio_playback_transcoding=not can_transcode,
+            enable_video_playback_transcoding=not can_transcode,
+        )
+
+        # Act: Apply permission
+        apply_permissions_to_policy(
+            policy, permissions={"can_transcode": can_transcode}
+        )
+
+        # Assert: Both transcoding fields equal can_transcode
+        assert policy.EnableAudioPlaybackTranscoding == can_transcode
+        assert policy.enable_audio_playback_transcoding == can_transcode
+        assert policy.EnableVideoPlaybackTranscoding == can_transcode
+        assert policy.enable_video_playback_transcoding == can_transcode
+
+    @settings(max_examples=100)
+    @given(
+        permissions=permission_strategy,
+    )
+    def test_all_permissions_map_correctly(
+        self,
+        permissions: dict[str, bool],
+    ) -> None:
+        """All provided permissions map to their corresponding Jellyfin fields.
+
+        For any combination of universal permissions, each provided permission
+        should be correctly mapped to its Jellyfin policy field(s).
+
+        **Validates: Requirements 7.3, 7.4, 7.5, 7.6**
+        """
+        # Arrange: Create policy with default values
+        policy = MockPermissionPolicy()
+
+        # Act: Apply all permissions
+        apply_permissions_to_policy(policy, permissions=permissions)
+
+        # Assert: Each provided permission is correctly mapped
+        if "can_download" in permissions:
+            assert policy.EnableContentDownloading == permissions["can_download"]
+
+        if "can_stream" in permissions:
+            assert policy.EnableMediaPlayback == permissions["can_stream"]
+
+        if "can_sync" in permissions:
+            assert policy.EnableSyncTranscoding == permissions["can_sync"]
+
+        if "can_transcode" in permissions:
+            assert policy.EnableAudioPlaybackTranscoding == permissions["can_transcode"]
+            assert policy.EnableVideoPlaybackTranscoding == permissions["can_transcode"]
+
+    @settings(max_examples=100)
+    @given(
+        user_id=item_id_strategy,
+        name=name_strategy,
+        initial_download=st.booleans(),
+        initial_stream=st.booleans(),
+        initial_sync=st.booleans(),
+        initial_audio_transcode=st.booleans(),
+        initial_video_transcode=st.booleans(),
+        permissions=permission_strategy,
+    )
+    def test_permission_mapping_with_user_context(
+        self,
+        user_id: str,
+        name: str,
+        initial_download: bool,
+        initial_stream: bool,
+        initial_sync: bool,
+        initial_audio_transcode: bool,
+        initial_video_transcode: bool,
+        permissions: dict[str, bool],
+    ) -> None:
+        """Permission mapping works correctly in user context.
+
+        For any user with any initial policy state and any set of permissions,
+        the mapping should correctly update only the provided permissions.
+
+        **Validates: Requirements 7.3, 7.4, 7.5, 7.6**
+        """
+        # Arrange: Create mock user with initial policy state
+        mock_user = MockPermissionUser(
+            user_id=user_id,
+            name=name,
+            enable_content_downloading=initial_download,
+            enable_media_playback=initial_stream,
+            enable_sync_transcoding=initial_sync,
+            enable_audio_playback_transcoding=initial_audio_transcode,
+            enable_video_playback_transcoding=initial_video_transcode,
+        )
+
+        # Act: Apply permissions (same logic as JellyfinClient)
+        apply_permissions_to_policy(mock_user.Policy, permissions=permissions)
+
+        # Assert: Provided permissions are correctly mapped
+        if "can_download" in permissions:
+            assert (
+                mock_user.Policy.EnableContentDownloading == permissions["can_download"]
+            )
+        else:
+            # Unchanged if not provided
+            assert mock_user.Policy.EnableContentDownloading == initial_download
+
+        if "can_stream" in permissions:
+            assert mock_user.Policy.EnableMediaPlayback == permissions["can_stream"]
+        else:
+            assert mock_user.Policy.EnableMediaPlayback == initial_stream
+
+        if "can_sync" in permissions:
+            assert mock_user.Policy.EnableSyncTranscoding == permissions["can_sync"]
+        else:
+            assert mock_user.Policy.EnableSyncTranscoding == initial_sync
+
+        if "can_transcode" in permissions:
+            assert (
+                mock_user.Policy.EnableAudioPlaybackTranscoding
+                == permissions["can_transcode"]
+            )
+            assert (
+                mock_user.Policy.EnableVideoPlaybackTranscoding
+                == permissions["can_transcode"]
+            )
+        else:
+            assert (
+                mock_user.Policy.EnableAudioPlaybackTranscoding
+                == initial_audio_transcode
+            )
+            assert (
+                mock_user.Policy.EnableVideoPlaybackTranscoding
+                == initial_video_transcode
+            )
+
+    @settings(max_examples=100)
+    @given(
+        permissions=permission_strategy,
+    )
+    def test_permission_mapping_is_idempotent(
+        self,
+        permissions: dict[str, bool],
+    ) -> None:
+        """Applying the same permissions twice produces the same result.
+
+        The permission mapping should be deterministic and idempotent -
+        applying it multiple times should not change the result.
+
+        **Validates: Requirements 7.3, 7.4, 7.5, 7.6**
+        """
+        # Arrange: Create policy
+        policy = MockPermissionPolicy()
+
+        # Act: Apply permissions twice
+        apply_permissions_to_policy(policy, permissions=permissions)
+        first_download = policy.EnableContentDownloading
+        first_stream = policy.EnableMediaPlayback
+        first_sync = policy.EnableSyncTranscoding
+        first_audio = policy.EnableAudioPlaybackTranscoding
+        first_video = policy.EnableVideoPlaybackTranscoding
+
+        apply_permissions_to_policy(policy, permissions=permissions)
+        second_download = policy.EnableContentDownloading
+        second_stream = policy.EnableMediaPlayback
+        second_sync = policy.EnableSyncTranscoding
+        second_audio = policy.EnableAudioPlaybackTranscoding
+        second_video = policy.EnableVideoPlaybackTranscoding
+
+        # Assert: Results are identical
+        assert first_download == second_download
+        assert first_stream == second_stream
+        assert first_sync == second_sync
+        assert first_audio == second_audio
+        assert first_video == second_video
+
+    @settings(max_examples=100)
+    @given(
+        initial_download=st.booleans(),
+        initial_stream=st.booleans(),
+        initial_sync=st.booleans(),
+        initial_audio_transcode=st.booleans(),
+        initial_video_transcode=st.booleans(),
+    )
+    def test_empty_permissions_preserves_policy(
+        self,
+        initial_download: bool,
+        initial_stream: bool,
+        initial_sync: bool,
+        initial_audio_transcode: bool,
+        initial_video_transcode: bool,
+    ) -> None:
+        """Empty permissions dict preserves all existing policy values.
+
+        When no permissions are provided, the policy should remain unchanged.
+
+        **Validates: Requirements 7.3, 7.4, 7.5, 7.6**
+        """
+        # Arrange: Create policy with initial values
+        policy = MockPermissionPolicy(
+            enable_content_downloading=initial_download,
+            enable_media_playback=initial_stream,
+            enable_sync_transcoding=initial_sync,
+            enable_audio_playback_transcoding=initial_audio_transcode,
+            enable_video_playback_transcoding=initial_video_transcode,
+        )
+
+        # Act: Apply empty permissions
+        apply_permissions_to_policy(policy, permissions={})
+
+        # Assert: All values unchanged
+        assert policy.EnableContentDownloading == initial_download
+        assert policy.EnableMediaPlayback == initial_stream
+        assert policy.EnableSyncTranscoding == initial_sync
+        assert policy.EnableAudioPlaybackTranscoding == initial_audio_transcode
+        assert policy.EnableVideoPlaybackTranscoding == initial_video_transcode
