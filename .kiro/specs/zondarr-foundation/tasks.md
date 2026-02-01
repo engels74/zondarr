@@ -25,12 +25,12 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - Raise ConfigurationError for missing required values
     - _Requirements: 1.3, 1.4, 1.5, 1.6_
 
-  - [ ] 1.4 Write property tests for configuration
+  - [x] 1.4 Write property tests for configuration
     - **Property 1: Configuration Loading with Defaults**
     - **Property 2: Configuration Validation Fails Fast**
     - **Validates: Requirements 1.3, 1.5, 1.6**
-    - [ ] 1.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 1.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 1.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 1.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 2. Core Exceptions and Types
   - [ ] 2.1 Implement exception hierarchy

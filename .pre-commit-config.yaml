@@ -50,7 +50,7 @@ repos:
       # Python type checking (pre-push only)
       - id: typecheck-py
         name: Python Type Check (basedpyright)
-        entry: uv run --project backend basedpyright backend/src backend/tests
+        entry: bash -c 'cd backend && uv run basedpyright'
         language: system
         files: ^backend/(src|tests)/.*\.py$
         pass_filenames: false

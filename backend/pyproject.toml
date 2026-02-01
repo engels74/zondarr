@@ -58,6 +58,10 @@ docstring-code-format = true
 [tool.basedpyright]
 typeCheckingMode = "recommended"
 pythonVersion = "3.14"
+pythonPlatform = "All"
+venvPath = "."
+venv = ".venv"
+extraPaths = ["src"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"
