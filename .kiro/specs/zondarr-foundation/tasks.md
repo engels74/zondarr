@@ -40,11 +40,11 @@ This implementation plan covers the foundation phase of Zondarr - establishing c
     - [x] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 2.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
-  - [ ] 2.2 Implement shared types
+  - [x] 2.2 Implement shared types
     - Create `core/types.py` with common type aliases
     - _Requirements: 2.7_
-    - [ ] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
+    - [x] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 3. Database Models
   - [ ] 3.1 Implement base model and mixins
