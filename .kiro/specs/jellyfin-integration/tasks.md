@@ -394,18 +394,26 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - Identify orphaned (on server, not local) and stale (local, not on server)
     - Return SyncResult with counts
     - _Requirements: 20.1, 20.2, 20.3, 20.4, 20.5_
+    - [ ] 17.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 17.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 17.2 Write property test for discrepancy identification
     - **Property 22: Sync Identifies Discrepancies Correctly**
     - **Validates: Requirements 20.3, 20.4**
+    - [ ] 17.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 17.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 17.3 Write property test for idempotency
     - **Property 23: Sync Is Idempotent**
     - **Validates: Requirements 20.6**
+    - [ ] 17.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 17.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 17.4 Write property test for no modification
     - **Property 24: Sync Does Not Modify Users**
     - **Validates: Requirements 20.7**
+    - [ ] 17.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 17.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 18. Implement ServerController sync endpoint
   - [ ] 18.1 Add sync endpoint to ServerController
@@ -414,6 +422,8 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - Return SyncResult
     - Return 503 if server unreachable
     - _Requirements: 20.1, 20.5, 20.8_
+    - [ ] 18.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 18.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 19. Register controllers in app.py
   - [ ] 19.1 Update app.py to register new controllers
@@ -422,6 +432,8 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - Add UserController
     - Update ServerController with sync endpoint
     - _Requirements: All API requirements_
+    - [ ] 19.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 19.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 20. Final checkpoint - Backend complete
   - Ensure all backend tests pass, ask the user if questions arise.
@@ -431,50 +443,68 @@ This implementation plan breaks down the Jellyfin Integration feature into discr
     - Create routes/(public)/join/[code]/+page.svelte
     - Create routes/(public)/join/[code]/+page.server.ts
     - _Requirements: 21.1_
+    - [ ] 21.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 21.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 21.2 Implement server-side validation on load
     - Call validation endpoint in +page.server.ts load function
     - Pass validation result to page
     - _Requirements: 21.2, 21.3, 21.4_
+    - [ ] 21.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 21.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 21.3 Implement join form with Superforms
     - Create form with username, password, email fields
     - Add Zod validation schema matching API constraints
     - Use Formsnap for accessible form controls
     - _Requirements: 21.5, 21.8_
+    - [ ] 21.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 21.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 21.4 Implement form submission and feedback
     - Call redemption endpoint on submit
     - Display success page on success
     - Display error toast on failure
     - _Requirements: 21.6, 21.7_
+    - [ ] 21.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 21.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 22. Implement frontend user management
   - [ ] 22.1 Create /admin/users route structure
     - Create routes/(admin)/users/+page.svelte
     - Create routes/(admin)/users/+page.server.ts
     - _Requirements: 22.1_
+    - [ ] 22.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 22.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 22.2 Implement user list table
     - Use shadcn-svelte Table component
     - Display username, server, status, created, expires columns
     - _Requirements: 22.2_
+    - [ ] 22.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 22.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 22.3 Add filtering and sorting controls
     - Add filter dropdowns for server, status, expiration
     - Add sortable column headers
     - _Requirements: 22.3, 22.4_
+    - [ ] 22.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 22.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 22.4 Add pagination controls
     - Implement page navigation
     - Display total count and current page
     - _Requirements: 22.4_
+    - [ ] 22.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 22.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
   - [ ] 22.5 Implement user detail modal
     - Show full user information on row click
     - Include enable/disable/delete actions
     - Display toast notifications for action results
     - _Requirements: 22.5, 22.6, 22.7_
+    - [ ] 22.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [ ] 22.5.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines
 
 - [ ] 23. Final checkpoint - All tests pass
   - Ensure all tests pass, ask the user if questions arise.
