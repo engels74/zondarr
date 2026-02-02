@@ -506,7 +506,7 @@ bun --bun run dev
 3. Invitation redemption flow (Jellyfin)
 4. User listing and sync
 
-### Phase 3: Plex Integration
+### Phase 3: Plex Integration (COMPLETE)
 
 1. Plex client implementation with OAuth
 2. Plex-specific invitation flow
