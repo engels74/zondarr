@@ -288,7 +288,7 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
 - [x] 10. Checkpoint - Verify OAuth flow
   - Ensure all tests pass, ask the user if questions arise.
 
-- [-] 11. Integrate Plex with redemption service
+- [x] 11. Integrate Plex with redemption service
   - [x] 11.1 Update RedemptionService for Plex user types
     - Handle plex_user_type parameter in redemption
     - Pass OAuth-retrieved email for Friend invitations
@@ -310,31 +310,31 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
     - [x] 11.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 11.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [-] 11.4 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [x] 11.4 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 12. Add comprehensive error handling
-  - [ ] 12.1 Implement error code mapping in PlexClient
+- [-] 12. Add comprehensive error handling
+  - [x] 12.1 Implement error code mapping in PlexClient
     - Map Plex API errors to MediaClientError codes
     - Ensure all errors include operation, server_url, cause
     - _Requirements: 17.1_
-    - [ ] 12.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 12.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 12.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 12.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 12.2 Write property test for error structure
+  - [x] 12.2 Write property test for error structure
     - **Property 14: Error Structure Contains Required Fields**
     - **Validates: Requirements 17.1**
-    - [ ] 12.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 12.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 12.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 12.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 12.3 Add structlog logging throughout PlexClient
+  - [x] 12.3 Add structlog logging throughout PlexClient
     - Log at info level for successful operations
     - Log at warning/error level for failures
     - Ensure no sensitive data (tokens, passwords) is logged
     - _Requirements: 17.2, 17.3, 17.4, 17.5_
-    - [ ] 12.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 12.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 12.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 12.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 12.4 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [-] 12.4 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 13. Final checkpoint - Complete integration testing
   - Ensure all tests pass, ask the user if questions arise.
