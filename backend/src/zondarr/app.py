@@ -34,6 +34,7 @@ from zondarr.api.errors import (
 from zondarr.api.health import HealthController
 from zondarr.api.invitations import InvitationController
 from zondarr.api.join import JoinController
+from zondarr.api.plex_oauth import PlexOAuthController
 from zondarr.api.servers import ServerController
 from zondarr.api.users import UserController
 from zondarr.config import Settings, load_settings
@@ -71,6 +72,7 @@ def _create_openapi_config() -> OpenAPIConfig:
             Tag(name="Media Servers", description="Media server management"),
             Tag(name="Invitations", description="Invitation management"),
             Tag(name="Join", description="Public invitation redemption"),
+            Tag(name="Plex OAuth", description="Plex OAuth authentication flow"),
             Tag(name="Users", description="User and identity management"),
         ],
         security=[{"BearerToken": []}],
@@ -140,6 +142,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
             HealthController,
             InvitationController,
             JoinController,
+            PlexOAuthController,
             ServerController,
             UserController,
         ],

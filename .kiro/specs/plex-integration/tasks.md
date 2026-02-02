@@ -207,7 +207,7 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
 
   - [x] 7.3 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [-] 8. Implement Plex OAuth service
+- [x] 8. Implement Plex OAuth service
   - [x] 8.1 Create PlexOAuthService class
     - Initialize with httpx.AsyncClient and client_id
     - Implement close() method for cleanup
@@ -251,39 +251,39 @@ This implementation plan covers Phase 3 of the Zondarr project: Plex media serve
     - [x] 8.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 8.6.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [-] 8.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [x] 8.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 9. Implement Plex OAuth controller
-  - [ ] 9.1 Create PlexOAuthController with endpoints
+- [-] 9. Implement Plex OAuth controller
+  - [x] 9.1 Create PlexOAuthController with endpoints
     - POST /api/v1/join/plex/oauth/pin - create_pin endpoint
     - GET /api/v1/join/plex/oauth/pin/{pin_id} - check_pin endpoint
     - Mark endpoints as exclude_from_auth=True
     - _Requirements: 13.1, 13.2, 14.1_
-    - [ ] 9.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 9.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.1.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 9.2 Create API schemas for OAuth responses
+  - [x] 9.2 Create API schemas for OAuth responses
     - PlexOAuthPinResponse with pin_id, code, auth_url, expires_at
     - PlexOAuthCheckResponse with authenticated, email, error
     - _Requirements: 13.2, 14.2, 14.3_
-    - [ ] 9.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 9.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.2.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 9.3 Add dependency injection for PlexOAuthService
+  - [x] 9.3 Add dependency injection for PlexOAuthService
     - Create provide_plex_oauth_service function
     - Register in controller dependencies
     - _Requirements: 13.1_
-    - [ ] 9.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 9.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.3.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 9.4 Write unit tests for OAuth endpoints
+  - [x] 9.4 Write unit tests for OAuth endpoints
     - Test PIN creation returns valid response
     - Test PIN check returns correct status
     - _Requirements: 13.1, 13.2, 14.1, 14.2_
-    - [ ] 9.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 9.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+    - [x] 9.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 9.4.2 Run `uvx basedpyright@latest` and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-  - [ ] 9.5 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [-] 9.5 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 10. Checkpoint - Verify OAuth flow
   - Ensure all tests pass, ask the user if questions arise.
