@@ -492,21 +492,21 @@ bun --bun run dev
 
 ## Implementation Priority
 
-### Phase 1: Foundation
+### Phase 1: Foundation (COMPLETED)
 
 1. Project scaffolding (monorepo structure, tooling configuration)
 2. Database models and migrations
 3. Media client protocol and registry
 4. Basic Litestar app with health endpoint
 
-### Phase 2: Jellyfin Integration
+### Phase 2: Jellyfin Integration (COMPLETED)
 
 1. Jellyfin client implementation
 2. Invitation CRUD API
 3. Invitation redemption flow (Jellyfin)
 4. User listing and sync
 
-### Phase 3: Plex Integration
+### Phase 3: Plex Integration (COMPLETED)
 
 1. Plex client implementation with OAuth
 2. Plex-specific invitation flow
