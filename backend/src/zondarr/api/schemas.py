@@ -773,3 +773,42 @@ class SyncResult(msgspec.Struct, kw_only=True):
     orphaned_users: list[str]
     stale_users: list[str]
     matched_users: int
+
+
+# =============================================================================
+# Plex OAuth Schemas
+# =============================================================================
+
+
+class PlexOAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from Plex OAuth PIN creation.
+
+    Implements Requirements 13.2: PIN creation returns valid response.
+
+    Attributes:
+        pin_id: The PIN identifier for status checking.
+        code: The PIN code to display to the user.
+        auth_url: URL where user authenticates (plex.tv/link).
+        expires_at: When the PIN expires.
+    """
+
+    pin_id: int
+    code: str
+    auth_url: str
+    expires_at: datetime
+
+
+class PlexOAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from Plex OAuth PIN status check.
+
+    Implements Requirements 14.2, 14.3: PIN verification returns status and email.
+
+    Attributes:
+        authenticated: Whether the PIN has been authenticated.
+        email: User's Plex email (only if authenticated).
+        error: Error message (only if failed).
+    """
+
+    authenticated: bool
+    email: str | None = None
+    error: str | None = None
