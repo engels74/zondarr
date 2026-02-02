@@ -14,7 +14,7 @@ Uses Python 3.14 features:
 
 import asyncio
 from collections.abc import Sequence
-from typing import Self
+from typing import Self, final
 
 import structlog
 from plexapi.myplex import MyPlexAccount
@@ -24,6 +24,125 @@ from zondarr.media.exceptions import MediaClientError
 from zondarr.media.types import Capability, ExternalUser, LibraryInfo, PlexUserType
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore[reportAny]
+
+
+# Error code constants for Plex API errors
+# These map Plex-specific error patterns to standardized error codes
+@final
+class PlexErrorCode:
+    """Error codes for Plex API operations.
+
+    These codes provide standardized error identification across
+    all PlexClient operations, enabling consistent error handling
+    and logging throughout the application.
+    """
+
+    # User-related errors
+    USER_ALREADY_EXISTS = "USER_ALREADY_EXISTS"
+    USERNAME_TAKEN = "USERNAME_TAKEN"
+    USER_NOT_FOUND = "USER_NOT_FOUND"
+    EMAIL_REQUIRED = "EMAIL_REQUIRED"
+
+    # Connection errors
+    CONNECTION_ERROR = "CONNECTION_ERROR"
+    INVALID_TOKEN = "INVALID_TOKEN"  # noqa: S105
+    SERVER_UNREACHABLE = "SERVER_UNREACHABLE"
+    TIMEOUT = "TIMEOUT"
+
+    # Client state errors
+    CLIENT_NOT_INITIALIZED = "CLIENT_NOT_INITIALIZED"
+
+    # API errors
+    API_ERROR = "API_ERROR"
+    RATE_LIMITED = "RATE_LIMITED"
+    PERMISSION_DENIED = "PERMISSION_DENIED"
+
+    # Library errors
+    LIBRARY_NOT_FOUND = "LIBRARY_NOT_FOUND"
+
+
+def _map_plex_error_to_code(error: Exception) -> str:
+    """Map a Plex API exception to a standardized error code.
+
+    Analyzes the exception message to determine the appropriate
+    error code for consistent error handling.
+
+    Args:
+        error: The exception raised by the Plex API.
+
+    Returns:
+        A standardized error code string.
+    """
+    error_str = str(error).lower()
+
+    # User-related errors
+    if "already" in error_str and ("shared" in error_str or "friend" in error_str):
+        return PlexErrorCode.USER_ALREADY_EXISTS
+    if "taken" in error_str or ("exists" in error_str and "user" in error_str):
+        return PlexErrorCode.USERNAME_TAKEN
+    if "not found" in error_str or "does not exist" in error_str:
+        return PlexErrorCode.USER_NOT_FOUND
+
+    # Connection errors
+    if "unauthorized" in error_str or "401" in error_str:
+        return PlexErrorCode.INVALID_TOKEN
+    if "timeout" in error_str or "timed out" in error_str:
+        return PlexErrorCode.TIMEOUT
+    if (
+        "connection" in error_str
+        or "unreachable" in error_str
+        or "refused" in error_str
+    ):
+        return PlexErrorCode.CONNECTION_ERROR
+
+    # Rate limiting
+    if "rate" in error_str and "limit" in error_str:
+        return PlexErrorCode.RATE_LIMITED
+
+    # Permission errors
+    if "permission" in error_str or "forbidden" in error_str or "403" in error_str:
+        return PlexErrorCode.PERMISSION_DENIED
+
+    # Default to generic API error
+    return PlexErrorCode.API_ERROR
+
+
+def _create_media_client_error(
+    message: str,
+    *,
+    operation: str,
+    server_url: str,
+    cause: str,
+    error_code: str | None = None,
+    original_error: Exception | None = None,
+) -> MediaClientError:
+    """Create a MediaClientError with consistent structure.
+
+    Ensures all MediaClientError instances have the required fields:
+    operation, server_url, and cause.
+
+    Args:
+        message: Human-readable error description.
+        operation: The operation that failed (e.g., "create_user").
+        server_url: The Plex server URL.
+        cause: Description of what caused the failure.
+        error_code: Optional specific error code.
+        original_error: Optional original exception for error code mapping.
+
+    Returns:
+        A properly structured MediaClientError.
+    """
+    # Determine error code from original error if not provided
+    if error_code is None and original_error is not None:
+        error_code = _map_plex_error_to_code(original_error)
+
+    return MediaClientError(
+        message,
+        operation=operation,
+        server_url=server_url,
+        cause=cause,
+        error_code=error_code,
+    )
 
 
 class PlexClient:
@@ -163,11 +282,12 @@ class PlexClient:
             MediaClientError: If library retrieval fails due to connection or API errors.
         """
         if self._server is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="get_libraries",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -196,11 +316,18 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            raise MediaClientError(
+            log.error(
+                "plex_get_libraries_failed",
+                url=self.url,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            raise _create_media_client_error(
                 f"Failed to retrieve libraries from Plex server: {exc}",
                 operation="get_libraries",
                 server_url=self.url,
                 cause=str(exc),
+                original_error=exc,
             ) from exc
 
     async def _create_friend(self, email: str) -> ExternalUser:
@@ -221,11 +348,12 @@ class PlexClient:
             MediaClientError: If the invitation fails for other reasons.
         """
         if self._account is None or self._server is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="create_friend",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -261,22 +389,34 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            error_str = str(exc).lower()
-            # Check for duplicate user error
-            if "already" in error_str or "shared" in error_str:
-                raise MediaClientError(
-                    f"User with email {email} is already a Friend",
-                    operation="create_friend",
-                    server_url=self.url,
-                    cause=str(exc),
-                    error_code="USER_ALREADY_EXISTS",
-                ) from exc
+            error_code = _map_plex_error_to_code(exc)
 
-            raise MediaClientError(
-                f"Failed to invite Friend: {exc}",
+            # Log the error with appropriate level
+            if error_code == PlexErrorCode.USER_ALREADY_EXISTS:
+                log.warning(
+                    "plex_friend_already_exists",
+                    url=self.url,
+                    email=email,
+                    error=str(exc),
+                )
+            else:
+                log.error(
+                    "plex_create_friend_failed",
+                    url=self.url,
+                    email=email,
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    error_code=error_code,
+                )
+
+            raise _create_media_client_error(
+                f"Failed to invite Friend: {exc}"
+                if error_code != PlexErrorCode.USER_ALREADY_EXISTS
+                else f"User with email {email} is already a Friend",
                 operation="create_friend",
                 server_url=self.url,
                 cause=str(exc),
+                error_code=error_code,
             ) from exc
 
     async def _create_home_user(self, username: str) -> ExternalUser:
@@ -297,11 +437,12 @@ class PlexClient:
             MediaClientError: If Home User creation fails for other reasons.
         """
         if self._account is None or self._server is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="create_home_user",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -335,22 +476,34 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            error_str = str(exc).lower()
-            # Check for duplicate username error
-            if "taken" in error_str or "exists" in error_str or "already" in error_str:
-                raise MediaClientError(
-                    f"Username '{username}' is already taken",
-                    operation="create_home_user",
-                    server_url=self.url,
-                    cause=str(exc),
-                    error_code="USERNAME_TAKEN",
-                ) from exc
+            error_code = _map_plex_error_to_code(exc)
 
-            raise MediaClientError(
-                f"Failed to create Home User: {exc}",
+            # Log the error with appropriate level
+            if error_code == PlexErrorCode.USERNAME_TAKEN:
+                log.warning(
+                    "plex_home_user_username_taken",
+                    url=self.url,
+                    username=username,
+                    error=str(exc),
+                )
+            else:
+                log.error(
+                    "plex_create_home_user_failed",
+                    url=self.url,
+                    username=username,
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                    error_code=error_code,
+                )
+
+            raise _create_media_client_error(
+                f"Failed to create Home User: {exc}"
+                if error_code != PlexErrorCode.USERNAME_TAKEN
+                else f"Username '{username}' is already taken",
                 operation="create_home_user",
                 server_url=self.url,
                 cause=str(exc),
+                error_code=error_code,
             ) from exc
 
     async def create_user(
@@ -390,12 +543,18 @@ class PlexClient:
 
         if plex_user_type == PlexUserType.FRIEND:
             if email is None:
-                raise MediaClientError(
+                log.warning(
+                    "plex_create_user_email_required",
+                    url=self.url,
+                    username=username,
+                    plex_user_type=plex_user_type.value,
+                )
+                raise _create_media_client_error(
                     "Email is required for Friend invitations",
                     operation="create_user",
                     server_url=self.url,
                     cause="plex_user_type is FRIEND but email was not provided",
-                    error_code="EMAIL_REQUIRED",
+                    error_code=PlexErrorCode.EMAIL_REQUIRED,
                 )
             return await self._create_friend(email)
 
@@ -422,11 +581,12 @@ class PlexClient:
             MediaClientError: If deletion fails for reasons other than user not found.
         """
         if self._account is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="delete_user",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -480,9 +640,10 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            error_str = str(exc).lower()
-            # Check for not found error
-            if "not found" in error_str or "does not exist" in error_str:
+            error_code = _map_plex_error_to_code(exc)
+
+            # Check for not found error - return False instead of raising
+            if error_code == PlexErrorCode.USER_NOT_FOUND:
                 log.warning(
                     "plex_user_not_found",
                     url=self.url,
@@ -491,11 +652,20 @@ class PlexClient:
                 )
                 return False
 
-            raise MediaClientError(
+            log.error(
+                "plex_delete_user_failed",
+                url=self.url,
+                user_id=external_user_id,
+                error=str(exc),
+                error_type=type(exc).__name__,
+                error_code=error_code,
+            )
+            raise _create_media_client_error(
                 f"Failed to delete user: {exc}",
                 operation="delete_user",
                 server_url=self.url,
                 cause=str(exc),
+                error_code=error_code,
             ) from exc
 
     async def set_user_enabled(
@@ -554,11 +724,12 @@ class PlexClient:
                 other than user not found.
         """
         if self._account is None or self._server is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="set_library_access",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -639,9 +810,10 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            error_str = str(exc).lower()
-            # Check for not found error
-            if "not found" in error_str or "does not exist" in error_str:
+            error_code = _map_plex_error_to_code(exc)
+
+            # Check for not found error - return False instead of raising
+            if error_code == PlexErrorCode.USER_NOT_FOUND:
                 log.warning(
                     "plex_user_not_found_for_library_access",
                     url=self.url,
@@ -650,11 +822,21 @@ class PlexClient:
                 )
                 return False
 
-            raise MediaClientError(
+            log.error(
+                "plex_set_library_access_failed",
+                url=self.url,
+                user_id=external_user_id,
+                library_count=len(library_ids),
+                error=str(exc),
+                error_type=type(exc).__name__,
+                error_code=error_code,
+            )
+            raise _create_media_client_error(
                 f"Failed to set library access: {exc}",
                 operation="set_library_access",
                 server_url=self.url,
                 cause=str(exc),
+                error_code=error_code,
             ) from exc
 
     async def update_permissions(
@@ -685,11 +867,12 @@ class PlexClient:
                 other than user not found.
         """
         if self._account is None or self._server is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="update_permissions",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -734,7 +917,7 @@ class PlexClient:
                     "plex_permissions_updated",
                     url=self.url,
                     user_id=external_user_id,
-                    permissions=permissions,
+                    permissions=list(permissions.keys()),
                 )
             else:
                 log.warning(
@@ -748,9 +931,10 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            error_str = str(exc).lower()
-            # Check for not found error
-            if "not found" in error_str or "does not exist" in error_str:
+            error_code = _map_plex_error_to_code(exc)
+
+            # Check for not found error - return False instead of raising
+            if error_code == PlexErrorCode.USER_NOT_FOUND:
                 log.warning(
                     "plex_user_not_found_for_permissions",
                     url=self.url,
@@ -759,11 +943,21 @@ class PlexClient:
                 )
                 return False
 
-            raise MediaClientError(
+            log.error(
+                "plex_update_permissions_failed",
+                url=self.url,
+                user_id=external_user_id,
+                permissions=list(permissions.keys()),
+                error=str(exc),
+                error_type=type(exc).__name__,
+                error_code=error_code,
+            )
+            raise _create_media_client_error(
                 f"Failed to update permissions: {exc}",
                 operation="update_permissions",
                 server_url=self.url,
                 cause=str(exc),
+                error_code=error_code,
             ) from exc
 
     async def list_users(self) -> Sequence[ExternalUser]:
@@ -781,11 +975,12 @@ class PlexClient:
             MediaClientError: If user listing fails due to connection or API errors.
         """
         if self._account is None:
-            raise MediaClientError(
+            raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="list_users",
                 server_url=self.url,
                 cause="API client is None - __aenter__ was not called",
+                error_code=PlexErrorCode.CLIENT_NOT_INITIALIZED,
             )
 
         try:
@@ -826,9 +1021,16 @@ class PlexClient:
         except MediaClientError:
             raise
         except Exception as exc:
-            raise MediaClientError(
+            log.error(
+                "plex_list_users_failed",
+                url=self.url,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            raise _create_media_client_error(
                 f"Failed to list users: {exc}",
                 operation="list_users",
                 server_url=self.url,
                 cause=str(exc),
+                original_error=exc,
             ) from exc
