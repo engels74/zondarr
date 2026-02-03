@@ -398,7 +398,7 @@ This implementation plan breaks down the frontend foundation into discrete, incr
 
   - [x] 13.4 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [-] 14. Public join flow - Jellyfin registration
+- [x] 14. Public join flow - Jellyfin registration
   - [x] 14.1 Create Jellyfin registration form schema
     - Create `$lib/schemas/join.ts` with jellyfinRegistrationSchema
     - Validate username (3-32 chars, lowercase, starts with letter)
@@ -433,43 +433,43 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - [x] 14.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [x] 14.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [-] 14.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [x] 14.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [ ] 15. Public join flow - Plex OAuth
-  - [ ] 15.1 Create Plex OAuth flow component
+- [-] 15. Public join flow - Plex OAuth
+  - [x] 15.1 Create Plex OAuth flow component
     - Create `$lib/components/join/PlexOAuthFlow.svelte`
     - Display "Sign in with Plex" button
     - Create PIN via API on button click
     - Display PIN code to user
     - Open Plex auth URL in new window/tab
     - _Requirements: 12.1, 12.2, 12.3_
-    - [ ] 15.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 15.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 15.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 15.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 15.2 Implement PIN polling
+  - [x] 15.2 Implement PIN polling
     - Create polling mechanism with setInterval
     - Poll PIN status endpoint every 2 seconds
     - Stop polling when authenticated or expired
     - Display user's Plex email when authenticated
     - Display error and retry option when expired
     - _Requirements: 12.4, 12.5, 12.6_
-    - [ ] 15.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 15.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 15.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 15.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 15.3 Complete Plex redemption flow
+  - [x] 15.3 Complete Plex redemption flow
     - Proceed to redemption after successful OAuth
     - Display success page with server access instructions
     - _Requirements: 12.7_
-    - [ ] 15.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 15.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 15.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 15.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 15.4 Write property test for Plex OAuth polling
+  - [x] 15.4 Write property test for Plex OAuth polling
     - **Property 32: Plex OAuth Polling**
     - **Validates: Requirements 12.4**
-    - [ ] 15.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 15.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 15.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 15.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 15.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [-] 15.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
 - [ ] 16. Final polish and accessibility
   - [ ] 16.1 Add loading states throughout
