@@ -1,4 +1,4 @@
-@import "uno.css";
+/* UnoCSS is imported via +layout.svelte */
 @import "@unocss/reset/tailwind.css";
 
 /* Control Room Design Tokens */
