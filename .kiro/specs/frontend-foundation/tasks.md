@@ -249,7 +249,7 @@ This implementation plan breaks down the frontend foundation into discrete, incr
   - Verify edit invitation flow works
   - Verify delete invitation flow works
 
-- [-] 9. User management - List view
+- [x] 9. User management - List view
   - [x] 9.1 Create user list page with data loading
     - Create `src/routes/(admin)/users/+page.svelte`
     - Create `src/routes/(admin)/users/+page.ts` for load function
@@ -292,10 +292,10 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - [x] 9.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [x] 9.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [-] 9.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [x] 9.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [ ] 10. User management - Detail and actions
-  - [ ] 10.1 Create user detail page
+- [-] 10. User management - Detail and actions
+  - [x] 10.1 Create user detail page
     - Create `src/routes/(admin)/users/[id]/+page.svelte`
     - Create `src/routes/(admin)/users/[id]/+page.ts` for load function
     - Display user information (username, external_user_id, enabled, expires_at)
@@ -303,30 +303,30 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - Display media server information
     - Display source invitation if available
     - _Requirements: 8.1, 8.2, 8.3_
-    - [ ] 10.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 10.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 10.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 10.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 10.2 Implement user action buttons
+  - [x] 10.2 Implement user action buttons
     - Add Enable button (visible when user.enabled === false)
     - Add Disable button (visible when user.enabled === true)
     - Add Delete button with confirmation dialog
     - Wire buttons to API endpoints
     - Display success/error toasts
     - _Requirements: 8.4, 8.5, 8.6, 8.7, 8.8, 8.9_
-    - [ ] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 10.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 10.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 10.3 Write property tests for user detail
+  - [x] 10.3 Write property tests for user detail
     - **Property 21: User Detail Relationship Display**
     - **Property 22: Linked Users Display**
     - **Property 23: Enable Button Visibility**
     - **Property 24: Disable Button Visibility**
     - **Property 37: Confirmation Dialog Display**
     - **Validates: Requirements 8.2, 8.3, 8.4, 8.5, 14.4**
-    - [ ] 10.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 10.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 10.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 10.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 10.4 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [-] 10.4 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
 - [ ] 11. Server management
   - [ ] 11.1 Create server list page
