@@ -86,7 +86,7 @@ This implementation plan breaks down the frontend foundation into discrete, incr
 
   - [x] 2.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [-] 3. Root layout and dark mode
+- [x] 3. Root layout and dark mode
   - [x] 3.1 Create root layout with ModeWatcher and Toaster
     - Update `src/routes/+layout.svelte` with ModeWatcher component
     - Add Toaster from svelte-sonner
@@ -102,61 +102,61 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - [x] 3.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [x] 3.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 3.3 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [x] 3.3 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [ ] 4. Admin layout and navigation
-  - [ ] 4.1 Create admin route group layout
+- [x] 4. Admin layout and navigation
+  - [x] 4.1 Create admin route group layout
     - Create `src/routes/(admin)/+layout.svelte`
     - Implement sidebar navigation with NavItem components
     - Implement header with PageTitle and ThemeToggle
     - Use responsive design with mobile menu
     - _Requirements: 3.1, 3.2, 3.5, 3.7_
-    - [ ] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 4.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 4.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.2 Create shared UI components
+  - [x] 4.2 Create shared UI components
     - Create `$lib/components/StatusBadge.svelte` with color mapping
     - Create `$lib/components/Pagination.svelte` for list views
     - Create `$lib/components/EmptyState.svelte` for empty lists
     - Create `$lib/components/ErrorState.svelte` for error display
     - Create `$lib/components/ConfirmDialog.svelte` for destructive actions
     - _Requirements: 4.5, 7.5, 13.4, 14.4, 14.6_
-    - [ ] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 4.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 4.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.3 Write property tests for shared components
+  - [x] 4.3 Write property tests for shared components
     - **Property 12: Status Badge Color Mapping**
     - **Property 38: Empty State Display**
     - **Validates: Requirements 4.5, 7.5, 13.4, 14.6**
-    - [ ] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 4.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 4.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.4 Write property test for responsive sidebar
+  - [x] 4.4 Write property test for responsive sidebar
     - **Property 8: Responsive Sidebar Collapse**
     - **Validates: Requirements 3.5**
-    - [ ] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 4.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 4.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [x] 4.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [ ] 5. Checkpoint - Verify foundation
+- [x] 5. Checkpoint - Verify foundation
   - Ensure all tests pass, ask the user if questions arise.
   - Verify dark mode toggle works
   - Verify navigation between sections works
   - Verify API client can connect to backend
 
-- [ ] 6. Invitation management - List view
-  - [ ] 6.1 Create invitation list page with data loading
+- [-] 6. Invitation management - List view
+  - [x] 6.1 Create invitation list page with data loading
     - Create `src/routes/(admin)/invitations/+page.svelte`
     - Create `src/routes/(admin)/invitations/+page.ts` for load function
     - Implement loading skeleton state
     - Implement error state with retry
     - Implement empty state
     - _Requirements: 4.1, 14.1, 14.5, 14.6_
-    - [ ] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.2 Create invitation table component
+  - [-] 6.2 Create invitation table component
     - Create `$lib/components/invitations/InvitationTable.svelte`
     - Create `$lib/components/invitations/InvitationRow.svelte`
     - Display code, use_count, max_uses, expires_at, enabled, is_active
@@ -164,10 +164,10 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - Use StatusBadge for status display
     - Use monospace font for code display
     - _Requirements: 4.2, 4.5, 4.6, 13.3_
-    - [ ] 6.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 6.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.3 Create invitation filters component
+  - [-] 6.3 Create invitation filters component
     - Create `$lib/components/invitations/InvitationFilters.svelte`
     - Implement enabled filter (all/enabled/disabled)
     - Implement expired filter (all/active/expired)

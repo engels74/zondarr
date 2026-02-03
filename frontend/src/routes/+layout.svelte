@@ -1,4 +1,5 @@
 <script lang="ts">
+import 'virtual:uno.css';
 import '../app.css';
 import { ModeWatcher } from 'mode-watcher';
 import type { Snippet } from 'svelte';
