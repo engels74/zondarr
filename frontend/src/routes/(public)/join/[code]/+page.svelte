@@ -8,6 +8,7 @@
  * - Duration information if set
  * - Error messages for invalid codes with failure reasons
  * - Jellyfin registration form for Jellyfin servers
+ * - Plex OAuth flow for Plex servers
  * - Success page after successful registration
  *
  * @module routes/(public)/join/[code]/+page
@@ -23,7 +24,7 @@ import {
 } from '$lib/api/client';
 import { getErrorMessage, isNetworkError } from '$lib/api/errors';
 import ErrorState from '$lib/components/error-state.svelte';
-import { JellyfinRegistrationForm, RegistrationError, SuccessPage } from '$lib/components/join';
+import { JellyfinRegistrationForm, PlexOAuthFlow, RegistrationError, SuccessPage } from '$lib/components/join';
 import { Button } from '$lib/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 import { Skeleton } from '$lib/components/ui/skeleton';
@@ -37,7 +38,7 @@ import type { PageData } from './$types';
 let { data }: { data: PageData } = $props();
 
 // Flow state
-type FlowStep = 'validation' | 'registration' | 'success' | 'error';
+type FlowStep = 'validation' | 'registration' | 'plex_oauth' | 'plex_redeeming' | 'success' | 'error';
 let currentStep = $state<FlowStep>('validation');
 
 // Loading states
@@ -51,6 +52,9 @@ let formData = $state<JellyfinRegistrationInput>({
 	email: ''
 });
 let formErrors = $state<Record<string, string[]>>({});
+
+// Plex OAuth state
+let plexEmail = $state<string | null>(null);
 
 // Response data
 let redemptionResponse = $state<RedemptionResponse | null>(null);
@@ -111,7 +115,12 @@ async function handleRetry() {
  * Proceed to registration flow.
  */
 function handleContinue() {
-	currentStep = 'registration';
+	// Determine which registration flow to use based on server types
+	if (hasPlexServer && !hasJellyfinServer) {
+		currentStep = 'plex_oauth';
+	} else {
+		currentStep = 'registration';
+	}
 }
 
 /**
@@ -120,6 +129,7 @@ function handleContinue() {
 function handleBack() {
 	currentStep = 'validation';
 	formErrors = {};
+	plexEmail = null;
 }
 
 /**
@@ -186,11 +196,79 @@ async function handleRegistrationSubmit() {
 }
 
 /**
+ * Handle Plex OAuth authentication success.
+ */
+async function handlePlexAuthenticated(email: string) {
+	plexEmail = email;
+	currentStep = 'plex_redeeming';
+
+	// Proceed to redeem the invitation with Plex credentials
+	// For Plex, we use the email as username and a placeholder password
+	// The backend will handle the actual Plex user creation
+	try {
+		const response = await redeemInvitation(data.code, {
+			username: email,
+			password: 'plex_oauth', // Placeholder - backend handles Plex auth differently
+			email: email
+		});
+
+		if (response.error) {
+			const errorBody = response.error as RedemptionErrorResponse;
+			if (errorBody.error_code) {
+				redemptionError = errorBody;
+				currentStep = 'error';
+				toast.error(errorBody.message || 'Registration failed');
+			} else {
+				toast.error('An unexpected error occurred');
+			}
+			return;
+		}
+
+		if (response.data) {
+			const responseData = response.data as RedemptionResponse | RedemptionErrorResponse;
+			if ('error_code' in responseData) {
+				redemptionError = responseData as RedemptionErrorResponse;
+				currentStep = 'error';
+				toast.error(redemptionError.message || 'Registration failed');
+			} else if (responseData.success) {
+				redemptionResponse = responseData as RedemptionResponse;
+				currentStep = 'success';
+				toast.success('Successfully added to Plex server!');
+			} else {
+				toast.error('Registration failed');
+			}
+		}
+	} catch (err) {
+		redemptionError = {
+			success: false,
+			error_code: 'NETWORK_ERROR',
+			message: getErrorMessage(err)
+		};
+		currentStep = 'error';
+		toast.error(getErrorMessage(err));
+	}
+}
+
+/**
+ * Handle Plex OAuth cancellation.
+ */
+function handlePlexCancel() {
+	currentStep = 'validation';
+	plexEmail = null;
+}
+
+/**
  * Handle retry after registration error.
  */
 function handleRegistrationRetry() {
 	redemptionError = null;
-	currentStep = 'registration';
+	plexEmail = null;
+	// Go back to appropriate registration step
+	if (hasPlexServer && !hasJellyfinServer) {
+		currentStep = 'plex_oauth';
+	} else {
+		currentStep = 'registration';
+	}
 }
 </script>
 
@@ -203,6 +281,10 @@ function handleRegistrationRetry() {
 				Validate your invitation code to get started
 			{:else if currentStep === 'registration'}
 				Create your account
+			{:else if currentStep === 'plex_oauth'}
+				Sign in with Plex
+			{:else if currentStep === 'plex_redeeming'}
+				Adding you to the server...
 			{:else if currentStep === 'success'}
 				Welcome aboard!
 			{:else}
@@ -299,11 +381,57 @@ function handleRegistrationRetry() {
 						submitting={isSubmitting}
 						onSubmit={handleRegistrationSubmit}
 					/>
-				{:else if hasPlexServer}
-					<!-- Plex OAuth will be implemented in Task 15 -->
-					<p class="text-cr-text-muted">Plex authentication coming soon...</p>
 				{:else}
 					<p class="text-cr-text-muted">No supported server types found.</p>
+				{/if}
+			</CardContent>
+		</Card>
+
+	<!-- Plex OAuth flow state -->
+	{:else if currentStep === 'plex_oauth' && data.validation?.valid}
+		<Card class="border-cr-border bg-cr-surface">
+			<CardHeader>
+				<div class="flex items-center gap-3">
+					<Button
+						variant="ghost"
+						size="icon"
+						onclick={handleBack}
+						class="text-cr-text-muted hover:text-cr-text"
+						aria-label="Go back"
+					>
+						<ArrowLeft class="size-5" />
+					</Button>
+					<div>
+						<CardTitle class="text-cr-text">Sign in with Plex</CardTitle>
+						<CardDescription class="text-cr-text-muted">
+							Authenticate with your Plex account to get access
+						</CardDescription>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				<PlexOAuthFlow
+					onAuthenticated={handlePlexAuthenticated}
+					onCancel={handlePlexCancel}
+				/>
+			</CardContent>
+		</Card>
+
+	<!-- Plex redeeming state -->
+	{:else if currentStep === 'plex_redeeming'}
+		<Card class="border-cr-border bg-cr-surface">
+			<CardHeader>
+				<CardTitle class="text-cr-text">Adding You to the Server</CardTitle>
+				<CardDescription class="text-cr-text-muted">
+					Please wait while we set up your access...
+				</CardDescription>
+			</CardHeader>
+			<CardContent class="flex flex-col items-center gap-4 py-8">
+				<div class="size-8 animate-spin rounded-full border-2 border-cr-accent border-t-transparent"></div>
+				{#if plexEmail}
+					<p class="text-sm text-cr-text-muted">
+						Signed in as <span class="font-medium text-cr-text">{plexEmail}</span>
+					</p>
 				{/if}
 			</CardContent>
 		</Card>
