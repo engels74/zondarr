@@ -19,6 +19,7 @@ from zondarr.services.plex_oauth import (
 from zondarr.services.redemption import RedemptionService
 from zondarr.services.sync import SyncService
 from zondarr.services.user import UserService
+from zondarr.services.wizard import WizardService
 
 __all__ = [
     "InvitationService",
@@ -31,4 +32,5 @@ __all__ = [
     "RedemptionService",
     "SyncService",
     "UserService",
+    "WizardService",
 ]

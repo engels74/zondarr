@@ -10,6 +10,8 @@ from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.repositories.user import UserRepository
+from zondarr.repositories.wizard import WizardRepository
+from zondarr.repositories.wizard_step import WizardStepRepository
 
 __all__ = [
     "IdentityRepository",
@@ -17,4 +19,6 @@ __all__ = [
     "MediaServerRepository",
     "Repository",
     "UserRepository",
+    "WizardRepository",
+    "WizardStepRepository",
 ]
