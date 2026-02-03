@@ -37,41 +37,41 @@ This plan implements the wizard system for configurable multi-step onboarding fl
 
   - [x] 1.5 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
-- [ ] 2. Implement wizard repository and service layer
-  - [ ] 2.1 Create WizardRepository in `backend/src/zondarr/repositories/wizard.py`
+- [x] 2. Implement wizard repository and service layer
+  - [x] 2.1 Create WizardRepository in `backend/src/zondarr/repositories/wizard.py`
     - Implement CRUD operations extending base Repository
     - Add get_with_steps method with eager loading
     - Add list_paginated method
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5_
-    - [ ] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 2.1.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 2.1.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 2.2 Create WizardStepRepository in `backend/src/zondarr/repositories/wizard_step.py`
+  - [x] 2.2 Create WizardStepRepository in `backend/src/zondarr/repositories/wizard_step.py`
     - Implement CRUD operations
     - Add reorder_steps method for contiguous ordering
     - Add get_max_order method for auto-assignment
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
-    - [ ] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 2.2.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 2.2.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 2.3 Create WizardService in `backend/src/zondarr/services/wizard.py`
+  - [x] 2.3 Create WizardService in `backend/src/zondarr/services/wizard.py`
     - Implement wizard CRUD with validation
     - Implement step CRUD with auto-ordering
     - Implement step reordering with contiguity maintenance
     - Implement step validation logic for each interaction type
     - _Requirements: 2.1-2.6, 3.1-3.5, 9.1-9.6_
-    - [ ] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 2.3.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 2.3.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 2.4 Write property tests for service validation logic
+  - [x] 2.4 Write property tests for service validation logic
     - **Property 5: Interaction Type Validation**
     - **Property 6: Step Order Contiguity**
     - **Property 7: Timer Duration Bounds**
     - **Property 8: Quiz Configuration Completeness**
     - **Validates: Requirements 1.5, 3.4, 3.5, 5.4, 8.2, 8.3**
-    - [ ] 2.4.1 Run tests with `uv run pytest tests/property/` and ensure all pass
+    - [x] 2.4.1 Run tests with `uv run pytest tests/property/` and ensure all pass
 
-  - [ ] 2.5 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
+  - [x] 2.5 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
 - [ ] 3. Checkpoint - Backend models and services
   - Ensure all tests pass, ask the user if questions arise.
