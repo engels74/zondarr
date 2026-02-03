@@ -7,23 +7,75 @@
  * - Target servers and allowed libraries for valid codes
  * - Duration information if set
  * - Error messages for invalid codes with failure reasons
+ * - Jellyfin registration form for Jellyfin servers
+ * - Success page after successful registration
  *
  * @module routes/(public)/join/[code]/+page
  */
 
-import { AlertTriangle, Calendar, CheckCircle, Clock, Library, Server } from '@lucide/svelte';
+import { AlertTriangle, ArrowLeft, Calendar, CheckCircle, Library, Server } from '@lucide/svelte';
+import { toast } from 'svelte-sonner';
 import { invalidateAll } from '$app/navigation';
+import {
+	type RedemptionErrorResponse,
+	type RedemptionResponse,
+	redeemInvitation
+} from '$lib/api/client';
 import { getErrorMessage, isNetworkError } from '$lib/api/errors';
 import ErrorState from '$lib/components/error-state.svelte';
+import { JellyfinRegistrationForm, RegistrationError, SuccessPage } from '$lib/components/join';
 import { Button } from '$lib/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '$lib/components/ui/card';
 import { Skeleton } from '$lib/components/ui/skeleton';
+import {
+	type JellyfinRegistrationInput,
+	jellyfinRegistrationSchema,
+	transformRegistrationFormData
+} from '$lib/schemas/join';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
 
-// Loading state for retry operations
+// Flow state
+type FlowStep = 'validation' | 'registration' | 'success' | 'error';
+let currentStep = $state<FlowStep>('validation');
+
+// Loading states
 let isRetrying = $state(false);
+let isSubmitting = $state(false);
+
+// Form data
+let formData = $state<JellyfinRegistrationInput>({
+	username: '',
+	password: '',
+	email: ''
+});
+let formErrors = $state<Record<string, string[]>>({});
+
+// Response data
+let redemptionResponse = $state<RedemptionResponse | null>(null);
+let redemptionError = $state<RedemptionErrorResponse | null>(null);
+
+// Derive server URLs for success page
+let serverUrls = $derived.by(() => {
+	const urls: Record<string, string> = {};
+	if (data.validation?.target_servers) {
+		for (const server of data.validation.target_servers) {
+			urls[server.id] = server.url;
+		}
+	}
+	return urls;
+});
+
+// Check if any target server is Jellyfin
+let hasJellyfinServer = $derived(
+	data.validation?.target_servers?.some((s) => s.server_type === 'jellyfin') ?? false
+);
+
+// Check if any target server is Plex
+let hasPlexServer = $derived(
+	data.validation?.target_servers?.some((s) => s.server_type === 'plex') ?? false
+);
 
 /**
  * Map failure reasons to user-friendly messages.
@@ -56,12 +108,89 @@ async function handleRetry() {
 }
 
 /**
- * Proceed to registration/OAuth flow.
- * TODO: Implement in Tasks 14 and 15
+ * Proceed to registration flow.
  */
 function handleContinue() {
-	// Will be implemented in subsequent tasks
-	console.log('Continue to registration');
+	currentStep = 'registration';
+}
+
+/**
+ * Go back to validation step.
+ */
+function handleBack() {
+	currentStep = 'validation';
+	formErrors = {};
+}
+
+/**
+ * Handle registration form submission.
+ */
+async function handleRegistrationSubmit() {
+	// Validate form data
+	const result = jellyfinRegistrationSchema.safeParse(formData);
+	if (!result.success) {
+		// Transform Zod errors to our format
+		const errors: Record<string, string[]> = {};
+		for (const issue of result.error.issues) {
+			const field = issue.path[0] as string;
+			if (!errors[field]) {
+				errors[field] = [];
+			}
+			errors[field].push(issue.message);
+		}
+		formErrors = errors;
+		return;
+	}
+
+	// Clear errors and submit
+	formErrors = {};
+	isSubmitting = true;
+
+	try {
+		const apiData = transformRegistrationFormData(result.data);
+		const response = await redeemInvitation(data.code, apiData);
+
+		if (response.error) {
+			// Handle API error response
+			const errorBody = response.error as RedemptionErrorResponse;
+			if (errorBody.error_code) {
+				redemptionError = errorBody;
+				currentStep = 'error';
+				toast.error(errorBody.message || 'Registration failed');
+			} else {
+				toast.error('An unexpected error occurred');
+			}
+			return;
+		}
+
+		if (response.data) {
+			// Check if it's an error response (has error_code)
+			const responseData = response.data as RedemptionResponse | RedemptionErrorResponse;
+			if ('error_code' in responseData) {
+				redemptionError = responseData as RedemptionErrorResponse;
+				currentStep = 'error';
+				toast.error(redemptionError.message || 'Registration failed');
+			} else if (responseData.success) {
+				redemptionResponse = responseData as RedemptionResponse;
+				currentStep = 'success';
+				toast.success('Account created successfully!');
+			} else {
+				toast.error('Registration failed');
+			}
+		}
+	} catch (err) {
+		toast.error(getErrorMessage(err));
+	} finally {
+		isSubmitting = false;
+	}
+}
+
+/**
+ * Handle retry after registration error.
+ */
+function handleRegistrationRetry() {
+	redemptionError = null;
+	currentStep = 'registration';
 }
 </script>
 
@@ -70,7 +199,15 @@ function handleContinue() {
 	<div class="text-center">
 		<h1 class="text-2xl font-bold text-cr-text md:text-3xl">Join Media Server</h1>
 		<p class="mt-2 text-cr-text-muted">
-			Validate your invitation code to get started
+			{#if currentStep === 'validation'}
+				Validate your invitation code to get started
+			{:else if currentStep === 'registration'}
+				Create your account
+			{:else if currentStep === 'success'}
+				Welcome aboard!
+			{:else}
+				Something went wrong
+			{/if}
 		</p>
 	</div>
 
@@ -86,13 +223,15 @@ function handleContinue() {
 				<Skeleton class="h-20 w-full" />
 			</CardContent>
 		</Card>
-	<!-- Error state -->
+
+	<!-- Error state (network/validation error) -->
 	{:else if data.error}
 		<ErrorState
 			message={getErrorMessage(data.error)}
 			title={isNetworkError(data.error) ? 'Connection Error' : 'Validation Failed'}
 			onRetry={handleRetry}
 		/>
+
 	<!-- Invalid code state -->
 	{:else if data.validation && !data.validation.valid}
 		<Card class="border-rose-500/30 bg-rose-500/5">
@@ -115,7 +254,61 @@ function handleContinue() {
 				</p>
 			</CardContent>
 		</Card>
-	<!-- Valid code state -->
+
+	<!-- Success state -->
+	{:else if currentStep === 'success' && redemptionResponse}
+		<SuccessPage response={redemptionResponse} {serverUrls} />
+
+	<!-- Registration error state -->
+	{:else if currentStep === 'error' && redemptionError}
+		<RegistrationError error={redemptionError} onRetry={handleRegistrationRetry} />
+
+	<!-- Registration form state -->
+	{:else if currentStep === 'registration' && data.validation?.valid}
+		<Card class="border-cr-border bg-cr-surface">
+			<CardHeader>
+				<div class="flex items-center gap-3">
+					<Button
+						variant="ghost"
+						size="icon"
+						onclick={handleBack}
+						class="text-cr-text-muted hover:text-cr-text"
+						aria-label="Go back"
+					>
+						<ArrowLeft class="size-5" />
+					</Button>
+					<div>
+						<CardTitle class="text-cr-text">Create Your Account</CardTitle>
+						<CardDescription class="text-cr-text-muted">
+							{#if hasJellyfinServer && !hasPlexServer}
+								Enter your details to create a Jellyfin account
+							{:else if hasPlexServer && !hasJellyfinServer}
+								Sign in with your Plex account
+							{:else}
+								Complete registration for your media server access
+							{/if}
+						</CardDescription>
+					</div>
+				</div>
+			</CardHeader>
+			<CardContent>
+				{#if hasJellyfinServer}
+					<JellyfinRegistrationForm
+						bind:formData
+						errors={formErrors}
+						submitting={isSubmitting}
+						onSubmit={handleRegistrationSubmit}
+					/>
+				{:else if hasPlexServer}
+					<!-- Plex OAuth will be implemented in Task 15 -->
+					<p class="text-cr-text-muted">Plex authentication coming soon...</p>
+				{:else}
+					<p class="text-cr-text-muted">No supported server types found.</p>
+				{/if}
+			</CardContent>
+		</Card>
+
+	<!-- Valid code state (validation step) -->
 	{:else if data.validation && data.validation.valid}
 		<Card class="border-emerald-500/30 bg-emerald-500/5">
 			<CardHeader>

@@ -367,7 +367,7 @@ This implementation plan breaks down the frontend foundation into discrete, incr
   - Verify server list displays correctly
   - Verify server sync works
 
-- [-] 13. Public join flow - Code validation
+- [x] 13. Public join flow - Code validation
   - [x] 13.1 Create public route group layout
     - Create `src/routes/(public)/+layout.svelte`
     - Implement minimal layout for public pages
@@ -396,44 +396,44 @@ This implementation plan breaks down the frontend foundation into discrete, incr
     - [x] 13.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [x] 13.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [-] 13.4 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [x] 13.4 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
-- [ ] 14. Public join flow - Jellyfin registration
-  - [ ] 14.1 Create Jellyfin registration form schema
+- [-] 14. Public join flow - Jellyfin registration
+  - [x] 14.1 Create Jellyfin registration form schema
     - Create `$lib/schemas/join.ts` with jellyfinRegistrationSchema
     - Validate username (3-32 chars, lowercase, starts with letter)
     - Validate password (minimum 8 characters)
     - Validate optional email
     - _Requirements: 11.2, 11.3, 11.4, 11.5_
-    - [ ] 14.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 14.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 14.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 14.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 14.2 Create Jellyfin registration form component
+  - [x] 14.2 Create Jellyfin registration form component
     - Create `$lib/components/join/JellyfinRegistrationForm.svelte`
     - Use Superforms with zodClient adapter
     - Display inline validation errors
     - Submit to redeem endpoint
     - _Requirements: 11.1, 11.5, 11.6_
-    - [ ] 14.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 14.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 14.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 14.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 14.3 Create success and error pages
+  - [x] 14.3 Create success and error pages
     - Create `$lib/components/join/SuccessPage.svelte`
     - Display server access instructions
     - Create error handling for USERNAME_TAKEN and SERVER_ERROR
     - Display failed_server name on server errors
     - _Requirements: 11.7, 11.8, 11.9_
-    - [ ] 14.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 14.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 14.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 14.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 14.4 Write property tests for Jellyfin registration
+  - [x] 14.4 Write property tests for Jellyfin registration
     - **Property 30: Username Validation**
     - **Property 31: Password Validation**
     - **Validates: Requirements 11.2, 11.3**
-    - [ ] 14.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 14.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 14.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 14.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 14.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
+  - [-] 14.5 Commit and push changes with all type errors fixed (no warnings, no errors, no excuses)
 
 - [ ] 15. Public join flow - Plex OAuth
   - [ ] 15.1 Create Plex OAuth flow component
