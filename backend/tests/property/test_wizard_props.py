@@ -340,6 +340,14 @@ class TestInteractionTypeValidation:
 
         assert "interaction_type" in exc_info.value.field_errors
 
+    def test_registry_has_all_interaction_types(self) -> None:
+        """The interaction registry has handlers for all InteractionType values."""
+        from zondarr.services.interactions import interaction_registry
+
+        registered = interaction_registry.registered_types()
+        for itype in InteractionType:
+            assert itype in registered, f"Missing handler for {itype}"
+
 
 class TestStepOrderContiguity:
     """
@@ -442,12 +450,12 @@ class TestTimerDurationBounds:
         duration: int,
     ) -> None:
         """Timer durations within [1, 300] are accepted."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         config = {"duration_seconds": duration}
-        result = service._validate_timer_config(config)  # pyright: ignore[reportPrivateUsage]
+        result = handler.validate_config(config)
 
         assert result["duration_seconds"] == duration
 
@@ -464,28 +472,28 @@ class TestTimerDurationBounds:
     ) -> None:
         """Timer durations outside [1, 300] are rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         config = {"duration_seconds": duration}
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_timer_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "duration_seconds" in str(exc_info.value.field_errors)
 
     def test_missing_timer_duration_rejected(self) -> None:
         """Missing duration_seconds is rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         config: dict[str, object] = {}
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_timer_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "duration_seconds" in str(exc_info.value.field_errors)
 
@@ -519,9 +527,9 @@ class TestQuizConfigurationCompleteness:
         if correct_index >= num_options:
             correct_index = num_options - 1
 
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         options = [f"Option {i}" for i in range(num_options)]
         config = {
@@ -530,7 +538,7 @@ class TestQuizConfigurationCompleteness:
             "correct_answer_index": correct_index,
         }
 
-        result = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
+        result = handler.validate_config(config)
 
         assert result["question"] == question
         assert result["correct_answer_index"] == correct_index
@@ -539,9 +547,9 @@ class TestQuizConfigurationCompleteness:
     def test_missing_question_rejected(self) -> None:
         """Missing question is rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         config = {
             "options": ["A", "B"],
@@ -549,16 +557,16 @@ class TestQuizConfigurationCompleteness:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "question" in str(exc_info.value.field_errors)
 
     def test_too_few_options_rejected(self) -> None:
         """Quiz with fewer than 2 options is rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         config = {
             "question": "What is 2+2?",
@@ -567,7 +575,7 @@ class TestQuizConfigurationCompleteness:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "options" in str(exc_info.value.field_errors)
 
@@ -581,9 +589,9 @@ class TestQuizConfigurationCompleteness:
     ) -> None:
         """correct_answer_index outside options range is rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         config = {
             "question": "What is 2+2?",
@@ -592,16 +600,16 @@ class TestQuizConfigurationCompleteness:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "correct_answer_index" in str(exc_info.value.field_errors)
 
     def test_missing_correct_answer_index_rejected(self) -> None:
         """Missing correct_answer_index is rejected."""
         from zondarr.core.exceptions import ValidationError
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         config = {
             "question": "What is 2+2?",
@@ -609,7 +617,7 @@ class TestQuizConfigurationCompleteness:
         }
 
         with pytest.raises(ValidationError) as exc_info:
-            _ = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
+            _ = handler.validate_config(config)
 
         assert "correct_answer_index" in str(exc_info.value.field_errors)
 
@@ -641,9 +649,9 @@ class TestQuizAnswerValidation:
         if correct_index >= num_options:
             correct_index = num_options - 1
 
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         # Create a mock step using MockWizardStep
         step = MockWizardStep(
@@ -657,7 +665,7 @@ class TestQuizAnswerValidation:
 
         # Submit correct answer
         response = {"answer_index": correct_index}
-        is_valid, error = service._validate_quiz_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is True
         assert error is None
@@ -685,9 +693,9 @@ class TestQuizAnswerValidation:
         if correct_index == wrong_index:
             return
 
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import QuizHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = QuizHandler()
 
         # Create a mock step using MockWizardStep
         step = MockWizardStep(
@@ -701,7 +709,7 @@ class TestQuizAnswerValidation:
 
         # Submit wrong answer
         response = {"answer_index": wrong_index}
-        is_valid, error = service._validate_quiz_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -730,9 +738,9 @@ class TestTextInputConstraintValidation:
         text: str,
     ) -> None:
         """Valid text input within constraints returns valid=true."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TextInputHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TextInputHandler()
 
         # Create a mock step with constraints using MockWizardStep
         step = MockWizardStep(
@@ -746,16 +754,16 @@ class TestTextInputConstraintValidation:
         )
 
         response = {"text": text}
-        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is True
         assert error is None
 
     def test_empty_required_input_returns_invalid(self) -> None:
         """Empty input when required=true returns valid=false."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TextInputHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TextInputHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TEXT_INPUT,
@@ -766,7 +774,7 @@ class TestTextInputConstraintValidation:
         )
 
         response: dict[str, object] = {"text": ""}
-        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -774,9 +782,9 @@ class TestTextInputConstraintValidation:
 
     def test_missing_required_input_returns_invalid(self) -> None:
         """Missing input when required=true returns valid=false."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TextInputHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TextInputHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TEXT_INPUT,
@@ -787,7 +795,7 @@ class TestTextInputConstraintValidation:
         )
 
         response: dict[str, object] = {}
-        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -803,9 +811,9 @@ class TestTextInputConstraintValidation:
         text_length: int,
     ) -> None:
         """Text shorter than min_length returns valid=false."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TextInputHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TextInputHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TEXT_INPUT,
@@ -818,7 +826,7 @@ class TestTextInputConstraintValidation:
 
         text = "x" * text_length
         response = {"text": text}
-        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -835,9 +843,9 @@ class TestTextInputConstraintValidation:
         extra_length: int,
     ) -> None:
         """Text longer than max_length returns valid=false."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TextInputHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TextInputHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TEXT_INPUT,
@@ -850,7 +858,7 @@ class TestTextInputConstraintValidation:
 
         text = "x" * (max_length + extra_length)
         response = {"text": text}
-        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, response, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -882,9 +890,9 @@ class TestTimerDurationValidation:
         """Timer with sufficient elapsed time returns valid=true."""
         from datetime import timedelta
 
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TIMER,
@@ -898,7 +906,7 @@ class TestTimerDurationValidation:
             seconds=duration_seconds + extra_seconds
         )
 
-        is_valid, error = service._validate_timer_response(step, started_at)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, {}, started_at)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is True
         assert error is None
@@ -916,9 +924,9 @@ class TestTimerDurationValidation:
         """Timer with insufficient elapsed time returns valid=false."""
         from datetime import timedelta
 
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TIMER,
@@ -930,7 +938,7 @@ class TestTimerDurationValidation:
         # Set started_at to be only elapsed_seconds ago (less than required)
         started_at = datetime.now(UTC) - timedelta(seconds=elapsed_seconds)
 
-        is_valid, error = service._validate_timer_response(step, started_at)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, {}, started_at)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None
@@ -938,9 +946,9 @@ class TestTimerDurationValidation:
 
     def test_missing_started_at_returns_invalid(self) -> None:
         """Timer validation without started_at returns valid=false."""
-        from zondarr.services.wizard import WizardService
+        from zondarr.services.interactions.handlers import TimerHandler
 
-        service = WizardService.__new__(WizardService)
+        handler = TimerHandler()
 
         step = MockWizardStep(
             interaction_type=InteractionType.TIMER,
@@ -949,7 +957,7 @@ class TestTimerDurationValidation:
             },
         )
 
-        is_valid, error = service._validate_timer_response(step, None)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+        is_valid, error = handler.validate_response(step, {}, None)  # pyright: ignore[reportArgumentType]
 
         assert is_valid is False
         assert error is not None

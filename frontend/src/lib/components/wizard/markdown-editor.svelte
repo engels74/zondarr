@@ -2,7 +2,8 @@
 /**
  * Markdown Editor Component
  *
- * Implements textarea with markdown input and live preview with sanitized HTML.
+ * Implements textarea with markdown input, formatting toolbar, and live preview
+ * with sanitized HTML.
  *
  * Requirements: 13.4, 15.4
  *
@@ -22,6 +23,7 @@ let { value = $bindable(''), placeholder = 'Enter markdown content...', rows = 8
 
 // Tab state for switching between edit and preview
 let activeTab = $state<'edit' | 'preview'>('edit');
+let textareaRef = $state<HTMLTextAreaElement | null>(null);
 
 // Render markdown with sanitization
 const renderedHtml = $derived.by(() => {
@@ -51,6 +53,123 @@ const renderedHtml = $derived.by(() => {
 		ALLOWED_ATTR: ['href', 'target', 'rel']
 	});
 });
+
+/**
+ * Insert markdown formatting around the current selection or at cursor.
+ */
+function insertFormatting(before: string, after: string, defaultText: string) {
+	if (!textareaRef) return;
+
+	const start = textareaRef.selectionStart;
+	const end = textareaRef.selectionEnd;
+	const selected = value.slice(start, end);
+	const text = selected || defaultText;
+
+	const newValue = value.slice(0, start) + before + text + after + value.slice(end);
+	value = newValue;
+
+	// Restore cursor position after the inserted text
+	requestAnimationFrame(() => {
+		if (!textareaRef) return;
+		textareaRef.focus();
+		if (selected) {
+			// If text was selected, select the formatted text
+			textareaRef.selectionStart = start + before.length;
+			textareaRef.selectionEnd = start + before.length + text.length;
+		} else {
+			// If no selection, select the default text for easy replacement
+			textareaRef.selectionStart = start + before.length;
+			textareaRef.selectionEnd = start + before.length + defaultText.length;
+		}
+	});
+}
+
+/**
+ * Insert a line-level formatting (heading, list item, blockquote).
+ */
+function insertLineFormatting(prefix: string, defaultText: string) {
+	if (!textareaRef) return;
+
+	const start = textareaRef.selectionStart;
+	const end = textareaRef.selectionEnd;
+	const selected = value.slice(start, end);
+	const text = selected || defaultText;
+
+	// Find the start of the current line
+	const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+	const beforeLine = value.slice(0, lineStart);
+	const afterCursor = value.slice(end);
+
+	// Check if we need a newline before the prefix
+	const needsNewline = lineStart > 0 && value[lineStart - 1] !== '\n';
+
+	const newValue = beforeLine + (needsNewline ? '\n' : '') + prefix + text + afterCursor;
+	value = newValue;
+
+	const offset = (needsNewline ? 1 : 0) + prefix.length;
+	requestAnimationFrame(() => {
+		if (!textareaRef) return;
+		textareaRef.focus();
+		if (selected) {
+			textareaRef.selectionStart = lineStart + offset;
+			textareaRef.selectionEnd = lineStart + offset + text.length;
+		} else {
+			textareaRef.selectionStart = lineStart + offset;
+			textareaRef.selectionEnd = lineStart + offset + defaultText.length;
+		}
+	});
+}
+
+function formatBold() {
+	insertFormatting('**', '**', 'bold text');
+}
+
+function formatItalic() {
+	insertFormatting('*', '*', 'italic text');
+}
+
+function formatHeading() {
+	insertLineFormatting('## ', 'Heading');
+}
+
+function formatLink() {
+	if (!textareaRef) return;
+
+	const start = textareaRef.selectionStart;
+	const end = textareaRef.selectionEnd;
+	const selected = value.slice(start, end);
+
+	if (selected) {
+		// Wrap selected text as link text
+		const newValue = value.slice(0, start) + '[' + selected + '](url)' + value.slice(end);
+		value = newValue;
+		requestAnimationFrame(() => {
+			if (!textareaRef) return;
+			textareaRef.focus();
+			// Select "url" for easy replacement
+			textareaRef.selectionStart = start + selected.length + 2;
+			textareaRef.selectionEnd = start + selected.length + 5;
+		});
+	} else {
+		insertFormatting('[', '](url)', 'link text');
+	}
+}
+
+function formatBulletList() {
+	insertLineFormatting('- ', 'list item');
+}
+
+function formatNumberedList() {
+	insertLineFormatting('1. ', 'list item');
+}
+
+function formatBlockquote() {
+	insertLineFormatting('> ', 'quote');
+}
+
+function formatCode() {
+	insertFormatting('`', '`', 'code');
+}
 </script>
 
 <div class="markdown-editor">
@@ -77,16 +196,67 @@ const renderedHtml = $derived.by(() => {
 	<!-- Content area -->
 	<div class="content">
 		{#if activeTab === 'edit'}
+			<!-- Formatting toolbar -->
+			<div class="toolbar" role="toolbar" aria-label="Formatting options">
+				<button type="button" class="toolbar-btn" onclick={formatBold} title="Bold (Ctrl+B)">
+					<strong>B</strong>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatItalic} title="Italic (Ctrl+I)">
+					<em>I</em>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatHeading} title="Heading">
+					H
+				</button>
+				<div class="toolbar-divider"></div>
+				<button type="button" class="toolbar-btn" onclick={formatLink} title="Link">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+					</svg>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatBulletList} title="Bullet list">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="8" y1="6" x2="21" y2="6" />
+						<line x1="8" y1="12" x2="21" y2="12" />
+						<line x1="8" y1="18" x2="21" y2="18" />
+						<line x1="3" y1="6" x2="3.01" y2="6" />
+						<line x1="3" y1="12" x2="3.01" y2="12" />
+						<line x1="3" y1="18" x2="3.01" y2="18" />
+					</svg>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatNumberedList} title="Numbered list">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<line x1="10" y1="6" x2="21" y2="6" />
+						<line x1="10" y1="12" x2="21" y2="12" />
+						<line x1="10" y1="18" x2="21" y2="18" />
+						<path d="M4 6h1v4" />
+						<path d="M4 10h2" />
+						<path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1" />
+					</svg>
+				</button>
+				<div class="toolbar-divider"></div>
+				<button type="button" class="toolbar-btn" onclick={formatBlockquote} title="Blockquote">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V21z" />
+						<path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3z" />
+					</svg>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatCode} title="Inline code">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+						<polyline points="16 18 22 12 16 6" />
+						<polyline points="8 6 2 12 8 18" />
+					</svg>
+				</button>
+			</div>
+
 			<textarea
+				bind:this={textareaRef}
 				bind:value
 				{placeholder}
 				{rows}
 				class="editor-textarea"
 				spellcheck="true"
 			></textarea>
-			<div class="help-text">
-				Supports Markdown: **bold**, *italic*, [links](url), # headings, - lists
-			</div>
 		{:else}
 			<div class="preview prose prose-invert">
 				{@html renderedHtml}
@@ -140,6 +310,50 @@ const renderedHtml = $derived.by(() => {
 		min-height: 200px;
 	}
 
+	/* Formatting toolbar */
+	.toolbar {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		padding: 0.375rem 0.5rem;
+		border-bottom: 1px solid var(--cr-border);
+		background: var(--cr-surface);
+	}
+
+	.toolbar-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 1.75rem;
+		height: 1.75rem;
+		padding: 0;
+		font-size: 0.8125rem;
+		font-family: inherit;
+		color: var(--cr-text-muted);
+		background: transparent;
+		border: 1px solid transparent;
+		border-radius: 0.25rem;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.toolbar-btn:hover {
+		color: var(--cr-text);
+		background: hsl(220 15% 15%);
+		border-color: var(--cr-border);
+	}
+
+	.toolbar-btn:active {
+		background: hsl(220 15% 12%);
+	}
+
+	.toolbar-divider {
+		width: 1px;
+		height: 1.25rem;
+		margin: 0 0.25rem;
+		background: var(--cr-border);
+	}
+
 	/* Editor textarea */
 	.editor-textarea {
 		width: 100%;
@@ -157,14 +371,6 @@ const renderedHtml = $derived.by(() => {
 
 	.editor-textarea::placeholder {
 		color: var(--cr-text-muted);
-	}
-
-	.help-text {
-		padding: 0.5rem 1rem;
-		font-size: 0.75rem;
-		color: var(--cr-text-muted);
-		background: var(--cr-surface);
-		border-top: 1px solid var(--cr-border);
 	}
 
 	/* Preview area */
