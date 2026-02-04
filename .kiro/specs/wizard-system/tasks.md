@@ -137,60 +137,60 @@ This plan implements the wizard system for configurable multi-step onboarding fl
 
   - [x] 4.8 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
-- [ ] 5. Checkpoint - Backend API complete
+- [x] 5. Checkpoint - Backend API complete
   - Ensure all tests pass, ask the user if questions arise.
 
 
-- [ ] 6. Create frontend wizard components
-  - [ ] 6.1 Create wizard Zod schemas in `frontend/src/lib/schemas/wizard.ts`
+- [x] 6. Create frontend wizard components
+  - [x] 6.1 Create wizard Zod schemas in `frontend/src/lib/schemas/wizard.ts`
     - Define wizardSchema, clickConfigSchema, timerConfigSchema
     - Define tosConfigSchema, textInputConfigSchema, quizConfigSchema
     - Export TypeScript types from schemas
     - _Requirements: 4.3, 5.4, 6.3, 7.2, 8.2, 8.3_
-    - [ ] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.2 Add wizard API client functions to `frontend/src/lib/api/client.ts`
+  - [x] 6.2 Add wizard API client functions to `frontend/src/lib/api/client.ts`
     - Add createWizard, getWizards, getWizard, updateWizard, deleteWizard
     - Add createStep, updateStep, deleteStep, reorderStep
     - Add validateStep function
     - _Requirements: 2.1-2.6, 3.1-3.5, 9.1_
-    - [ ] 6.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.3 Create wizard-shell.svelte component
+  - [x] 6.3 Create wizard-shell.svelte component
     - Implement step sequencer with $state for currentStepIndex
     - Implement progress tracking with $derived
     - Implement sessionStorage persistence with $effect
     - Render markdown content with DOMPurify sanitization
     - Apply cinematic UI styling with custom CSS variables per `docs/frontend-design-skill.md`
     - _Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 14.6, 15.1, 15.3_
-    - [ ] 6.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.3.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.4 Create wizard-progress.svelte component
+  - [x] 6.4 Create wizard-progress.svelte component
     - Display current step / total steps
     - Render progress bar with smooth transitions
     - Apply gold accent glow on completion per `docs/frontend-design-skill.md`
     - _Requirements: 11.2_
-    - [ ] 6.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.4.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.5 Create wizard-navigation.svelte component
+  - [x] 6.5 Create wizard-navigation.svelte component
     - Render Back button (disabled on first step)
     - Render Next/Complete button based on step position
     - Handle loading state during validation
     - Apply floating navigation styling with backdrop blur per `docs/frontend-design-skill.md`
     - _Requirements: 11.3, 11.4, 11.5_
-    - [ ] 6.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 6.5.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 6.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 6.5.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 6.6 Write property test for markdown sanitization
+  - [x] 6.6 Write property test for markdown sanitization
     - **Property 13: Markdown XSS Sanitization**
     - **Validates: Requirements 15.3**
-    - [ ] 6.6.1 Run tests with `bun run test` and ensure all pass
+    - [x] 6.6.1 Run tests with `bun run test` and ensure all pass
 
-  - [ ] 6.7 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
+  - [x] 6.7 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
 - [ ] 7. Create interaction components
   - [ ] 7.1 Create click-interaction.svelte
