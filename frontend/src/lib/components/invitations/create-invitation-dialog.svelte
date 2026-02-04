@@ -15,7 +15,9 @@ import { Plus } from '@lucide/svelte';
 import { toast } from 'svelte-sonner';
 import {
 	createInvitation,
-	type MediaServerWithLibrariesResponse
+	getWizards,
+	type MediaServerWithLibrariesResponse,
+	type WizardResponse
 } from '$lib/api/client';
 import { ApiError, getErrorMessage } from '$lib/api/errors';
 import { Button } from '$lib/components/ui/button';
@@ -40,6 +42,10 @@ let open = $state(false);
 // Submitting state
 let submitting = $state(false);
 
+// Available wizards
+let wizards = $state<WizardResponse[]>([]);
+let loadingWizards = $state(false);
+
 // Form data state
 let formData = $state<CreateInvitationInput>({
 	server_ids: [],
@@ -47,11 +53,31 @@ let formData = $state<CreateInvitationInput>({
 	expires_at: '',
 	max_uses: undefined,
 	duration_days: undefined,
-	library_ids: []
+	library_ids: [],
+	pre_wizard_id: '',
+	post_wizard_id: ''
 });
 
 // Validation errors
 let errors = $state<Record<string, string[]>>({});
+
+/**
+ * Fetch available wizards when dialog opens.
+ */
+async function fetchWizards() {
+	loadingWizards = true;
+	try {
+		const result = await getWizards({ page_size: 100 });
+		if (result.data) {
+			// Only show enabled wizards
+			wizards = result.data.items.filter((w) => w.enabled);
+		}
+	} catch (error) {
+		console.error('Failed to fetch wizards:', error);
+	} finally {
+		loadingWizards = false;
+	}
+}
 
 /**
  * Reset form to initial state.
@@ -63,7 +89,9 @@ function resetForm() {
 		expires_at: '',
 		max_uses: undefined,
 		duration_days: undefined,
-		library_ids: []
+		library_ids: [],
+		pre_wizard_id: '',
+		post_wizard_id: ''
 	};
 	errors = {};
 }
@@ -137,7 +165,9 @@ async function handleSubmit() {
  */
 function handleOpenChange(isOpen: boolean) {
 	open = isOpen;
-	if (!isOpen) {
+	if (isOpen) {
+		fetchWizards();
+	} else {
 		resetForm();
 	}
 }
@@ -182,6 +212,8 @@ function handleCancel() {
 				bind:formData
 				{errors}
 				{servers}
+				{wizards}
+				loadingWizards={loadingWizards}
 				mode="create"
 				{submitting}
 				onSubmit={handleSubmit}

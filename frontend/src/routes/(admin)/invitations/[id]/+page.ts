@@ -2,7 +2,7 @@
  * Invitation detail page load function.
  *
  * Fetches a single invitation by ID with all relationships.
- * Also fetches available servers for the edit form.
+ * Also fetches available servers and wizards for the edit form.
  *
  * @module routes/(admin)/invitations/[id]/+page
  */
@@ -10,8 +10,10 @@
 import {
 	getInvitation,
 	getServers,
+	getWizards,
 	type InvitationDetailResponse,
-	type MediaServerWithLibrariesResponse
+	type MediaServerWithLibrariesResponse,
+	type WizardResponse
 } from '$lib/api/client';
 import { ApiError } from '$lib/api/errors';
 import type { PageLoad } from './$types';
@@ -20,10 +22,11 @@ export const load: PageLoad = async ({ params }) => {
 	const { id } = params;
 
 	try {
-		// Fetch invitation and servers in parallel
-		const [invitationResult, serversResult] = await Promise.all([
+		// Fetch invitation, servers, and wizards in parallel
+		const [invitationResult, serversResult, wizardsResult] = await Promise.all([
 			getInvitation(id),
-			getServers(true) // Only enabled servers
+			getServers(true), // Only enabled servers
+			getWizards({ page_size: 100 }) // Fetch all wizards
 		]);
 
 		// Handle invitation fetch error
@@ -33,6 +36,7 @@ export const load: PageLoad = async ({ params }) => {
 			return {
 				invitation: null as InvitationDetailResponse | null,
 				servers: [] as MediaServerWithLibrariesResponse[],
+				wizards: [] as WizardResponse[],
 				error: new ApiError(
 					status,
 					errorBody?.error_code ?? 'UNKNOWN_ERROR',
@@ -44,9 +48,17 @@ export const load: PageLoad = async ({ params }) => {
 		// Handle servers fetch error (non-fatal, just use empty array)
 		const servers = serversResult.data ?? [];
 
+		// Handle wizards fetch error (non-fatal, just use empty array)
+		// Only include enabled wizards
+		const wizards = wizardsResult.data?.items.filter((w) => w.enabled) ?? [];
+
+		// Cast the invitation data to include wizard fields
+		const invitation = invitationResult.data as InvitationDetailResponse | undefined;
+
 		return {
-			invitation: invitationResult.data,
+			invitation: invitation ?? null,
 			servers,
+			wizards,
 			error: null as Error | null
 		};
 	} catch (err) {
@@ -54,6 +66,7 @@ export const load: PageLoad = async ({ params }) => {
 		return {
 			invitation: null as InvitationDetailResponse | null,
 			servers: [] as MediaServerWithLibrariesResponse[],
+			wizards: [] as WizardResponse[],
 			error: err instanceof Error ? err : new Error('Failed to load invitation')
 		};
 	}

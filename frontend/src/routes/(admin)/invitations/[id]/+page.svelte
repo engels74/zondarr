@@ -7,18 +7,20 @@
  * - Edit form for mutable fields
  * - Delete button with confirmation dialog
  * - Target servers and allowed libraries display
+ * - Associated wizards display and selection
  *
  * @module routes/(admin)/invitations/[id]/+page
  */
 
-import { ArrowLeft, Calendar, Hash, Save, Server, Timer, Trash2, Users } from '@lucide/svelte';
+import { ArrowLeft, Calendar, ExternalLink, Hash, Save, Server, Timer, Trash2, Users, Wand2 } from '@lucide/svelte';
 import { toast } from 'svelte-sonner';
 import { goto, invalidateAll } from '$app/navigation';
 import {
 	deleteInvitation,
 	type InvitationDetailResponse,
 	type MediaServerWithLibrariesResponse,
-	updateInvitation
+	updateInvitation,
+	type WizardResponse
 } from '$lib/api/client';
 import { ApiError, getErrorMessage } from '$lib/api/errors';
 import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
@@ -44,7 +46,9 @@ let initialFormData = $derived<UpdateInvitationInput>({
 	duration_days: data.invitation?.duration_days ?? undefined,
 	enabled: data.invitation?.enabled ?? true,
 	server_ids: data.invitation?.target_servers.map((s) => s.id) ?? [],
-	library_ids: data.invitation?.allowed_libraries.map((l) => l.id) ?? []
+	library_ids: data.invitation?.allowed_libraries.map((l) => l.id) ?? [],
+	pre_wizard_id: data.invitation?.pre_wizard?.id ?? '',
+	post_wizard_id: data.invitation?.post_wizard?.id ?? ''
 });
 
 // Form state for mutable fields (user-editable copy)
@@ -54,7 +58,9 @@ let formData = $state<UpdateInvitationInput>({
 	duration_days: undefined,
 	enabled: true,
 	server_ids: [],
-	library_ids: []
+	library_ids: [],
+	pre_wizard_id: '',
+	post_wizard_id: ''
 });
 
 // Sync form data when initial data changes (e.g., after invalidateAll)
@@ -65,6 +71,8 @@ $effect(() => {
 	formData.enabled = initialFormData.enabled;
 	formData.server_ids = [...(initialFormData.server_ids ?? [])];
 	formData.library_ids = [...(initialFormData.library_ids ?? [])];
+	formData.pre_wizard_id = initialFormData.pre_wizard_id;
+	formData.post_wizard_id = initialFormData.post_wizard_id;
 });
 
 // Validation errors
@@ -457,6 +465,65 @@ function getFieldErrors(field: string): string[] {
 				</Card.Root>
 			{/if}
 
+			<!-- Onboarding Wizards Card -->
+			{#if data.invitation.pre_wizard || data.invitation.post_wizard}
+				<Card.Root class="border-cr-border bg-cr-surface">
+					<Card.Header>
+						<Card.Title class="text-cr-text flex items-center gap-2">
+							<Wand2 class="size-5 text-cr-accent" />
+							Onboarding Wizards
+						</Card.Title>
+						<Card.Description class="text-cr-text-muted">
+							Wizard flows users must complete during invitation redemption.
+						</Card.Description>
+					</Card.Header>
+					<Card.Content class="space-y-4">
+						{#if data.invitation.pre_wizard}
+							<div class="space-y-1">
+								<Label class="text-cr-text-muted text-xs uppercase tracking-wide">Pre-Registration</Label>
+								<div class="flex items-center justify-between rounded-lg border border-cr-border bg-cr-bg p-3">
+									<div>
+										<div class="font-medium text-cr-text">{data.invitation.pre_wizard.name}</div>
+										{#if data.invitation.pre_wizard.description}
+											<div class="text-xs text-cr-text-muted">{data.invitation.pre_wizard.description}</div>
+										{/if}
+									</div>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => goto(`/wizards/${data.invitation?.pre_wizard?.id}`)}
+										class="text-cr-text-muted hover:text-cr-accent"
+									>
+										<ExternalLink class="size-4" />
+									</Button>
+								</div>
+							</div>
+						{/if}
+						{#if data.invitation.post_wizard}
+							<div class="space-y-1">
+								<Label class="text-cr-text-muted text-xs uppercase tracking-wide">Post-Registration</Label>
+								<div class="flex items-center justify-between rounded-lg border border-cr-border bg-cr-bg p-3">
+									<div>
+										<div class="font-medium text-cr-text">{data.invitation.post_wizard.name}</div>
+										{#if data.invitation.post_wizard.description}
+											<div class="text-xs text-cr-text-muted">{data.invitation.post_wizard.description}</div>
+										{/if}
+									</div>
+									<Button
+										variant="ghost"
+										size="sm"
+										onclick={() => goto(`/wizards/${data.invitation?.post_wizard?.id}`)}
+										class="text-cr-text-muted hover:text-cr-accent"
+									>
+										<ExternalLink class="size-4" />
+									</Button>
+								</div>
+							</div>
+						{/if}
+					</Card.Content>
+				</Card.Root>
+			{/if}
+
 			<!-- Edit Form Card -->
 			<Card.Root class="border-cr-border bg-cr-surface lg:col-span-2">
 				<Card.Header>
@@ -629,6 +696,69 @@ function getFieldErrors(field: string): string[] {
 											{library.name}
 										</button>
 									{/each}
+								</div>
+							</div>
+						{/if}
+
+						<!-- Wizard Selection Section -->
+						{#if data.wizards.length > 0}
+							<div class="space-y-4 pt-4 border-t border-cr-border">
+								<div class="flex items-center gap-2">
+									<Wand2 class="size-4 text-cr-accent" />
+									<span class="text-cr-text font-medium">Onboarding Wizards</span>
+									<span class="text-cr-text-muted text-xs">(optional)</span>
+								</div>
+
+								<div class="grid gap-4 sm:grid-cols-2">
+									<!-- Pre-Registration Wizard -->
+									<div class="space-y-2">
+										<Label class="text-cr-text text-sm">
+											Pre-Registration Wizard
+										</Label>
+										<select
+											bind:value={formData.pre_wizard_id}
+											class="w-full rounded-md border border-cr-border bg-cr-bg px-3 py-2 text-cr-text text-sm focus:outline-none focus:ring-2 focus:ring-cr-accent focus:ring-offset-2 focus:ring-offset-cr-bg"
+											data-field-pre-wizard
+										>
+											<option value="">None</option>
+											{#each data.wizards as wizard (wizard.id)}
+												<option value={wizard.id}>{wizard.name}</option>
+											{/each}
+										</select>
+										<p class="text-cr-text-muted text-xs">Runs before account creation</p>
+										{#if getFieldErrors('pre_wizard_id').length > 0}
+											<div class="text-rose-400 text-sm">
+												{#each getFieldErrors('pre_wizard_id') as error}
+													<p>{error}</p>
+												{/each}
+											</div>
+										{/if}
+									</div>
+
+									<!-- Post-Registration Wizard -->
+									<div class="space-y-2">
+										<Label class="text-cr-text text-sm">
+											Post-Registration Wizard
+										</Label>
+										<select
+											bind:value={formData.post_wizard_id}
+											class="w-full rounded-md border border-cr-border bg-cr-bg px-3 py-2 text-cr-text text-sm focus:outline-none focus:ring-2 focus:ring-cr-accent focus:ring-offset-2 focus:ring-offset-cr-bg"
+											data-field-post-wizard
+										>
+											<option value="">None</option>
+											{#each data.wizards as wizard (wizard.id)}
+												<option value={wizard.id}>{wizard.name}</option>
+											{/each}
+										</select>
+										<p class="text-cr-text-muted text-xs">Runs after account creation</p>
+										{#if getFieldErrors('post_wizard_id').length > 0}
+											<div class="text-rose-400 text-sm">
+												{#each getFieldErrors('post_wizard_id') as error}
+													<p>{error}</p>
+												{/each}
+											</div>
+										{/if}
+									</div>
 								</div>
 							</div>
 						{/if}

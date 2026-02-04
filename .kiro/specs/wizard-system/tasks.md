@@ -294,22 +294,22 @@ This plan implements the wizard system for configurable multi-step onboarding fl
 
   - [x] 9.6 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
-- [ ] 10. Integrate wizards into invitation management
-  - [ ] 10.1 Update invitation form components
+- [-] 10. Integrate wizards into invitation management
+  - [x] 10.1 Update invitation form components
     - Add pre_wizard_id and post_wizard_id select fields
     - Fetch available wizards for dropdown options
     - _Requirements: 10.2_
-    - [ ] 10.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 10.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 10.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 10.1.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 10.2 Update invitation detail display
+  - [x] 10.2 Update invitation detail display
     - Show associated pre_wizard and post_wizard names
     - Link to wizard editor
     - _Requirements: 10.3_
-    - [ ] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
-    - [ ] 10.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
+    - [x] 10.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
+    - [x] 10.2.2 Run type checking with `bun run check` and fix all type errors (no warnings, no errors)
 
-  - [ ] 10.3 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
+  - [-] 10.3 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
 - [ ] 11. Integrate wizards into join flow
   - [ ] 11.1 Update join page to handle pre-wizard
