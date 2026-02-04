@@ -400,3 +400,367 @@ export async function healthCheck() {
 	const response = await fetch(`${API_BASE_URL}/health`);
 	return response.json() as Promise<{ status: string; checks: Record<string, boolean> }>;
 }
+
+// =============================================================================
+// Wizard Types (manually defined until OpenAPI regeneration)
+// =============================================================================
+
+/** Wizard step configuration types */
+export interface ClickConfig {
+	button_text?: string;
+}
+
+export interface TimerConfig {
+	duration_seconds: number;
+}
+
+export interface TosConfig {
+	checkbox_label?: string;
+}
+
+export interface TextInputConfig {
+	label: string;
+	placeholder?: string;
+	required?: boolean;
+	min_length?: number;
+	max_length?: number;
+}
+
+export interface QuizConfig {
+	question: string;
+	options: string[];
+	correct_answer_index: number;
+}
+
+export type StepConfig = ClickConfig | TimerConfig | TosConfig | TextInputConfig | QuizConfig;
+
+/** Wizard step response */
+export interface WizardStepResponse {
+	id: string;
+	wizard_id: string;
+	step_order: number;
+	interaction_type: 'click' | 'timer' | 'tos' | 'text_input' | 'quiz';
+	title: string;
+	content_markdown: string;
+	config: Record<string, unknown>;
+	created_at: string;
+	updated_at?: string | null;
+}
+
+/** Wizard response (without steps) */
+export interface WizardResponse {
+	id: string;
+	name: string;
+	enabled: boolean;
+	created_at: string;
+	description?: string | null;
+	updated_at?: string | null;
+}
+
+/** Wizard detail response (with steps) */
+export interface WizardDetailResponse {
+	id: string;
+	name: string;
+	enabled: boolean;
+	created_at: string;
+	steps: WizardStepResponse[];
+	description?: string | null;
+	updated_at?: string | null;
+}
+
+/** Wizard list response */
+export interface WizardListResponse {
+	items: WizardResponse[];
+	total: number;
+	page: number;
+	page_size: number;
+	has_next: boolean;
+}
+
+/** Step validation response */
+export interface StepValidationResponse {
+	valid: boolean;
+	completion_token?: string | null;
+	error?: string | null;
+}
+
+/** Create wizard request */
+export interface CreateWizardRequest {
+	name: string;
+	description?: string | null;
+	enabled?: boolean;
+}
+
+/** Update wizard request */
+export interface UpdateWizardRequest {
+	name?: string | null;
+	description?: string | null;
+	enabled?: boolean | null;
+}
+
+/** Create wizard step request */
+export interface CreateWizardStepRequest {
+	interaction_type: 'click' | 'timer' | 'tos' | 'text_input' | 'quiz';
+	title: string;
+	content_markdown: string;
+	config?: Record<string, unknown>;
+	step_order?: number | null;
+}
+
+/** Update wizard step request */
+export interface UpdateWizardStepRequest {
+	title?: string | null;
+	content_markdown?: string | null;
+	config?: Record<string, unknown> | null;
+}
+
+/** Step reorder request */
+export interface StepReorderRequest {
+	new_order: number;
+}
+
+/** Step validation request */
+export interface StepValidationRequest {
+	step_id: string;
+	response: Record<string, unknown>;
+	started_at?: string | null;
+}
+
+// =============================================================================
+// Wizard API Wrappers
+// =============================================================================
+
+/** Parameters for listing wizards */
+export interface ListWizardsParams {
+	page?: number;
+	page_size?: number;
+}
+
+/**
+ * List wizards with pagination.
+ *
+ * @param params - Query parameters for pagination
+ * @returns Paginated list of wizards
+ */
+export async function getWizards(params: ListWizardsParams = {}) {
+	const queryParams = new URLSearchParams();
+	if (params.page !== undefined) queryParams.set('page', String(params.page));
+	if (params.page_size !== undefined) queryParams.set('page_size', String(params.page_size));
+
+	const queryString = queryParams.toString();
+	const url = `${API_BASE_URL}/api/v1/wizards${queryString ? `?${queryString}` : ''}`;
+
+	const response = await fetch(url, {
+		headers: { 'Content-Type': 'application/json' }
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const data = (await response.json()) as WizardListResponse;
+	return { data, error: undefined };
+}
+
+/**
+ * Get a single wizard by ID with all its steps.
+ *
+ * @param wizardId - UUID of the wizard
+ * @returns Wizard detail response with steps
+ */
+export async function getWizard(wizardId: string) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}`, {
+		headers: { 'Content-Type': 'application/json' }
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const data = (await response.json()) as WizardDetailResponse;
+	return { data, error: undefined };
+}
+
+/**
+ * Create a new wizard.
+ *
+ * @param data - Wizard creation data
+ * @returns Created wizard response
+ */
+export async function createWizard(data: CreateWizardRequest) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as WizardResponse;
+	return { data: result, error: undefined };
+}
+
+/**
+ * Update an existing wizard.
+ *
+ * @param wizardId - UUID of the wizard to update
+ * @param data - Fields to update
+ * @returns Updated wizard response
+ */
+export async function updateWizard(wizardId: string, data: UpdateWizardRequest) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as WizardResponse;
+	return { data: result, error: undefined };
+}
+
+/**
+ * Delete a wizard.
+ *
+ * @param wizardId - UUID of the wizard to delete
+ * @returns Empty response on success
+ */
+export async function deleteWizard(wizardId: string) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}`, {
+		method: 'DELETE',
+		headers: { 'Content-Type': 'application/json' }
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	return { data: null, error: undefined };
+}
+
+/**
+ * Create a new wizard step.
+ *
+ * @param wizardId - UUID of the parent wizard
+ * @param data - Step creation data
+ * @returns Created step response
+ */
+export async function createStep(wizardId: string, data: CreateWizardStepRequest) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}/steps`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as WizardStepResponse;
+	return { data: result, error: undefined };
+}
+
+/**
+ * Update an existing wizard step.
+ *
+ * @param wizardId - UUID of the parent wizard
+ * @param stepId - UUID of the step to update
+ * @param data - Fields to update
+ * @returns Updated step response
+ */
+export async function updateStep(wizardId: string, stepId: string, data: UpdateWizardStepRequest) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}/steps/${stepId}`, {
+		method: 'PATCH',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as WizardStepResponse;
+	return { data: result, error: undefined };
+}
+
+/**
+ * Delete a wizard step.
+ *
+ * @param wizardId - UUID of the parent wizard
+ * @param stepId - UUID of the step to delete
+ * @returns Empty response on success
+ */
+export async function deleteStep(wizardId: string, stepId: string) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/${wizardId}/steps/${stepId}`, {
+		method: 'DELETE',
+		headers: { 'Content-Type': 'application/json' }
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	return { data: null, error: undefined };
+}
+
+/**
+ * Reorder a wizard step.
+ *
+ * @param wizardId - UUID of the parent wizard
+ * @param stepId - UUID of the step to reorder
+ * @param newOrder - New position for the step
+ * @returns Updated step response
+ */
+export async function reorderStep(wizardId: string, stepId: string, newOrder: number) {
+	const response = await fetch(
+		`${API_BASE_URL}/api/v1/wizards/${wizardId}/steps/${stepId}/reorder`,
+		{
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ new_order: newOrder })
+		}
+	);
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as WizardStepResponse;
+	return { data: result, error: undefined };
+}
+
+/**
+ * Validate a wizard step completion.
+ *
+ * @param data - Step validation request
+ * @returns Validation response with completion token if valid
+ */
+export async function validateStep(data: StepValidationRequest) {
+	const response = await fetch(`${API_BASE_URL}/api/v1/wizards/validate-step`, {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	if (!response.ok) {
+		const error = await response.json();
+		return { data: undefined, error };
+	}
+
+	const result = (await response.json()) as StepValidationResponse;
+	return { data: result, error: undefined };
+}

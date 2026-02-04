@@ -17,6 +17,11 @@
 			"trailingCommas": "none"
 		}
 	},
+	"css": {
+		"parser": {
+			"cssModules": true
+		}
+	},
 	"linter": {
 		"enabled": true,
 		"rules": {
