@@ -6,6 +6,15 @@
  * @module $lib/components/wizard
  */
 
+// Re-export interaction components
+export {
+	ClickInteraction,
+	QuizInteraction,
+	type StepResponse,
+	TextInputInteraction,
+	TimerInteraction,
+	TosInteraction
+} from './interactions';
 export { default as WizardNavigation } from './wizard-navigation.svelte';
 export { default as WizardProgress } from './wizard-progress.svelte';
 export { default as WizardShell } from './wizard-shell.svelte';
