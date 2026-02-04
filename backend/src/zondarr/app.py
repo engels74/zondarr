@@ -37,6 +37,7 @@ from zondarr.api.join import JoinController
 from zondarr.api.plex_oauth import PlexOAuthController
 from zondarr.api.servers import ServerController
 from zondarr.api.users import UserController
+from zondarr.api.wizards import WizardController
 from zondarr.config import Settings, load_settings
 from zondarr.core.database import db_lifespan, provide_db_session
 from zondarr.core.exceptions import NotFoundError, ValidationError
@@ -74,6 +75,7 @@ def _create_openapi_config() -> OpenAPIConfig:
             Tag(name="Join", description="Public invitation redemption"),
             Tag(name="Plex OAuth", description="Plex OAuth authentication flow"),
             Tag(name="Users", description="User and identity management"),
+            Tag(name="Wizards", description="Wizard management for onboarding flows"),
         ],
         security=[{"BearerToken": []}],
         components=Components(
@@ -145,6 +147,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
             PlexOAuthController,
             ServerController,
             UserController,
+            WizardController,
         ],
         lifespan=[db_lifespan],
         state=State({"settings": settings}),

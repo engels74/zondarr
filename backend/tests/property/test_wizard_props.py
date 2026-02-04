@@ -5,6 +5,7 @@ Properties: 3, 4
 Validates: Requirements 1.3, 1.4
 """
 
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import pytest
@@ -15,6 +16,15 @@ from sqlalchemy.exc import IntegrityError
 
 from tests.conftest import create_test_engine
 from zondarr.models import InteractionType, Wizard, WizardStep
+
+
+@dataclass
+class MockWizardStep:
+    """Mock WizardStep for testing validation methods without SQLAlchemy overhead."""
+
+    interaction_type: InteractionType
+    config: dict[str, str | int | bool | list[str] | None] = field(default_factory=dict)
+
 
 # Custom strategies for wizard fields
 name_strategy = st.text(
@@ -602,3 +612,345 @@ class TestQuizConfigurationCompleteness:
             _ = service._validate_quiz_config(config)  # pyright: ignore[reportPrivateUsage]
 
         assert "correct_answer_index" in str(exc_info.value.field_errors)
+
+
+class TestQuizAnswerValidation:
+    """
+    Feature: wizard-system
+    Property 9: Quiz Answer Validation
+
+    *For any* quiz step and any answer submission, the validation endpoint
+    SHALL return valid=true if and only if the submitted answer_index equals
+    the correct_answer_index in the step config.
+
+    **Validates: Requirements 8.4, 8.5, 9.3**
+    """
+
+    @settings(max_examples=10)
+    @given(
+        num_options=st.integers(min_value=2, max_value=10),
+        correct_index=st.integers(min_value=0, max_value=9),
+    )
+    def test_correct_answer_returns_valid(
+        self,
+        num_options: int,
+        correct_index: int,
+    ) -> None:
+        """Submitting the correct answer returns valid=true."""
+        # Ensure correct_index is valid for the number of options
+        if correct_index >= num_options:
+            correct_index = num_options - 1
+
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        # Create a mock step using MockWizardStep
+        step = MockWizardStep(
+            interaction_type=InteractionType.QUIZ,
+            config={
+                "question": "Test question",
+                "options": [f"Option {i}" for i in range(num_options)],
+                "correct_answer_index": correct_index,
+            },
+        )
+
+        # Submit correct answer
+        response = {"answer_index": correct_index}
+        is_valid, error = service._validate_quiz_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is True
+        assert error is None
+
+    @settings(max_examples=10)
+    @given(
+        num_options=st.integers(min_value=2, max_value=10),
+        correct_index=st.integers(min_value=0, max_value=9),
+        wrong_index=st.integers(min_value=0, max_value=9),
+    )
+    def test_incorrect_answer_returns_invalid(
+        self,
+        num_options: int,
+        correct_index: int,
+        wrong_index: int,
+    ) -> None:
+        """Submitting an incorrect answer returns valid=false."""
+        # Ensure indices are valid for the number of options
+        if correct_index >= num_options:
+            correct_index = num_options - 1
+        if wrong_index >= num_options:
+            wrong_index = num_options - 1
+
+        # Skip if they happen to be the same
+        if correct_index == wrong_index:
+            return
+
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        # Create a mock step using MockWizardStep
+        step = MockWizardStep(
+            interaction_type=InteractionType.QUIZ,
+            config={
+                "question": "Test question",
+                "options": [f"Option {i}" for i in range(num_options)],
+                "correct_answer_index": correct_index,
+            },
+        )
+
+        # Submit wrong answer
+        response = {"answer_index": wrong_index}
+        is_valid, error = service._validate_quiz_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "Incorrect" in error
+
+
+class TestTextInputConstraintValidation:
+    """
+    Feature: wizard-system
+    Property 10: Text Input Constraint Validation
+
+    *For any* text_input step with configured constraints (required, min_length,
+    max_length), the validation endpoint SHALL return valid=false for: empty
+    input when required=true, input shorter than min_length, or input longer
+    than max_length.
+
+    **Validates: Requirements 7.3, 7.4, 9.4**
+    """
+
+    @settings(max_examples=10)
+    @given(
+        text=st.text(min_size=5, max_size=50),
+    )
+    def test_valid_text_input_returns_valid(
+        self,
+        text: str,
+    ) -> None:
+        """Valid text input within constraints returns valid=true."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        # Create a mock step with constraints using MockWizardStep
+        step = MockWizardStep(
+            interaction_type=InteractionType.TEXT_INPUT,
+            config={
+                "label": "Test input",
+                "required": True,
+                "min_length": 1,
+                "max_length": 100,
+            },
+        )
+
+        response = {"text": text}
+        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is True
+        assert error is None
+
+    def test_empty_required_input_returns_invalid(self) -> None:
+        """Empty input when required=true returns valid=false."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TEXT_INPUT,
+            config={
+                "label": "Test input",
+                "required": True,
+            },
+        )
+
+        response: dict[str, object] = {"text": ""}
+        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "required" in error.lower()
+
+    def test_missing_required_input_returns_invalid(self) -> None:
+        """Missing input when required=true returns valid=false."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TEXT_INPUT,
+            config={
+                "label": "Test input",
+                "required": True,
+            },
+        )
+
+        response: dict[str, object] = {}
+        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+
+    @settings(max_examples=10)
+    @given(
+        min_length=st.integers(min_value=5, max_value=20),
+        text_length=st.integers(min_value=1, max_value=4),
+    )
+    def test_text_below_min_length_returns_invalid(
+        self,
+        min_length: int,
+        text_length: int,
+    ) -> None:
+        """Text shorter than min_length returns valid=false."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TEXT_INPUT,
+            config={
+                "label": "Test input",
+                "required": True,
+                "min_length": min_length,
+            },
+        )
+
+        text = "x" * text_length
+        response = {"text": text}
+        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "at least" in error.lower()
+
+    @settings(max_examples=10)
+    @given(
+        max_length=st.integers(min_value=5, max_value=20),
+        extra_length=st.integers(min_value=1, max_value=10),
+    )
+    def test_text_above_max_length_returns_invalid(
+        self,
+        max_length: int,
+        extra_length: int,
+    ) -> None:
+        """Text longer than max_length returns valid=false."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TEXT_INPUT,
+            config={
+                "label": "Test input",
+                "required": True,
+                "max_length": max_length,
+            },
+        )
+
+        text = "x" * (max_length + extra_length)
+        response = {"text": text}
+        is_valid, error = service._validate_text_input_response(step, response)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "exceed" in error.lower()
+
+
+class TestTimerDurationValidation:
+    """
+    Feature: wizard-system
+    Property 11: Timer Duration Validation
+
+    *For any* timer step validation request, the validation endpoint SHALL
+    return valid=true if and only if the elapsed time (current_time - started_at)
+    is greater than or equal to duration_seconds.
+
+    **Validates: Requirements 9.2**
+    """
+
+    @settings(max_examples=10)
+    @given(
+        duration_seconds=st.integers(min_value=1, max_value=60),
+        extra_seconds=st.integers(min_value=0, max_value=30),
+    )
+    def test_elapsed_time_sufficient_returns_valid(
+        self,
+        duration_seconds: int,
+        extra_seconds: int,
+    ) -> None:
+        """Timer with sufficient elapsed time returns valid=true."""
+        from datetime import timedelta
+
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TIMER,
+            config={
+                "duration_seconds": duration_seconds,
+            },
+        )
+
+        # Set started_at to be duration_seconds + extra_seconds ago
+        started_at = datetime.now(UTC) - timedelta(
+            seconds=duration_seconds + extra_seconds
+        )
+
+        is_valid, error = service._validate_timer_response(step, started_at)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is True
+        assert error is None
+
+    @settings(max_examples=10)
+    @given(
+        duration_seconds=st.integers(min_value=10, max_value=60),
+        elapsed_seconds=st.integers(min_value=1, max_value=9),
+    )
+    def test_elapsed_time_insufficient_returns_invalid(
+        self,
+        duration_seconds: int,
+        elapsed_seconds: int,
+    ) -> None:
+        """Timer with insufficient elapsed time returns valid=false."""
+        from datetime import timedelta
+
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TIMER,
+            config={
+                "duration_seconds": duration_seconds,
+            },
+        )
+
+        # Set started_at to be only elapsed_seconds ago (less than required)
+        started_at = datetime.now(UTC) - timedelta(seconds=elapsed_seconds)
+
+        is_valid, error = service._validate_timer_response(step, started_at)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "not complete" in error.lower() or "remaining" in error.lower()
+
+    def test_missing_started_at_returns_invalid(self) -> None:
+        """Timer validation without started_at returns valid=false."""
+        from zondarr.services.wizard import WizardService
+
+        service = WizardService.__new__(WizardService)
+
+        step = MockWizardStep(
+            interaction_type=InteractionType.TIMER,
+            config={
+                "duration_seconds": 10,
+            },
+        )
+
+        is_valid, error = service._validate_timer_response(step, None)  # pyright: ignore[reportPrivateUsage, reportArgumentType]
+
+        assert is_valid is False
+        assert error is not None
+        assert "start time" in error.lower()

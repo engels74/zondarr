@@ -73,69 +73,69 @@ This plan implements the wizard system for configurable multi-step onboarding fl
 
   - [x] 2.5 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
-- [ ] 3. Checkpoint - Backend models and services
+- [x] 3. Checkpoint - Backend models and services
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 4. Implement wizard API endpoints
-  - [ ] 4.1 Add wizard msgspec schemas to `backend/src/zondarr/api/schemas.py`
+- [x] 4. Implement wizard API endpoints
+  - [x] 4.1 Add wizard msgspec schemas to `backend/src/zondarr/api/schemas.py`
     - Add WizardCreate, WizardUpdate request structs
     - Add WizardStepCreate, WizardStepUpdate request structs
     - Add StepReorderRequest, StepValidationRequest structs
     - Add WizardResponse, WizardDetailResponse, WizardStepResponse, StepValidationResponse structs
     - _Requirements: 2.1-2.6, 3.1-3.5, 9.1-9.6_
-    - [ ] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.1.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.1.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.2 Create WizardController in `backend/src/zondarr/api/wizards.py`
+  - [x] 4.2 Create WizardController in `backend/src/zondarr/api/wizards.py`
     - Implement POST /api/v1/wizards (create wizard)
     - Implement GET /api/v1/wizards (list wizards with pagination)
     - Implement GET /api/v1/wizards/{id} (get wizard with steps)
     - Implement PATCH /api/v1/wizards/{id} (update wizard)
     - Implement DELETE /api/v1/wizards/{id} (delete wizard)
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
-    - [ ] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.2.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.2.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.3 Add step management endpoints to WizardController
+  - [x] 4.3 Add step management endpoints to WizardController
     - Implement POST /api/v1/wizards/{id}/steps (create step)
     - Implement PATCH /api/v1/wizards/{id}/steps/{step_id} (update step)
     - Implement DELETE /api/v1/wizards/{id}/steps/{step_id} (delete step)
     - Implement POST /api/v1/wizards/{id}/steps/{step_id}/reorder (reorder step)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
-    - [ ] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.3.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.3.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.4 Add step validation endpoint
+  - [x] 4.4 Add step validation endpoint
     - Implement POST /api/v1/wizards/validate-step (public, no auth)
     - Validate timer elapsed time, quiz answers, text input constraints
     - Return completion token on success
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
-    - [ ] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.4.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.4.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.5 Update invitation endpoints to include wizard fields
+  - [x] 4.5 Update invitation endpoints to include wizard fields
     - Update CreateInvitationRequest with optional pre_wizard_id, post_wizard_id
     - Update InvitationDetailResponse to include pre_wizard, post_wizard
     - Update validation endpoint response to include wizard details
     - _Requirements: 10.2, 10.3_
-    - [ ] 4.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.5.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.5.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.6 Write property tests for validation endpoint
+  - [x] 4.6 Write property tests for validation endpoint
     - **Property 9: Quiz Answer Validation**
     - **Property 10: Text Input Constraint Validation**
     - **Property 11: Timer Duration Validation**
     - **Validates: Requirements 8.4, 8.5, 7.3, 7.4, 9.2, 9.3, 9.4**
-    - [ ] 4.6.1 Run tests with `uv run pytest tests/property/` and ensure all pass
+    - [x] 4.6.1 Run tests with `uv run pytest tests/property/` and ensure all pass
 
-  - [ ] 4.7 Register WizardController in app.py
+  - [x] 4.7 Register WizardController in app.py
     - Add controller to route_handlers list
     - Add dependency providers for wizard service
     - _Requirements: 2.1-2.6_
-    - [ ] 4.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
-    - [ ] 4.7.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
+    - [x] 4.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/`
+    - [x] 4.7.2 Run type checking with `uv run basedpyright` and fix all type errors (no warnings, no errors)
 
-  - [ ] 4.8 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
+  - [x] 4.8 Commit and push changes, fix all type errors (no warnings, no errors, no excuses)
 
 - [ ] 5. Checkpoint - Backend API complete
   - Ensure all tests pass, ask the user if questions arise.
