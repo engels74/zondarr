@@ -98,6 +98,8 @@ class InvitationService:
         target_servers: Sequence[MediaServer] | None = None,
         allowed_libraries: Sequence[Library] | None = None,
         created_by: str | None = None,
+        pre_wizard_id: UUID | None = None,
+        post_wizard_id: UUID | None = None,
     ) -> Invitation:
         """Create a new invitation with the specified configuration.
 
@@ -123,6 +125,8 @@ class InvitationService:
             allowed_libraries: Optional list of specific libraries to grant access to (keyword-only).
                 Use this when you already have Library objects.
             created_by: Optional identifier of who created the invitation (keyword-only).
+            pre_wizard_id: Optional wizard ID to run before account creation (keyword-only).
+            post_wizard_id: Optional wizard ID to run after account creation (keyword-only).
 
         Returns:
             The created Invitation entity with generated code.
@@ -161,6 +165,8 @@ class InvitationService:
             max_uses=max_uses,
             duration_days=duration_days,
             created_by=created_by,
+            pre_wizard_id=pre_wizard_id,
+            post_wizard_id=post_wizard_id,
         )
 
         # Add target servers if resolved
@@ -434,11 +440,14 @@ class InvitationService:
         enabled: bool | None = None,
         server_ids: Sequence[UUID] | None = None,
         library_ids: Sequence[UUID] | None = None,
+        pre_wizard_id: UUID | None = None,
+        post_wizard_id: UUID | None = None,
     ) -> Invitation:
         """Update an invitation with the specified fields.
 
         Only mutable fields can be updated:
-        - expires_at, max_uses, duration_days, enabled, server_ids, library_ids
+        - expires_at, max_uses, duration_days, enabled, server_ids, library_ids,
+          pre_wizard_id, post_wizard_id
 
         Immutable fields are protected and cannot be changed:
         - code, use_count, created_at, created_by
@@ -453,6 +462,8 @@ class InvitationService:
             enabled: New enabled status (keyword-only).
             server_ids: New list of server UUIDs (keyword-only).
             library_ids: New list of library UUIDs (keyword-only).
+            pre_wizard_id: New wizard ID to run before account creation (keyword-only).
+            post_wizard_id: New wizard ID to run after account creation (keyword-only).
 
         Returns:
             The updated Invitation entity.
@@ -481,6 +492,12 @@ class InvitationService:
 
         if enabled is not None:
             invitation.enabled = enabled
+
+        if pre_wizard_id is not None:
+            invitation.pre_wizard_id = pre_wizard_id
+
+        if post_wizard_id is not None:
+            invitation.post_wizard_id = post_wizard_id
 
         # Validate and update server_ids if provided
         if server_ids is not None:

@@ -24,6 +24,7 @@ from litestar.types import AnyCallable
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from zondarr.models.invitation import Invitation
+from zondarr.models.wizard import Wizard, WizardStep
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.services.invitation import InvitationService, InvitationValidationFailure
@@ -37,6 +38,9 @@ from .schemas import (
     LibraryResponse,
     MediaServerResponse,
     UpdateInvitationRequest,
+    WizardDetailResponse,
+    WizardResponse,
+    WizardStepResponse,
 )
 
 
@@ -135,6 +139,8 @@ class InvitationController(Controller):
             duration_days=data.duration_days,
             server_ids=data.server_ids,
             library_ids=data.library_ids,
+            pre_wizard_id=data.pre_wizard_id,
+            post_wizard_id=data.post_wizard_id,
         )
 
         return self._to_detail_response(invitation, invitation_service)
@@ -275,7 +281,8 @@ class InvitationController(Controller):
         """Update an invitation.
 
         Only mutable fields can be updated:
-        - expires_at, max_uses, duration_days, enabled, server_ids, library_ids
+        - expires_at, max_uses, duration_days, enabled, server_ids, library_ids,
+          pre_wizard_id, post_wizard_id
 
         Immutable fields are protected:
         - code, use_count, created_at, created_by
@@ -300,6 +307,8 @@ class InvitationController(Controller):
             enabled=data.enabled,
             server_ids=data.server_ids,
             library_ids=data.library_ids,
+            pre_wizard_id=data.pre_wizard_id,
+            post_wizard_id=data.post_wizard_id,
         )
 
         return self._to_detail_response(invitation, invitation_service)
@@ -362,7 +371,7 @@ class InvitationController(Controller):
 
         Returns:
             Validation result with failure reason if invalid,
-            or target servers and libraries if valid.
+            or target servers, libraries, and wizards if valid.
         """
         is_valid, failure_reason = await invitation_service.validate(code)
 
@@ -400,11 +409,17 @@ class InvitationController(Controller):
             for lib in invitation.allowed_libraries
         ]
 
+        # Convert wizards to response format
+        pre_wizard = self._wizard_to_detail_response(invitation.pre_wizard)
+        post_wizard = self._wizard_to_detail_response(invitation.post_wizard)
+
         return InvitationValidationResponse(
             valid=True,
             target_servers=target_servers if target_servers else None,
             allowed_libraries=allowed_libraries if allowed_libraries else None,
             duration_days=invitation.duration_days,
+            pre_wizard=pre_wizard,
+            post_wizard=post_wizard,
         )
 
     def _to_response(
@@ -477,6 +492,10 @@ class InvitationController(Controller):
             for lib in invitation.allowed_libraries
         ]
 
+        # Convert wizards to response format
+        pre_wizard = self._wizard_to_response(invitation.pre_wizard)
+        post_wizard = self._wizard_to_response(invitation.post_wizard)
+
         return InvitationDetailResponse(
             id=invitation.id,
             code=invitation.code,
@@ -492,6 +511,76 @@ class InvitationController(Controller):
             updated_at=invitation.updated_at,
             is_active=invitation_service.is_active(invitation),
             remaining_uses=invitation_service.remaining_uses(invitation),
+            pre_wizard=pre_wizard,
+            post_wizard=post_wizard,
+        )
+
+    def _wizard_to_response(self, wizard: Wizard | None, /) -> WizardResponse | None:
+        """Convert a Wizard entity to WizardResponse.
+
+        Args:
+            wizard: The Wizard entity or None.
+
+        Returns:
+            WizardResponse or None if wizard is None.
+        """
+        if wizard is None:
+            return None
+
+        return WizardResponse(
+            id=wizard.id,
+            name=wizard.name,
+            enabled=wizard.enabled,
+            created_at=wizard.created_at,
+            description=wizard.description,
+            updated_at=wizard.updated_at,
+        )
+
+    def _wizard_to_detail_response(
+        self, wizard: Wizard | None, /
+    ) -> WizardDetailResponse | None:
+        """Convert a Wizard entity to WizardDetailResponse with steps.
+
+        Args:
+            wizard: The Wizard entity or None.
+
+        Returns:
+            WizardDetailResponse with steps or None if wizard is None.
+        """
+        if wizard is None:
+            return None
+
+        steps = [self._step_to_response(step) for step in wizard.steps]
+
+        return WizardDetailResponse(
+            id=wizard.id,
+            name=wizard.name,
+            enabled=wizard.enabled,
+            created_at=wizard.created_at,
+            steps=steps,
+            description=wizard.description,
+            updated_at=wizard.updated_at,
+        )
+
+    def _step_to_response(self, step: WizardStep, /) -> WizardStepResponse:
+        """Convert a WizardStep entity to WizardStepResponse.
+
+        Args:
+            step: The WizardStep entity.
+
+        Returns:
+            WizardStepResponse.
+        """
+        return WizardStepResponse(
+            id=step.id,
+            wizard_id=step.wizard_id,
+            step_order=step.step_order,
+            interaction_type=step.interaction_type.value,
+            title=step.title,
+            content_markdown=step.content_markdown,
+            config=step.config,
+            created_at=step.created_at,
+            updated_at=step.updated_at,
         )
 
     def _failure_reason_to_string(

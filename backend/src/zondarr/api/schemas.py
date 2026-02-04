@@ -228,6 +228,227 @@ class MediaServerWithLibrariesResponse(msgspec.Struct, omit_defaults=True):
 
 
 # =============================================================================
+# Wizard Schemas
+# =============================================================================
+
+# Interaction type pattern for validation
+InteractionTypeStr = Annotated[
+    str, msgspec.Meta(pattern=r"^(click|timer|tos|text_input|quiz)$")
+]
+
+# Step order (non-negative integer)
+StepOrder = Annotated[int, msgspec.Meta(ge=0)]
+
+
+class WizardCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to create a wizard.
+
+    Implements Requirements 2.1: Create wizard via API.
+
+    Attributes:
+        name: Human-readable name for the wizard.
+        description: Optional detailed description.
+        enabled: Whether the wizard is active. Defaults to True.
+    """
+
+    name: NonEmptyStr
+    description: str | None = None
+    enabled: bool = True
+
+
+class WizardUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to update a wizard.
+
+    All fields are optional - only provided fields will be updated.
+    Implements Requirements 2.4: Update wizard via API.
+
+    Attributes:
+        name: Human-readable name for the wizard.
+        description: Optional detailed description.
+        enabled: Whether the wizard is active.
+    """
+
+    name: NonEmptyStr | None = None
+    description: str | None = None
+    enabled: bool | None = None
+
+
+class WizardStepCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to create a wizard step.
+
+    Implements Requirements 3.1: Create step via API.
+
+    Attributes:
+        interaction_type: Type of interaction (click, timer, tos, text_input, quiz).
+        title: Display title for the step.
+        content_markdown: Markdown content to display.
+        config: Type-specific configuration (button_text, duration_seconds, etc.).
+        step_order: Position in the wizard sequence. Auto-assigned if not provided.
+    """
+
+    interaction_type: InteractionTypeStr
+    title: NonEmptyStr
+    content_markdown: str
+    config: dict[str, str | int | bool | list[str] | None] = {}
+    step_order: StepOrder | None = None
+
+
+class WizardStepUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to update a wizard step.
+
+    All fields are optional - only provided fields will be updated.
+    Implements Requirements 3.2: Update step via API.
+
+    Attributes:
+        title: Display title for the step.
+        content_markdown: Markdown content to display.
+        config: Type-specific configuration.
+    """
+
+    title: NonEmptyStr | None = None
+    content_markdown: str | None = None
+    config: dict[str, str | int | bool | list[str] | None] | None = None
+
+
+class StepReorderRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to reorder a wizard step.
+
+    Implements Requirements 3.5: Reorder step via API.
+
+    Attributes:
+        new_order: The new position for the step (0-indexed).
+    """
+
+    new_order: StepOrder
+
+
+class StepValidationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to validate a step completion.
+
+    Implements Requirements 9.1: Validate step completion via API.
+
+    Attributes:
+        step_id: The UUID of the step being validated.
+        response: Type-specific response data (acknowledged, accepted, text, answer_index).
+        started_at: When the step was started (required for timer validation).
+    """
+
+    step_id: UUID
+    response: dict[str, str | int | bool | None]
+    started_at: datetime | None = None
+
+
+class WizardStepResponse(msgspec.Struct, omit_defaults=True):
+    """Wizard step response.
+
+    Implements Requirements 3.1: Step response schema.
+
+    Attributes:
+        id: Unique identifier for the step.
+        wizard_id: ID of the parent wizard.
+        step_order: Position in the wizard sequence.
+        interaction_type: Type of interaction.
+        title: Display title for the step.
+        content_markdown: Markdown content to display.
+        config: Type-specific configuration.
+        created_at: When the step was created.
+        updated_at: When the step was last modified.
+    """
+
+    id: UUID
+    wizard_id: UUID
+    step_order: int
+    interaction_type: str
+    title: str
+    content_markdown: str
+    config: dict[str, str | int | bool | list[str] | None]
+    created_at: datetime
+    updated_at: datetime | None = None
+
+
+class WizardResponse(msgspec.Struct, omit_defaults=True):
+    """Wizard response (without steps).
+
+    Implements Requirements 2.2: Wizard list response schema.
+
+    Attributes:
+        id: Unique identifier for the wizard.
+        name: Human-readable name for the wizard.
+        enabled: Whether the wizard is active.
+        created_at: When the wizard was created.
+        description: Optional detailed description.
+        updated_at: When the wizard was last modified.
+    """
+
+    id: UUID
+    name: str
+    enabled: bool
+    created_at: datetime
+    description: str | None = None
+    updated_at: datetime | None = None
+
+
+class WizardDetailResponse(msgspec.Struct, omit_defaults=True):
+    """Wizard response with steps.
+
+    Implements Requirements 2.3: Wizard detail response schema.
+
+    Attributes:
+        id: Unique identifier for the wizard.
+        name: Human-readable name for the wizard.
+        enabled: Whether the wizard is active.
+        created_at: When the wizard was created.
+        steps: List of wizard steps in order.
+        description: Optional detailed description.
+        updated_at: When the wizard was last modified.
+    """
+
+    id: UUID
+    name: str
+    enabled: bool
+    created_at: datetime
+    steps: list[WizardStepResponse]
+    description: str | None = None
+    updated_at: datetime | None = None
+
+
+class WizardListResponse(msgspec.Struct, kw_only=True):
+    """Paginated wizard list response.
+
+    Implements Requirements 2.2: Paginated wizard list.
+
+    Attributes:
+        items: List of wizards for the current page.
+        total: Total number of wizards matching the query.
+        page: Current page number (1-indexed).
+        page_size: Number of items per page.
+        has_next: Whether there are more pages available.
+    """
+
+    items: list[WizardResponse]
+    total: int
+    page: int
+    page_size: int
+    has_next: bool
+
+
+class StepValidationResponse(msgspec.Struct, kw_only=True):
+    """Response from step validation endpoint.
+
+    Implements Requirements 9.5, 9.6: Validation response schema.
+
+    Attributes:
+        valid: Whether the step completion was valid.
+        completion_token: Token proving completion (only if valid).
+        error: Error message (only if invalid).
+    """
+
+    valid: bool
+    completion_token: str | None = None
+    error: str | None = None
+
+
+# =============================================================================
 # Invitation Schemas
 # =============================================================================
 
@@ -243,6 +464,8 @@ class CreateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_field
         duration_days: Optional duration in days for user access after redemption.
         library_ids: Optional list of specific library IDs to grant access to.
         permissions: Optional permission overrides (can_download, can_stream, etc.).
+        pre_wizard_id: Optional wizard ID to run before account creation.
+        post_wizard_id: Optional wizard ID to run after account creation.
     """
 
     server_ids: list[UUID]
@@ -252,6 +475,8 @@ class CreateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_field
     duration_days: PositiveInt | None = None
     library_ids: list[UUID] | None = None
     permissions: dict[str, bool] | None = None
+    pre_wizard_id: UUID | None = None
+    post_wizard_id: UUID | None = None
 
 
 # Alias for backwards compatibility
@@ -272,6 +497,8 @@ class UpdateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_field
         server_ids: List of media server IDs this invitation grants access to.
         library_ids: Optional list of specific library IDs to grant access to.
         permissions: Optional permission overrides (can_download, can_stream, etc.).
+        pre_wizard_id: Optional wizard ID to run before account creation.
+        post_wizard_id: Optional wizard ID to run after account creation.
     """
 
     expires_at: datetime | None = None
@@ -281,6 +508,8 @@ class UpdateInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_field
     server_ids: list[UUID] | None = None
     library_ids: list[UUID] | None = None
     permissions: dict[str, bool] | None = None
+    pre_wizard_id: UUID | None = None
+    post_wizard_id: UUID | None = None
 
 
 # Alias for backwards compatibility
@@ -337,6 +566,8 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
         updated_at: When the invitation was last modified.
         is_active: Computed field: enabled AND not expired AND use_count < max_uses.
         remaining_uses: Computed field: max_uses - use_count if max_uses set.
+        pre_wizard: Optional wizard to run before account creation.
+        post_wizard: Optional wizard to run after account creation.
     """
 
     id: UUID
@@ -353,6 +584,8 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
     updated_at: datetime | None = None
     is_active: bool = True
     remaining_uses: int | None = None
+    pre_wizard: WizardResponse | None = None
+    post_wizard: WizardResponse | None = None
 
 
 class InvitationListResponse(msgspec.Struct, kw_only=True):
@@ -387,6 +620,8 @@ class InvitationValidationResponse(msgspec.Struct, omit_defaults=True):
         target_servers: List of media servers the invitation grants access to (if valid).
         allowed_libraries: List of specific libraries the invitation grants access to (if valid).
         duration_days: Duration in days for user access after redemption (if valid).
+        pre_wizard: Optional wizard to run before account creation (if valid).
+        post_wizard: Optional wizard to run after account creation (if valid).
     """
 
     valid: bool
@@ -394,6 +629,8 @@ class InvitationValidationResponse(msgspec.Struct, omit_defaults=True):
     target_servers: list[MediaServerResponse] | None = None
     allowed_libraries: list[LibraryResponse] | None = None
     duration_days: int | None = None
+    pre_wizard: WizardDetailResponse | None = None
+    post_wizard: WizardDetailResponse | None = None
 
 
 class RedeemInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
