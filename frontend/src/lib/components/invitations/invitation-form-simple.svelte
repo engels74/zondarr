@@ -5,6 +5,7 @@
  * Provides a form for creating or editing invitations with:
  * - Server multi-select for target servers
  * - Library multi-select (filtered by selected servers)
+ * - Wizard selection for pre/post registration flows
  * - Optional fields: code, expires_at, max_uses, duration_days
  * - Inline validation errors
  *
@@ -13,8 +14,8 @@
  * @module $lib/components/invitations/invitation-form-simple
  */
 
-import { Calendar, Hash, Server, Timer, Users } from '@lucide/svelte';
-import type { LibraryResponse, MediaServerWithLibrariesResponse } from '$lib/api/client';
+import { Calendar, Hash, Server, Timer, Users, Wand2 } from '@lucide/svelte';
+import type { LibraryResponse, MediaServerWithLibrariesResponse, WizardResponse } from '$lib/api/client';
 import { Button } from '$lib/components/ui/button';
 import { Input } from '$lib/components/ui/input';
 import { Label } from '$lib/components/ui/label';
@@ -26,13 +27,15 @@ interface Props {
 	formData: FormData;
 	errors: Record<string, string[]>;
 	servers: MediaServerWithLibrariesResponse[];
+	wizards?: WizardResponse[];
+	loadingWizards?: boolean;
 	mode: 'create' | 'edit';
 	submitting?: boolean;
 	onSubmit: () => void;
 	onCancel?: () => void;
 }
 
-let { formData = $bindable(), errors, servers, mode, submitting = false, onSubmit, onCancel }: Props = $props();
+let { formData = $bindable(), errors, servers, wizards = [], loadingWizards = false, mode, submitting = false, onSubmit, onCancel }: Props = $props();
 
 // Derive available libraries based on selected servers
 let availableLibraries = $derived.by(() => {
@@ -327,6 +330,74 @@ function getFieldErrors(field: string): string[] {
 			</div>
 		{/if}
 	</div>
+
+	<!-- Wizard Selection Section -->
+	{#if wizards.length > 0 || loadingWizards}
+		<div class="space-y-4 pt-4 border-t border-cr-border">
+			<div class="flex items-center gap-2">
+				<Wand2 class="size-4 text-cr-accent" />
+				<span class="text-cr-text font-medium">Onboarding Wizards</span>
+				<span class="text-cr-text-muted text-xs">(optional)</span>
+			</div>
+
+			{#if loadingWizards}
+				<div class="flex items-center gap-2 text-cr-text-muted text-sm">
+					<span class="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>
+					Loading wizards...
+				</div>
+			{:else}
+				<!-- Pre-Registration Wizard -->
+				<div class="space-y-2">
+					<Label class="text-cr-text text-sm">
+						Pre-Registration Wizard
+						<span class="text-cr-text-muted text-xs ml-1">(runs before account creation)</span>
+					</Label>
+					<select
+						bind:value={(formData as CreateInvitationInput).pre_wizard_id}
+						class="w-full rounded-md border border-cr-border bg-cr-surface px-3 py-2 text-cr-text text-sm focus:outline-none focus:ring-2 focus:ring-cr-accent focus:ring-offset-2 focus:ring-offset-cr-bg"
+						data-field-pre-wizard
+					>
+						<option value="">None</option>
+						{#each wizards as wizard (wizard.id)}
+							<option value={wizard.id}>{wizard.name}</option>
+						{/each}
+					</select>
+					{#if getFieldErrors('pre_wizard_id').length > 0}
+						<div class="text-rose-400 text-sm" data-field-error="pre_wizard_id">
+							{#each getFieldErrors('pre_wizard_id') as error}
+								<p>{error}</p>
+							{/each}
+						</div>
+					{/if}
+				</div>
+
+				<!-- Post-Registration Wizard -->
+				<div class="space-y-2">
+					<Label class="text-cr-text text-sm">
+						Post-Registration Wizard
+						<span class="text-cr-text-muted text-xs ml-1">(runs after account creation)</span>
+					</Label>
+					<select
+						bind:value={(formData as CreateInvitationInput).post_wizard_id}
+						class="w-full rounded-md border border-cr-border bg-cr-surface px-3 py-2 text-cr-text text-sm focus:outline-none focus:ring-2 focus:ring-cr-accent focus:ring-offset-2 focus:ring-offset-cr-bg"
+						data-field-post-wizard
+					>
+						<option value="">None</option>
+						{#each wizards as wizard (wizard.id)}
+							<option value={wizard.id}>{wizard.name}</option>
+						{/each}
+					</select>
+					{#if getFieldErrors('post_wizard_id').length > 0}
+						<div class="text-rose-400 text-sm" data-field-error="post_wizard_id">
+							{#each getFieldErrors('post_wizard_id') as error}
+								<p>{error}</p>
+							{/each}
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Enabled Toggle (Edit mode only) -->
 	{#if mode === 'edit'}

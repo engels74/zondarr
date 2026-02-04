@@ -22,6 +22,8 @@ import { z } from 'zod';
  * - max_uses: Positive integer limit on uses
  * - duration_days: Positive integer for user access duration
  * - library_ids: Specific libraries to grant access to
+ * - pre_wizard_id: Wizard to run before account creation
+ * - post_wizard_id: Wizard to run after account creation
  */
 export const createInvitationSchema = z.object({
 	server_ids: z.array(z.string().uuid('Invalid server ID')).min(1, 'Select at least one server'),
@@ -45,7 +47,9 @@ export const createInvitationSchema = z.object({
 		.positive('Must be a positive number')
 		.optional()
 		.or(z.literal('')),
-	library_ids: z.array(z.string().uuid('Invalid library ID')).optional()
+	library_ids: z.array(z.string().uuid('Invalid library ID')).optional(),
+	pre_wizard_id: z.string().uuid('Invalid wizard ID').optional().or(z.literal('')),
+	post_wizard_id: z.string().uuid('Invalid wizard ID').optional().or(z.literal(''))
 });
 
 export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
@@ -60,6 +64,8 @@ export type CreateInvitationInput = z.infer<typeof createInvitationSchema>;
  * - enabled: Can toggle enabled status
  * - server_ids: Can update target servers
  * - library_ids: Can update allowed libraries
+ * - pre_wizard_id: Can update pre-registration wizard
+ * - post_wizard_id: Can update post-registration wizard
  *
  * Immutable fields (code, use_count, created_at, created_by) are NOT included.
  */
@@ -89,7 +95,9 @@ export const updateInvitationSchema = z.object({
 		.array(z.string().uuid('Invalid server ID'))
 		.min(1, 'Select at least one server')
 		.optional(),
-	library_ids: z.array(z.string().uuid('Invalid library ID')).optional()
+	library_ids: z.array(z.string().uuid('Invalid library ID')).optional(),
+	pre_wizard_id: z.string().uuid('Invalid wizard ID').optional().nullable().or(z.literal('')),
+	post_wizard_id: z.string().uuid('Invalid wizard ID').optional().nullable().or(z.literal(''))
 });
 
 export type UpdateInvitationInput = z.infer<typeof updateInvitationSchema>;
@@ -106,7 +114,10 @@ export function transformCreateFormData(data: CreateInvitationInput) {
 		expires_at: data.expires_at && data.expires_at !== '' ? data.expires_at : undefined,
 		max_uses: typeof data.max_uses === 'number' ? data.max_uses : undefined,
 		duration_days: typeof data.duration_days === 'number' ? data.duration_days : undefined,
-		library_ids: data.library_ids && data.library_ids.length > 0 ? data.library_ids : undefined
+		library_ids: data.library_ids && data.library_ids.length > 0 ? data.library_ids : undefined,
+		pre_wizard_id: data.pre_wizard_id && data.pre_wizard_id !== '' ? data.pre_wizard_id : undefined,
+		post_wizard_id:
+			data.post_wizard_id && data.post_wizard_id !== '' ? data.post_wizard_id : undefined
 	};
 }
 
@@ -128,6 +139,8 @@ export function transformUpdateFormData(data: UpdateInvitationInput) {
 					: undefined,
 		enabled: data.enabled,
 		server_ids: data.server_ids,
-		library_ids: data.library_ids
+		library_ids: data.library_ids,
+		pre_wizard_id: data.pre_wizard_id === '' ? null : data.pre_wizard_id,
+		post_wizard_id: data.post_wizard_id === '' ? null : data.post_wizard_id
 	};
 }

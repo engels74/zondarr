@@ -29,7 +29,11 @@ export const api = createClient<paths>({
 // =============================================================================
 
 export type InvitationResponse = components['schemas']['InvitationResponse'];
-export type InvitationDetailResponse = components['schemas']['InvitationDetailResponse'];
+// Extended InvitationDetailResponse to include wizard fields (until OpenAPI types are regenerated)
+export type InvitationDetailResponse = components['schemas']['InvitationDetailResponse'] & {
+	pre_wizard?: WizardResponse | null;
+	post_wizard?: WizardResponse | null;
+};
 export type InvitationListResponse = components['schemas']['InvitationListResponse'];
 export type InvitationValidationResponse = components['schemas']['InvitationValidationResponse'];
 export type CreateInvitationRequest = components['schemas']['CreateInvitationRequest'];
