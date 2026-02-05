@@ -14,6 +14,7 @@ Property 8: External Service Error Mapping - Validates: Requirements 3.5
 import re
 from collections.abc import AsyncGenerator
 from datetime import datetime
+from typing import cast
 from uuid import UUID
 
 import pytest
@@ -459,8 +460,9 @@ class TestValidationErrorFieldMapping:
 
                 # Each field in the request should have a corresponding error entry
                 error_fields: set[str] = set()
-                for err in field_errors:
-                    if isinstance(err, dict) and "field" in err:
+                field_errors_list = cast(list[dict[str, object]], field_errors)
+                for err in field_errors_list:
+                    if "field" in err:
                         error_fields.add(str(err["field"]))
                 for field_name in field_names:
                     assert field_name in error_fields, (
@@ -496,24 +498,21 @@ class TestValidationErrorFieldMapping:
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
 
                 assert isinstance(data.get("field_errors"), list)
-                field_errors_raw = data["field_errors"]
-                assert isinstance(field_errors_raw, list)
+                field_errors_list = cast(list[dict[str, object]], data["field_errors"])
 
-                for field_error in field_errors_raw:
-                    assert isinstance(field_error, dict)
+                for field_error in field_errors_list:
                     # Each entry must have 'field' (string)
                     assert "field" in field_error, "field_error must have 'field'"
-                    assert isinstance(field_error["field"], str), (
-                        "'field' must be a string"
-                    )
+                    field_val = field_error["field"]
+                    assert isinstance(field_val, str), "'field' must be a string"
 
                     # Each entry must have 'messages' (array of strings)
                     assert "messages" in field_error, "field_error must have 'messages'"
-                    messages = field_error["messages"]
-                    assert isinstance(messages, list), "'messages' must be an array"
-                    assert len(messages) > 0, "'messages' must not be empty"
+                    messages_val = cast(list[str], field_error["messages"])
+                    assert isinstance(messages_val, list), "'messages' must be an array"
+                    assert len(messages_val) > 0, "'messages' must not be empty"
 
-                    for msg in messages:
+                    for msg in messages_val:
                         assert isinstance(msg, str), "Each message must be a string"
         finally:
             await engine.dispose()
