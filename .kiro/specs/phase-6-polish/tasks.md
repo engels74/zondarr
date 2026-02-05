@@ -110,12 +110,12 @@ This plan implements production polish features: background tasks, error handlin
     - Use `withErrorHandling` for API calls
     - _Requirements: 4.2_
 
-  - [ ]* 4.7 Write tests for toast utilities
+  - [x] 4.7 Write tests for toast utilities
     - **Property 9: API Error Toast Display**
     - **Validates: Requirements 4.4, 5.1**
 
-- [ ] 5. Frontend Error Handling
-  - [ ] 5.1 Create error boundary component
+- [x] 5. Frontend Error Handling
+  - [x] 5.1 Create error boundary component
     - Create `frontend/src/lib/components/error-boundary.svelte`
     - Use Svelte 5 snippets for fallback
     - NO legacy patterns (`<slot>`, `export let`)
@@ -126,7 +126,7 @@ This plan implements production polish features: background tasks, error handlin
     - Uses shadcn-svelte Alert-style component
     - _Requirements: 5.3_
 
-  - [ ] 5.3 Ensure error messages are safe
+  - [x] 5.3 Ensure error messages are safe
     - Filter out stack traces and internal details
     - Show generic messages for unexpected errors
     - _Requirements: 5.5_
