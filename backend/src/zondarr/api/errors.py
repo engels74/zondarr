@@ -3,6 +3,7 @@
 Provides exception handlers for:
 - ValidationError: Returns HTTP 400 with field-level error details
 - NotFoundError: Returns HTTP 404 with resource type and identifier
+- ExternalServiceError: Returns HTTP 502 with service identification
 - Generic exceptions: Returns HTTP 500 with correlation ID
 
 All error responses include:
@@ -23,9 +24,10 @@ from litestar.status_codes import (
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
     HTTP_500_INTERNAL_SERVER_ERROR,
+    HTTP_502_BAD_GATEWAY,
 )
 
-from ..core.exceptions import NotFoundError, ValidationError
+from ..core.exceptions import ExternalServiceError, NotFoundError, ValidationError
 from .schemas import ErrorResponse, FieldError, ValidationErrorResponse
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore[reportAny]
@@ -156,4 +158,40 @@ def internal_error_handler(
             correlation_id=correlation_id,
         ),
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
+    )
+
+
+def external_service_error_handler(
+    request: Request[object, object, State],
+    exc: ExternalServiceError,
+) -> Response[ErrorResponse]:
+    """Handle ExternalServiceError exceptions.
+
+    Returns HTTP 502 with service identification.
+    Logs the external service failure with correlation ID for debugging.
+
+    Args:
+        request: The incoming request.
+        exc: The ExternalServiceError exception.
+
+    Returns:
+        Response with ErrorResponse body and HTTP 502 status.
+    """
+    correlation_id = _generate_correlation_id()
+
+    logger.warning(
+        "External service error",
+        correlation_id=correlation_id,
+        service_name=exc.service_name,
+        path=str(request.url.path),
+    )
+
+    return Response(
+        ErrorResponse(
+            detail=f"External service unavailable: {exc.service_name}",
+            error_code=exc.error_code,
+            timestamp=datetime.now(UTC),
+            correlation_id=correlation_id,
+        ),
+        status_code=HTTP_502_BAD_GATEWAY,
     )

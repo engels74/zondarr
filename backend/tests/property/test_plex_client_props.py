@@ -1459,9 +1459,9 @@ class TestDeleteUserReturnValueCorrectness:
         username: str,
         error_message: str,
     ) -> None:
-        """delete_user raises MediaClientError on API failure (not 'not found')."""
+        """delete_user raises ExternalServiceError on API failure (not 'not found')."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create a Friend user that will fail to delete
         mock_user = MockMyPlexUserWithHome(
@@ -1479,11 +1479,10 @@ class TestDeleteUserReturnValueCorrectness:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client.delete_user(str(user_id))
 
-                assert exc_info.value.operation == "delete_user"
-                assert exc_info.value.server_url == url
+                assert f"Plex ({url})" in exc_info.value.service_name
 
 
 class MockLibraryWithSections(MockLibrary):
@@ -2229,9 +2228,9 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
         api_key: str,
         error_message: str,
     ) -> None:
-        """list_users raises MediaClientError on API failure."""
+        """list_users raises ExternalServiceError on API failure."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         mock_account = MockMyPlexAccountWithUserList(
             users_error=RuntimeError(error_message)
@@ -2242,11 +2241,10 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client.list_users()
 
-                assert exc_info.value.operation == "list_users"
-                assert exc_info.value.server_url == url
+                assert f"Plex ({url})" in exc_info.value.service_name
 
 
 # Strategy for operation names
@@ -2367,9 +2365,9 @@ class TestErrorStructureContainsRequiredFields:
         api_key: str,
         email: str,
     ) -> None:
-        """create_friend error contains operation and server_url fields."""
+        """create_friend error contains service_name field for external errors."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithInvite(
@@ -2381,19 +2379,12 @@ class TestErrorStructureContainsRequiredFields:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client._create_friend(email)  # pyright: ignore[reportPrivateUsage]
 
                 error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "create_friend"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # cause field must be present and contain error info
-                assert error.cause is not None
-                assert len(error.cause) > 0
+                # service_name must contain the server URL
+                assert f"Plex ({url})" in error.service_name
 
     @settings(max_examples=100)
     @given(
@@ -2408,9 +2399,9 @@ class TestErrorStructureContainsRequiredFields:
         api_key: str,
         username: str,
     ) -> None:
-        """create_home_user error contains operation and server_url fields."""
+        """create_home_user error contains service_name field for external errors."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithHomeUser(
@@ -2424,19 +2415,12 @@ class TestErrorStructureContainsRequiredFields:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client._create_home_user(username)  # pyright: ignore[reportPrivateUsage]
 
                 error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "create_home_user"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # cause field must be present and contain error info
-                assert error.cause is not None
-                assert len(error.cause) > 0
+                # service_name must contain the server URL
+                assert f"Plex ({url})" in error.service_name
 
     @settings(max_examples=100)
     @given(
@@ -2451,9 +2435,9 @@ class TestErrorStructureContainsRequiredFields:
         api_key: str,
         user_id: str,
     ) -> None:
-        """delete_user error contains operation and server_url fields."""
+        """delete_user error contains service_name field for external errors."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2465,19 +2449,12 @@ class TestErrorStructureContainsRequiredFields:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client.delete_user(user_id)
 
                 error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "delete_user"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # cause field must be present and contain error info
-                assert error.cause is not None
-                assert len(error.cause) > 0
+                # service_name must contain the server URL
+                assert f"Plex ({url})" in error.service_name
 
     @settings(max_examples=100)
     @given(
@@ -2529,9 +2506,9 @@ class TestErrorStructureContainsRequiredFields:
         user_id: str,
         library_ids: list[str],
     ) -> None:
-        """set_library_access error contains operation and server_url fields."""
+        """set_library_access error contains service_name field for external errors."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2543,19 +2520,12 @@ class TestErrorStructureContainsRequiredFields:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client.set_library_access(user_id, library_ids)
 
                 error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "set_library_access"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # cause field must be present and contain error info
-                assert error.cause is not None
-                assert len(error.cause) > 0
+                # service_name must contain the server URL
+                assert f"Plex ({url})" in error.service_name
 
     @settings(max_examples=100)
     @given(
@@ -2572,9 +2542,9 @@ class TestErrorStructureContainsRequiredFields:
         user_id: str,
         permissions: dict[str, bool],
     ) -> None:
-        """update_permissions error contains operation and server_url fields."""
+        """update_permissions error contains service_name field for external errors."""
+        from zondarr.core.exceptions import ExternalServiceError
         from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2586,21 +2556,14 @@ class TestErrorStructureContainsRequiredFields:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
+                with pytest.raises(ExternalServiceError) as exc_info:
                     _ = await client.update_permissions(
                         user_id, permissions=permissions
                     )
 
                 error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "update_permissions"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # cause field must be present and contain error info
-                assert error.cause is not None
-                assert len(error.cause) > 0
+                # service_name must contain the server URL
+                assert f"Plex ({url})" in error.service_name
 
     @settings(max_examples=100)
     @given(

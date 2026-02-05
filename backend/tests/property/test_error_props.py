@@ -3,6 +3,12 @@
 Feature: zondarr-foundation
 Property: 13
 Validates: Requirements 9.2, 9.3, 9.4, 9.5, 9.6
+
+Phase 6 Polish additions:
+Property 5: Error Response Structure - Validates: Requirements 3.1
+Property 6: Validation Error Field Mapping - Validates: Requirements 3.3
+Property 7: NotFound Error Resource Identification - Validates: Requirements 3.4
+Property 8: External Service Error Mapping - Validates: Requirements 3.5
 """
 
 import re
@@ -11,7 +17,7 @@ from datetime import datetime
 from uuid import UUID
 
 import pytest
-from hypothesis import given
+from hypothesis import given, settings
 from hypothesis import strategies as st
 from litestar import Litestar, get
 from litestar.di import Provide
@@ -20,12 +26,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.conftest import create_test_engine
 from zondarr.api.errors import (
+    external_service_error_handler,
     internal_error_handler,
     not_found_handler,
     validation_error_handler,
 )
 from zondarr.api.health import HealthController
-from zondarr.core.exceptions import NotFoundError, ValidationError
+from zondarr.core.exceptions import ExternalServiceError, NotFoundError, ValidationError
 
 
 def create_test_app_with_error_routes(
@@ -47,6 +54,20 @@ def create_test_app_with_error_routes(
             field_errors[field.strip()] = [f"Invalid value for {field.strip()}"]
         raise ValidationError("Validation failed", field_errors=field_errors)
 
+    @get("/trigger-validation-error-multi")
+    async def trigger_validation_error_multi(
+        fields: str = "field1,field2",
+        messages_per_field: int = 1,
+    ) -> dict[str, str]:
+        """Trigger a validation error with multiple messages per field."""
+        field_errors: dict[str, list[str]] = {}
+        for field in fields.split(","):
+            field_name = field.strip()
+            field_errors[field_name] = [
+                f"Error {i + 1} for {field_name}" for i in range(messages_per_field)
+            ]
+        raise ValidationError("Validation failed", field_errors=field_errors)
+
     @get("/trigger-not-found/{resource_type:str}/{identifier:str}")
     async def trigger_not_found(
         resource_type: str,
@@ -62,17 +83,31 @@ def create_test_app_with_error_routes(
             "Simulated internal error with sensitive info: /path/to/file"
         )
 
+    @get("/trigger-external-service-error/{service_name:str}")
+    async def trigger_external_service_error(
+        service_name: str,
+    ) -> dict[str, str]:
+        """Trigger an external service error with specified service name."""
+        raise ExternalServiceError(
+            service_name,
+            f"Failed to connect to {service_name}",
+            original=ConnectionError(f"Connection refused by {service_name}"),
+        )
+
     return Litestar(
         route_handlers=[
             HealthController,
             trigger_validation_error,
+            trigger_validation_error_multi,
             trigger_not_found,
             trigger_internal_error,
+            trigger_external_service_error,
         ],
         dependencies={"session": Provide(provide_session)},
         exception_handlers={
             ValidationError: validation_error_handler,
             NotFoundError: not_found_handler,
+            ExternalServiceError: external_service_error_handler,
             Exception: internal_error_handler,
         },
     )
@@ -96,6 +131,11 @@ identifier_strategy = st.one_of(
         max_size=50,
         alphabet=st.sampled_from("abcdefghijklmnopqrstuvwxyz0123456789-_"),
     ),
+)
+
+# Strategy for external service names
+service_name_strategy = st.sampled_from(
+    ["Plex", "Jellyfin", "Emby", "Audiobookshelf", "MyMediaServer"]
 )
 
 # Patterns that should NEVER appear in error responses (security)
@@ -276,5 +316,431 @@ class TestErrorResponsesAreSafeAndTraceable:
                 assert "timestamp" in data
                 timestamp_str = str(data["timestamp"])
                 _ = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+        finally:
+            await engine.dispose()
+
+
+class TestErrorResponseStructure:
+    """
+    Feature: phase-6-polish
+    Property 5: Error Response Structure
+
+    *For any* error returned by the API, the response body SHALL contain
+    `detail` (string), `error_code` (string), and `timestamp` (ISO datetime string).
+
+    **Validates: Requirements 3.1**
+    """
+
+    @given(
+        error_type=st.sampled_from(
+            ["validation", "not_found", "internal", "external_service"]
+        ),
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_all_errors_contain_required_fields(
+        self,
+        error_type: str,
+    ) -> None:
+        """All error responses SHALL contain detail, error_code, and timestamp."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                if error_type == "validation":
+                    response = client.get("/trigger-validation-error?fields=test_field")
+                elif error_type == "not_found":
+                    response = client.get("/trigger-not-found/TestResource/test-id")
+                elif error_type == "external_service":
+                    response = client.get("/trigger-external-service-error/TestService")
+                else:
+                    response = client.get("/trigger-internal-error")
+
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Property 5: All errors must have detail, error_code, timestamp
+                assert "detail" in data, "Response must contain 'detail' field"
+                assert isinstance(data["detail"], str), "'detail' must be a string"
+                assert len(str(data["detail"])) > 0, "'detail' must not be empty"
+
+                assert "error_code" in data, "Response must contain 'error_code' field"
+                assert isinstance(data["error_code"], str), (
+                    "'error_code' must be a string"
+                )
+                assert len(str(data["error_code"])) > 0, (
+                    "'error_code' must not be empty"
+                )
+
+                assert "timestamp" in data, "Response must contain 'timestamp' field"
+                timestamp_str = str(data["timestamp"])
+                # Validate ISO datetime format
+                parsed_timestamp = datetime.fromisoformat(
+                    timestamp_str.replace("Z", "+00:00")
+                )
+                assert parsed_timestamp is not None, (
+                    "'timestamp' must be valid ISO format"
+                )
+        finally:
+            await engine.dispose()
+
+    @given(
+        field_names=st.lists(field_name_strategy, min_size=1, max_size=5, unique=True),
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_error_response_detail_is_descriptive(
+        self,
+        field_names: list[str],
+    ) -> None:
+        """Error detail field SHALL provide meaningful description."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                fields_param = ",".join(field_names)
+                response = client.get(
+                    f"/trigger-validation-error?fields={fields_param}"
+                )
+
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Detail should be a non-empty descriptive string
+                detail = str(data["detail"])
+                assert len(detail) >= 5, "Detail should be descriptive (>= 5 chars)"
+                assert detail != "error", "Detail should not be generic 'error'"
+        finally:
+            await engine.dispose()
+
+
+class TestValidationErrorFieldMapping:
+    """
+    Feature: phase-6-polish
+    Property 6: Validation Error Field Mapping
+
+    *For any* validation error with field-level errors, the API response SHALL
+    include a `field_errors` array where each entry contains the field name
+    and associated error messages.
+
+    **Validates: Requirements 3.3**
+    """
+
+    @given(
+        field_names=st.lists(field_name_strategy, min_size=1, max_size=5, unique=True),
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_validation_errors_include_field_errors_array(
+        self,
+        field_names: list[str],
+    ) -> None:
+        """Validation errors SHALL include field_errors array with field names."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                fields_param = ",".join(field_names)
+                response = client.get(
+                    f"/trigger-validation-error?fields={fields_param}"
+                )
+
+                assert response.status_code == 400
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Property 6: Must have field_errors array
+                assert "field_errors" in data, "Validation error must have field_errors"
+                field_errors = data["field_errors"]
+                assert isinstance(field_errors, list), "field_errors must be an array"
+
+                # Each field in the request should have a corresponding error entry
+                error_fields: set[str] = set()
+                for err in field_errors:
+                    if isinstance(err, dict) and "field" in err:
+                        error_fields.add(str(err["field"]))
+                for field_name in field_names:
+                    assert field_name in error_fields, (
+                        f"Field '{field_name}' should be in field_errors"
+                    )
+        finally:
+            await engine.dispose()
+
+    @given(
+        field_names=st.lists(field_name_strategy, min_size=1, max_size=3, unique=True),
+        messages_per_field=st.integers(min_value=1, max_value=3),
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_field_errors_contain_field_and_messages(
+        self,
+        field_names: list[str],
+        messages_per_field: int,
+    ) -> None:
+        """Each field_error entry SHALL contain field name and messages array."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                fields_param = ",".join(field_names)
+                response = client.get(
+                    f"/trigger-validation-error-multi?fields={fields_param}&messages_per_field={messages_per_field}"
+                )
+
+                assert response.status_code == 400
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                assert isinstance(data.get("field_errors"), list)
+                field_errors_raw = data["field_errors"]
+                assert isinstance(field_errors_raw, list)
+
+                for field_error in field_errors_raw:
+                    assert isinstance(field_error, dict)
+                    # Each entry must have 'field' (string)
+                    assert "field" in field_error, "field_error must have 'field'"
+                    assert isinstance(field_error["field"], str), (
+                        "'field' must be a string"
+                    )
+
+                    # Each entry must have 'messages' (array of strings)
+                    assert "messages" in field_error, "field_error must have 'messages'"
+                    messages = field_error["messages"]
+                    assert isinstance(messages, list), "'messages' must be an array"
+                    assert len(messages) > 0, "'messages' must not be empty"
+
+                    for msg in messages:
+                        assert isinstance(msg, str), "Each message must be a string"
+        finally:
+            await engine.dispose()
+
+
+class TestNotFoundErrorResourceIdentification:
+    """
+    Feature: phase-6-polish
+    Property 7: NotFound Error Resource Identification
+
+    *For any* NotFoundError raised with a resource type and identifier,
+    the API response SHALL include the resource type in the error detail message.
+
+    **Validates: Requirements 3.4**
+    """
+
+    @given(
+        resource_type=resource_type_strategy,
+        identifier=identifier_strategy,
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_not_found_includes_resource_type_in_detail(
+        self,
+        resource_type: str,
+        identifier: str,
+    ) -> None:
+        """NotFound errors SHALL include resource type in detail message."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(
+                    f"/trigger-not-found/{resource_type}/{identifier}"
+                )
+
+                assert response.status_code == 404
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Property 7: Resource type must be in detail
+                detail = str(data["detail"])
+                assert resource_type in detail, (
+                    f"Resource type '{resource_type}' must be in detail: {detail}"
+                )
+        finally:
+            await engine.dispose()
+
+    @given(
+        resource_type=resource_type_strategy,
+        identifier=identifier_strategy,
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_not_found_includes_identifier_in_detail(
+        self,
+        resource_type: str,
+        identifier: str,
+    ) -> None:
+        """NotFound errors SHALL include identifier in detail message."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(
+                    f"/trigger-not-found/{resource_type}/{identifier}"
+                )
+
+                assert response.status_code == 404
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Property 7: Identifier must be in detail
+                detail = str(data["detail"])
+                assert identifier in detail, (
+                    f"Identifier '{identifier}' must be in detail: {detail}"
+                )
+        finally:
+            await engine.dispose()
+
+    @given(
+        resource_type=resource_type_strategy,
+        identifier=identifier_strategy,
+    )
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_not_found_has_correct_error_code(
+        self,
+        resource_type: str,
+        identifier: str,
+    ) -> None:
+        """NotFound errors SHALL have error_code 'NOT_FOUND'."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(
+                    f"/trigger-not-found/{resource_type}/{identifier}"
+                )
+
+                assert response.status_code == 404
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                assert data["error_code"] == "NOT_FOUND"
+        finally:
+            await engine.dispose()
+
+
+class TestExternalServiceErrorMapping:
+    """
+    Feature: phase-6-polish
+    Property 8: External Service Error Mapping
+
+    *For any* ExternalServiceError raised with a service name, the API response
+    SHALL return HTTP 502 and include the service name in the error detail.
+
+    **Validates: Requirements 3.5**
+    """
+
+    @given(service_name=service_name_strategy)
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_external_service_error_returns_502(
+        self,
+        service_name: str,
+    ) -> None:
+        """ExternalServiceError SHALL return HTTP 502 Bad Gateway."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(f"/trigger-external-service-error/{service_name}")
+
+                # Property 8: Must return HTTP 502
+                assert response.status_code == 502, (
+                    f"Expected 502, got {response.status_code}"
+                )
+        finally:
+            await engine.dispose()
+
+    @given(service_name=service_name_strategy)
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_external_service_error_includes_service_name(
+        self,
+        service_name: str,
+    ) -> None:
+        """ExternalServiceError SHALL include service name in detail."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(f"/trigger-external-service-error/{service_name}")
+
+                assert response.status_code == 502
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Property 8: Service name must be in detail
+                detail = str(data["detail"])
+                assert service_name in detail, (
+                    f"Service name '{service_name}' must be in detail: {detail}"
+                )
+        finally:
+            await engine.dispose()
+
+    @given(service_name=service_name_strategy)
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_external_service_error_has_correct_error_code(
+        self,
+        service_name: str,
+    ) -> None:
+        """ExternalServiceError SHALL have error_code 'EXTERNAL_SERVICE_ERROR'."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(f"/trigger-external-service-error/{service_name}")
+
+                assert response.status_code == 502
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                assert data["error_code"] == "EXTERNAL_SERVICE_ERROR"
+        finally:
+            await engine.dispose()
+
+    @given(service_name=service_name_strategy)
+    @settings(max_examples=100)
+    @pytest.mark.asyncio
+    async def test_external_service_error_has_required_fields(
+        self,
+        service_name: str,
+    ) -> None:
+        """ExternalServiceError response SHALL have all required error fields."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = create_test_app_with_error_routes(session_factory)
+
+            with TestClient(app) as client:
+                response = client.get(f"/trigger-external-service-error/{service_name}")
+
+                assert response.status_code == 502
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+
+                # Must have all standard error response fields
+                assert "detail" in data
+                assert "error_code" in data
+                assert "timestamp" in data
+                assert "correlation_id" in data
+
+                # Validate timestamp format
+                timestamp_str = str(data["timestamp"])
+                _ = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
+
+                # Validate correlation_id is a valid UUID
+                correlation_id = str(data["correlation_id"])
+                _ = UUID(correlation_id)
         finally:
             await engine.dispose()

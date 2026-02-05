@@ -68,7 +68,7 @@ def model_to_dict(model: object) -> SerializedData:
                 continue
             elif isinstance(value, (str, int, bool)) or value is None:
                 result[key] = value
-        except (AttributeError, TypeError):
+        except AttributeError, TypeError:
             continue
     return result
 

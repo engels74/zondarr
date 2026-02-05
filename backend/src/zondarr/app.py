@@ -27,6 +27,7 @@ from litestar.openapi.spec import Components, SecurityScheme, Tag
 from litestar.plugins.structlog import StructlogConfig, StructlogPlugin
 
 from zondarr.api.errors import (
+    external_service_error_handler,
     internal_error_handler,
     not_found_handler,
     validation_error_handler,
@@ -40,7 +41,7 @@ from zondarr.api.users import UserController
 from zondarr.api.wizards import WizardController
 from zondarr.config import Settings, load_settings
 from zondarr.core.database import db_lifespan, provide_db_session
-from zondarr.core.exceptions import NotFoundError, ValidationError
+from zondarr.core.exceptions import ExternalServiceError, NotFoundError, ValidationError
 from zondarr.core.tasks import background_tasks_lifespan
 from zondarr.media.clients.jellyfin import JellyfinClient
 from zondarr.media.clients.plex import PlexClient
@@ -162,6 +163,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
         exception_handlers={
             ValidationError: validation_error_handler,
             NotFoundError: not_found_handler,
+            ExternalServiceError: external_service_error_handler,
             Exception: internal_error_handler,
         },
         debug=settings.debug,

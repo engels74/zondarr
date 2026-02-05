@@ -6,7 +6,7 @@ This plan implements production polish features: background tasks, error handlin
 
 ## Tasks
 
-- [-] 1. Backend Background Tasks
+- [x] 1. Backend Background Tasks
   - [x] 1.1 Add task configuration to Settings
     - Add `expiration_check_interval_seconds` (default: 3600)
     - Add `sync_interval_seconds` (default: 900)
@@ -64,35 +64,35 @@ This plan implements production polish features: background tasks, error handlin
     - [x] 1.8.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [x] 1.8.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [-] 1.9 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [x] 1.9 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 2. Backend Error Handling Enhancements
-  - [ ] 2.1 Add ExternalServiceError exception
+  - [x] 2.1 Add ExternalServiceError exception
     - Add to `backend/src/zondarr/core/exceptions.py`
     - Include `service_name` and optional `original` exception
     - _Requirements: 3.5_
-    - [ ] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.1.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
+    - [x] 2.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.1.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 2.2 Add external service error handler
+  - [x] 2.2 Add external service error handler
     - Add handler to `backend/src/zondarr/api/errors.py`
     - Return HTTP 502 with service identification
     - _Requirements: 3.5_
-    - [ ] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.2.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
+    - [x] 2.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.2.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 2.3 Register error handler in app.py
+  - [x] 2.3 Register error handler in app.py
     - Add `ExternalServiceError: external_service_error_handler` to exception_handlers
     - _Requirements: 3.5_
-    - [ ] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.3.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
+    - [x] 2.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.3.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 2.4 Update media clients to raise ExternalServiceError
+  - [x] 2.4 Update media clients to raise ExternalServiceError
     - Wrap connection/API errors in ExternalServiceError
     - Include server name in error
     - _Requirements: 3.5_
-    - [ ] 2.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
-    - [ ] 2.4.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
+    - [x] 2.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [x] 2.4.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
   - [ ] 2.5 Write property tests for error handling
     - **Property 5: Error Response Structure**
@@ -100,16 +100,16 @@ This plan implements production polish features: background tasks, error handlin
     - **Property 7: NotFound Error Resource Identification**
     - **Property 8: External Service Error Mapping**
     - **Validates: Requirements 3.1, 3.3, 3.4, 3.5**
-    - [ ] 2.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
+    - [-] 2.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [ ] 2.5.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 2.6 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [~] 2.6 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 3. Checkpoint - Backend Complete
+- [~] 3. Checkpoint - Backend Complete
   - Ensure all backend tests pass, ask the user if questions arise.
 
 - [ ] 4. Frontend Toast Notifications
-  - [ ] 4.1 Add Toaster to root layout
+  - [~] 4.1 Add Toaster to root layout
     - Update `frontend/src/routes/+layout.svelte`
     - Import and configure svelte-sonner Toaster
     - Use Svelte 5 Runes patterns only
@@ -117,51 +117,51 @@ This plan implements production polish features: background tasks, error handlin
     - [ ] 4.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.1.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.2 Create toast utility functions
+  - [~] 4.2 Create toast utility functions
     - Create `frontend/src/lib/utils/toast.ts`
     - Implement `showSuccess`, `showError`, `showApiError`, `showNetworkError`
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5_
     - [ ] 4.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.2.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.3 Create API error handling wrapper
+  - [~] 4.3 Create API error handling wrapper
     - Add `withErrorHandling` function to API client
     - Automatically show toasts on errors
     - _Requirements: 4.4, 5.1_
     - [ ] 4.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.3.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.4 Add toast calls to invitation operations
+  - [~] 4.4 Add toast calls to invitation operations
     - Show success toast on create/delete
     - Use `withErrorHandling` for API calls
     - _Requirements: 4.1, 4.2_
     - [ ] 4.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.4.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.5 Add toast calls to server operations
+  - [~] 4.5 Add toast calls to server operations
     - Show success toast on add/delete
     - Use `withErrorHandling` for API calls
     - _Requirements: 4.3_
     - [ ] 4.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.5.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.6 Add toast calls to user operations
+  - [~] 4.6 Add toast calls to user operations
     - Show success toast on enable/disable/delete
     - Use `withErrorHandling` for API calls
     - _Requirements: 4.2_
     - [ ] 4.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.6.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.7 Write tests for toast utilities
+  - [~] 4.7 Write tests for toast utilities
     - **Property 9: API Error Toast Display**
     - **Validates: Requirements 4.4, 5.1**
     - [ ] 4.7.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 4.7.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 4.8 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [~] 4.8 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 5. Frontend Error Handling
-  - [ ] 5.1 Create error boundary component
+  - [~] 5.1 Create error boundary component
     - Create `frontend/src/lib/components/error-boundary.svelte`
     - Use Svelte 5 snippets for fallback
     - NO legacy patterns (`<slot>`, `export let`)
@@ -169,79 +169,79 @@ This plan implements production polish features: background tasks, error handlin
     - [ ] 5.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 5.1.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 5.2 Add error states to data loading pages
+  - [~] 5.2 Add error states to data loading pages
     - Add error state UI with retry button
     - Use shadcn-svelte Alert component
     - _Requirements: 5.3_
     - [ ] 5.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 5.2.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 5.3 Ensure error messages are safe
+  - [~] 5.3 Ensure error messages are safe
     - Filter out stack traces and internal details
     - Show generic messages for unexpected errors
     - _Requirements: 5.5_
     - [ ] 5.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 5.3.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 5.4 Write tests for error boundary
+  - [~] 5.4 Write tests for error boundary
     - **Property 11: Error Boundary Containment**
     - **Property 12: Error Message Safety**
     - **Validates: Requirements 5.4, 5.5**
     - [ ] 5.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 5.4.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 5.5 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [~] 5.5 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
-- [ ] 6. Checkpoint - Frontend Complete
+- [~] 6. Checkpoint - Frontend Complete
   - Ensure all frontend tests pass, ask the user if questions arise.
 
 - [ ] 7. Test Coverage Improvements
-  - [ ] 7.1 Add backend property tests for invitation flow
+  - [~] 7.1 Add backend property tests for invitation flow
     - Test invitation creation with various configurations
     - Test invitation redemption validation
     - _Requirements: 6.1, 6.2_
     - [ ] 7.1.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [ ] 7.1.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.2 Add backend property tests for user management
+  - [~] 7.2 Add backend property tests for user management
     - Test user enable/disable operations
     - Test user deletion cascade behavior
     - _Requirements: 6.3_
     - [ ] 7.2.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [ ] 7.2.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.3 Add backend property tests for media server integration
+  - [~] 7.3 Add backend property tests for media server integration
     - Test client creation from registry
     - Test sync result calculation
     - _Requirements: 6.4_
     - [ ] 7.3.1 Verify implementation adheres to coding guidelines in `.augment/rules/backend-dev-pro.md`
     - [ ] 7.3.2 Run `uv run basedpyright` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.4 Add frontend component tests for invitation form
+  - [~] 7.4 Add frontend component tests for invitation form
     - Test form validation
     - Test submission behavior
     - _Requirements: 7.1_
     - [ ] 7.4.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 7.4.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.5 Add frontend component tests for user table
+  - [~] 7.5 Add frontend component tests for user table
     - Test user list rendering
     - Test action button behavior
     - _Requirements: 7.2_
     - [ ] 7.5.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 7.5.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.6 Add frontend component tests for server management
+  - [~] 7.6 Add frontend component tests for server management
     - Test server list rendering
     - Test add/delete flows
     - _Requirements: 7.3_
     - [ ] 7.6.1 Verify implementation adheres to coding guidelines in `.augment/rules/frontend-dev-pro.md`
     - [ ] 7.6.2 Run `bun run check` and fix all type errors (no warnings, no errors, no excuses)
 
-  - [ ] 7.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
+  - [~] 7.7 Commit and push changes and fix all type errors following Type Safety Guidelines (no warnings, no errors, no excuses)
 
 - [ ] 8. Documentation
-  - [ ] 8.1 Create README.md at repository root
+  - [~] 8.1 Create README.md at repository root
     - Brief project overview (1-2 sentences)
     - Quick start commands for backend and frontend
     - Concise tech stack list
@@ -250,9 +250,9 @@ This plan implements production polish features: background tasks, error handlin
     - [ ] 8.1.1 Verify README is accurate and follows project conventions
     - [ ] 8.1.2 Verify all commands in README work correctly
 
-  - [ ] 8.2 Commit and push changes
+  - [~] 8.2 Commit and push changes
 
-- [ ] 9. Final Checkpoint
+- [~] 9. Final Checkpoint
   - Ensure all tests pass, ask the user if questions arise.
 
 ## Notes

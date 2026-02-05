@@ -20,6 +20,7 @@ import structlog
 from plexapi.myplex import MyPlexAccount
 from plexapi.server import PlexServer
 
+from zondarr.core.exceptions import ExternalServiceError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.types import Capability, ExternalUser, LibraryInfo, PlexUserType
 
@@ -107,6 +108,30 @@ def _map_plex_error_to_code(error: Exception) -> str:
     return PlexErrorCode.API_ERROR
 
 
+def _is_external_service_error(error: Exception) -> bool:
+    """Determine if an error is an external service error.
+
+    External service errors are connection failures, timeouts, and
+    server-side API errors that indicate the Plex server is unavailable
+    or malfunctioning.
+
+    Args:
+        error: The exception to check.
+
+    Returns:
+        True if the error is an external service error, False otherwise.
+    """
+    error_code = _map_plex_error_to_code(error)
+    return error_code in {
+        PlexErrorCode.CONNECTION_ERROR,
+        PlexErrorCode.TIMEOUT,
+        PlexErrorCode.SERVER_UNREACHABLE,
+        PlexErrorCode.RATE_LIMITED,
+        PlexErrorCode.API_ERROR,
+        PlexErrorCode.INVALID_TOKEN,
+    }
+
+
 def _create_media_client_error(
     message: str,
     *,
@@ -142,6 +167,32 @@ def _create_media_client_error(
         server_url=server_url,
         cause=cause,
         error_code=error_code,
+    )
+
+
+def _create_external_service_error(
+    message: str,
+    *,
+    server_url: str,
+    original_error: Exception | None = None,
+) -> ExternalServiceError:
+    """Create an ExternalServiceError for Plex server failures.
+
+    Used when the Plex server is unreachable, times out, or returns
+    an API error indicating the service is unavailable.
+
+    Args:
+        message: Human-readable error description.
+        server_url: The Plex server URL (used as service_name).
+        original_error: The original exception that caused this error.
+
+    Returns:
+        An ExternalServiceError with the server URL as service name.
+    """
+    return ExternalServiceError(
+        f"Plex ({server_url})",
+        message,
+        original=original_error,
     )
 
 
@@ -201,6 +252,9 @@ class PlexClient:
 
         Returns:
             Self for use in async with statements.
+
+        Raises:
+            ExternalServiceError: If connection to the Plex server fails.
         """
 
         def _connect() -> tuple[PlexServer, MyPlexAccount]:
@@ -210,7 +264,20 @@ class PlexClient:
             return server, account  # pyright: ignore[reportUnknownVariableType]
 
         log.info("plex_client_connecting", url=self.url)
-        self._server, self._account = await asyncio.to_thread(_connect)
+        try:
+            self._server, self._account = await asyncio.to_thread(_connect)
+        except Exception as exc:
+            log.error(
+                "plex_client_connection_failed",
+                url=self.url,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            raise _create_external_service_error(
+                f"Failed to connect to Plex server: {exc}",
+                server_url=self.url,
+                original_error=exc,
+            ) from exc
         log.info("plex_client_connected", url=self.url)
         return self
 
@@ -322,6 +389,13 @@ class PlexClient:
                 error=str(exc),
                 error_type=type(exc).__name__,
             )
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to retrieve libraries from Plex server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise _create_media_client_error(
                 f"Failed to retrieve libraries from Plex server: {exc}",
                 operation="get_libraries",
@@ -409,6 +483,14 @@ class PlexClient:
                     error_code=error_code,
                 )
 
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to invite Friend: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
+
             raise _create_media_client_error(
                 f"Failed to invite Friend: {exc}"
                 if error_code != PlexErrorCode.USER_ALREADY_EXISTS
@@ -495,6 +577,14 @@ class PlexClient:
                     error_type=type(exc).__name__,
                     error_code=error_code,
                 )
+
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to create Home User: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
 
             raise _create_media_client_error(
                 f"Failed to create Home User: {exc}"
@@ -660,6 +750,13 @@ class PlexClient:
                 error_type=type(exc).__name__,
                 error_code=error_code,
             )
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to delete user: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise _create_media_client_error(
                 f"Failed to delete user: {exc}",
                 operation="delete_user",
@@ -831,6 +928,13 @@ class PlexClient:
                 error_type=type(exc).__name__,
                 error_code=error_code,
             )
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to set library access: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise _create_media_client_error(
                 f"Failed to set library access: {exc}",
                 operation="set_library_access",
@@ -952,6 +1056,13 @@ class PlexClient:
                 error_type=type(exc).__name__,
                 error_code=error_code,
             )
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to update permissions: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise _create_media_client_error(
                 f"Failed to update permissions: {exc}",
                 operation="update_permissions",
@@ -1027,6 +1138,13 @@ class PlexClient:
                 error=str(exc),
                 error_type=type(exc).__name__,
             )
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to list users: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise _create_media_client_error(
                 f"Failed to list users: {exc}",
                 operation="list_users",
