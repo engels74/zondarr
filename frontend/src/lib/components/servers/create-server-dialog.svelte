@@ -13,9 +13,7 @@
  */
 
 import { Eye, EyeOff, Plus, Server } from '@lucide/svelte';
-import { toast } from 'svelte-sonner';
-import { createServer } from '$lib/api/client';
-import { ApiError, getErrorMessage } from '$lib/api/errors';
+import { createServer, withErrorHandling } from '$lib/api/client';
 import { Button } from '$lib/components/ui/button';
 import * as Dialog from '$lib/components/ui/dialog';
 import { Input } from '$lib/components/ui/input';
@@ -25,6 +23,7 @@ import {
 	createServerSchema,
 	transformCreateServerData
 } from '$lib/schemas/server';
+import { showError, showSuccess } from '$lib/utils/toast';
 
 interface Props {
 	onSuccess?: () => void;
@@ -107,22 +106,19 @@ async function handleSubmit(event: Event) {
 	submitting = true;
 	try {
 		const data = transformCreateServerData(formData);
-		const result = await createServer(data);
+		const result = await withErrorHandling(
+			() => createServer(data),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to create server'
-			);
+			showError('Failed to add server', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
 		// Success
-		toast.success('Server added successfully', {
-			description: `${result.data?.name} has been configured`
-		});
+		showSuccess('Server added successfully', `${result.data?.name} has been configured`);
 
 		// Close dialog and reset form
 		open = false;
@@ -130,10 +126,6 @@ async function handleSubmit(event: Event) {
 
 		// Notify parent to refresh list
 		onSuccess?.();
-	} catch (error) {
-		toast.error('Failed to add server', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		submitting = false;
 	}

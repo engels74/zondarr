@@ -13,14 +13,14 @@
  */
 
 import { ArrowLeft, Calendar, ExternalLink, Hash, Save, Server, Timer, Trash2, Users, Wand2 } from '@lucide/svelte';
-import { toast } from 'svelte-sonner';
 import { goto, invalidateAll } from '$app/navigation';
 import {
 	deleteInvitation,
 	type InvitationDetailResponse,
 	type MediaServerWithLibrariesResponse,
 	updateInvitation,
-	type WizardResponse
+	type WizardResponse,
+	withErrorHandling
 } from '$lib/api/client';
 import { ApiError, getErrorMessage } from '$lib/api/errors';
 import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
@@ -35,6 +35,7 @@ import {
 	type UpdateInvitationInput,
 	updateInvitationSchema
 } from '$lib/schemas/invitation';
+import { showError, showSuccess } from '$lib/utils/toast';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -260,24 +261,19 @@ async function handleSave() {
 	saving = true;
 	try {
 		const updateData = transformUpdateFormData(formData);
-		const result = await updateInvitation(data.invitation.id, updateData);
+		const result = await withErrorHandling(
+			() => updateInvitation(data.invitation!.id, updateData),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to update invitation'
-			);
+			showError('Failed to update invitation', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('Invitation updated successfully');
+		showSuccess('Invitation updated successfully');
 		await invalidateAll();
-	} catch (error) {
-		toast.error('Failed to update invitation', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		saving = false;
 	}
@@ -291,24 +287,19 @@ async function handleDelete() {
 
 	deleting = true;
 	try {
-		const result = await deleteInvitation(data.invitation.id);
+		const result = await withErrorHandling(
+			() => deleteInvitation(data.invitation!.id),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to delete invitation'
-			);
+			showError('Failed to delete invitation', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('Invitation deleted successfully');
+		showSuccess('Invitation deleted successfully');
 		goto('/invitations');
-	} catch (error) {
-		toast.error('Failed to delete invitation', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		deleting = false;
 		showDeleteDialog = false;

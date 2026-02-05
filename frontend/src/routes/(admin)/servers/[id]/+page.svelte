@@ -19,10 +19,9 @@ import {
 	Server,
 	Trash2
 } from '@lucide/svelte';
-import { toast } from 'svelte-sonner';
 import { goto, invalidateAll } from '$app/navigation';
-import { deleteServer, type SyncResult, syncServer } from '$lib/api/client';
-import { ApiError, getErrorMessage } from '$lib/api/errors';
+import { deleteServer, type SyncResult, syncServer, withErrorHandling } from '$lib/api/client';
+import { getErrorMessage } from '$lib/api/errors';
 import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
 import ErrorState from '$lib/components/error-state.svelte';
 import SyncResultsDialog from '$lib/components/servers/sync-results-dialog.svelte';
@@ -30,6 +29,7 @@ import StatusBadge from '$lib/components/status-badge.svelte';
 import { Button } from '$lib/components/ui/button';
 import * as Card from '$lib/components/ui/card';
 import { Label } from '$lib/components/ui/label';
+import { showError, showSuccess } from '$lib/utils/toast';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -88,37 +88,22 @@ async function handleSync() {
 
 	syncing = true;
 	try {
-		const result = await syncServer(data.server.id, true);
+		const result = await withErrorHandling(
+			() => syncServer(data.server!.id, true),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-
-			// Check for server unreachable error
-			if (status === 503) {
-				throw new ApiError(
-					status,
-					errorBody?.error_code ?? 'SERVER_UNREACHABLE',
-					errorBody?.detail ?? 'Media server is unreachable'
-				);
-			}
-
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to sync server'
-			);
+			showError('Sync failed', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
 		if (result.data) {
 			syncResult = result.data as SyncResult;
 			showSyncDialog = true;
-			toast.success('Sync completed successfully');
+			showSuccess('Sync completed successfully');
 		}
-	} catch (error) {
-		toast.error('Sync failed', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		syncing = false;
 	}
@@ -146,24 +131,19 @@ async function handleDelete() {
 
 	deleting = true;
 	try {
-		const result = await deleteServer(data.server.id);
+		const result = await withErrorHandling(
+			() => deleteServer(data.server!.id),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to delete server'
-			);
+			showError('Failed to delete server', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('Server deleted successfully');
+		showSuccess('Server deleted successfully');
 		goto('/servers');
-	} catch (error) {
-		toast.error('Failed to delete server', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		deleting = false;
 		showDeleteDialog = false;
