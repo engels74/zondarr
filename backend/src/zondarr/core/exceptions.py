@@ -107,3 +107,35 @@ class NotFoundError(ZondarrError):
             resource_type=resource_type,
             identifier=identifier,
         )
+
+
+class ExternalServiceError(ZondarrError):
+    """Raised when an external service (media server) fails.
+
+    Includes service identification for debugging.
+
+    Attributes:
+        service_name: The name of the external service that failed.
+        original: The original exception that caused this error, if any.
+    """
+
+    service_name: str
+    original: Exception | None
+
+    def __init__(
+        self, service_name: str, message: str, /, *, original: Exception | None = None
+    ) -> None:
+        """Initialize an ExternalServiceError.
+
+        Args:
+            service_name: The name of the external service that failed.
+            message: Human-readable error description.
+            original: The original exception that caused this error.
+        """
+        super().__init__(
+            message,
+            "EXTERNAL_SERVICE_ERROR",
+            service_name=service_name,
+        )
+        self.service_name = service_name
+        self.original = original

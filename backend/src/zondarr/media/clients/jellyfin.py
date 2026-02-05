@@ -16,8 +16,78 @@ from typing import Self
 
 import jellyfin
 
+from zondarr.core.exceptions import ExternalServiceError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.types import Capability, ExternalUser, LibraryInfo
+
+
+def _is_external_service_error(error: Exception) -> bool:
+    """Determine if an error is an external service error.
+
+    External service errors are connection failures, timeouts, and
+    server-side API errors that indicate the Jellyfin server is unavailable
+    or malfunctioning.
+
+    Args:
+        error: The exception to check.
+
+    Returns:
+        True if the error is an external service error, False otherwise.
+    """
+    error_str = str(error).lower()
+
+    # Connection errors
+    if any(
+        keyword in error_str
+        for keyword in [
+            "connection",
+            "timeout",
+            "timed out",
+            "unreachable",
+            "refused",
+            "network",
+            "socket",
+            "dns",
+            "resolve",
+        ]
+    ):
+        return True
+
+    # HTTP errors indicating server issues (5xx)
+    if any(code in error_str for code in ["500", "502", "503", "504"]):
+        return True
+
+    # Authentication errors (server rejected credentials)
+    if "401" in error_str or "unauthorized" in error_str:
+        return True
+
+    return False
+
+
+def _create_external_service_error(
+    message: str,
+    *,
+    server_url: str,
+    original_error: Exception | None = None,
+) -> ExternalServiceError:
+    """Create an ExternalServiceError for Jellyfin server failures.
+
+    Used when the Jellyfin server is unreachable, times out, or returns
+    an API error indicating the service is unavailable.
+
+    Args:
+        message: Human-readable error description.
+        server_url: The Jellyfin server URL (used as service_name).
+        original_error: The original exception that caused this error.
+
+    Returns:
+        An ExternalServiceError with the server URL as service name.
+    """
+    return ExternalServiceError(
+        f"Jellyfin ({server_url})",
+        message,
+        original=original_error,
+    )
 
 
 class JellyfinClient:
@@ -72,8 +142,18 @@ class JellyfinClient:
 
         Returns:
             Self for use in async with statements.
+
+        Raises:
+            ExternalServiceError: If connection to the Jellyfin server fails.
         """
-        self._api = jellyfin.api(self.url, self.api_key)
+        try:
+            self._api = jellyfin.api(self.url, self.api_key)
+        except Exception as exc:
+            raise _create_external_service_error(
+                f"Failed to connect to Jellyfin server: {exc}",
+                server_url=self.url,
+                original_error=exc,
+            ) from exc
         return self
 
     async def __aexit__(
@@ -185,6 +265,13 @@ class JellyfinClient:
             return libraries
 
         except Exception as exc:
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to retrieve libraries from Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
             raise MediaClientError(
                 f"Failed to retrieve libraries from Jellyfin server: {exc}",
                 operation="get_libraries",
@@ -281,6 +368,14 @@ class JellyfinClient:
                     error_code="USERNAME_TAKEN",
                 ) from exc
 
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to create user on Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
+
             raise MediaClientError(
                 f"Failed to create user on Jellyfin server: {exc}",
                 operation="create_user",
@@ -323,6 +418,14 @@ class JellyfinClient:
             # Check for user not found error - return False per Requirements 4.3
             if "not found" in error_msg or "404" in error_msg:
                 return False
+
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to delete user from Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
 
             # Re-raise other errors as MediaClientError per Requirements 4.4
             raise MediaClientError(
@@ -420,6 +523,14 @@ class JellyfinClient:
             # Check for user not found error - return False per Requirements 5.5
             if "not found" in error_msg or "404" in error_msg:
                 return False
+
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to update user enabled status on Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
 
             # Re-raise other errors as MediaClientError per Requirements 5.6
             raise MediaClientError(
@@ -532,6 +643,14 @@ class JellyfinClient:
             # Check for user not found error - return False per Requirements 6.5
             if "not found" in error_msg or "404" in error_msg:
                 return False
+
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to set library access on Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
 
             # Re-raise other errors as MediaClientError per Requirements 6.6
             raise MediaClientError(
@@ -664,6 +783,14 @@ class JellyfinClient:
             if "not found" in error_msg or "404" in error_msg:
                 return False
 
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to update permissions on Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
+
             # Re-raise other errors as MediaClientError (Requirement 7.8)
             raise MediaClientError(
                 f"Failed to update permissions on Jellyfin server: {exc}",
@@ -739,6 +866,14 @@ class JellyfinClient:
             return external_users
 
         except Exception as exc:
+            # Wrap external service errors appropriately
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to list users from Jellyfin server: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
+
             # Re-raise as MediaClientError (Requirement 8.4)
             raise MediaClientError(
                 f"Failed to list users from Jellyfin server: {exc}",
