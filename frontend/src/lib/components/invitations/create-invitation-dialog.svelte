@@ -12,14 +12,13 @@
  */
 
 import { Plus } from '@lucide/svelte';
-import { toast } from 'svelte-sonner';
 import {
 	createInvitation,
 	getWizards,
 	type MediaServerWithLibrariesResponse,
-	type WizardResponse
+	type WizardResponse,
+	withErrorHandling
 } from '$lib/api/client';
-import { ApiError, getErrorMessage } from '$lib/api/errors';
 import { Button } from '$lib/components/ui/button';
 import * as Dialog from '$lib/components/ui/dialog';
 import {
@@ -27,6 +26,7 @@ import {
 	createInvitationSchema,
 	transformCreateFormData
 } from '$lib/schemas/invitation';
+import { showError, showSuccess } from '$lib/utils/toast';
 import InvitationFormSimple from './invitation-form-simple.svelte';
 
 interface Props {
@@ -128,22 +128,19 @@ async function handleSubmit() {
 	submitting = true;
 	try {
 		const data = transformCreateFormData(formData);
-		const result = await createInvitation(data);
+		const result = await withErrorHandling(
+			() => createInvitation(data),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to create invitation'
-			);
+			showError('Failed to create invitation', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
 		// Success
-		toast.success('Invitation created successfully', {
-			description: `Code: ${result.data?.code}`
-		});
+		showSuccess('Invitation created successfully', `Code: ${result.data?.code}`);
 
 		// Close dialog and reset form
 		open = false;
@@ -151,10 +148,6 @@ async function handleSubmit() {
 
 		// Notify parent to refresh list
 		onSuccess?.();
-	} catch (error) {
-		toast.error('Failed to create invitation', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		submitting = false;
 	}

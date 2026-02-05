@@ -25,10 +25,9 @@ import {
 	User,
 	Users
 } from '@lucide/svelte';
-import { toast } from 'svelte-sonner';
 import { goto, invalidateAll } from '$app/navigation';
-import { deleteUser, disableUser, enableUser } from '$lib/api/client';
-import { ApiError, getErrorMessage } from '$lib/api/errors';
+import { deleteUser, disableUser, enableUser, withErrorHandling } from '$lib/api/client';
+import { getErrorMessage } from '$lib/api/errors';
 import ConfirmDialog from '$lib/components/confirm-dialog.svelte';
 import ErrorState from '$lib/components/error-state.svelte';
 import StatusBadge, { type StatusBadgeStatus } from '$lib/components/status-badge.svelte';
@@ -36,6 +35,7 @@ import { Button } from '$lib/components/ui/button';
 import * as Card from '$lib/components/ui/card';
 import { Label } from '$lib/components/ui/label';
 import UserPermissionsEditor from '$lib/components/users/user-permissions-editor.svelte';
+import { showError, showSuccess } from '$lib/utils/toast';
 import type { PageData } from './$types';
 
 let { data }: { data: PageData } = $props();
@@ -137,24 +137,19 @@ async function handleEnable() {
 
 	enabling = true;
 	try {
-		const result = await enableUser(data.user.id);
+		const result = await withErrorHandling(
+			() => enableUser(data.user!.id),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to enable user'
-			);
+			showError('Failed to enable user', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('User enabled successfully');
+		showSuccess('User enabled successfully');
 		await invalidateAll();
-	} catch (error) {
-		toast.error('Failed to enable user', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		enabling = false;
 	}
@@ -168,24 +163,19 @@ async function handleDisable() {
 
 	disabling = true;
 	try {
-		const result = await disableUser(data.user.id);
+		const result = await withErrorHandling(
+			() => disableUser(data.user!.id),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to disable user'
-			);
+			showError('Failed to disable user', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('User disabled successfully');
+		showSuccess('User disabled successfully');
 		await invalidateAll();
-	} catch (error) {
-		toast.error('Failed to disable user', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		disabling = false;
 	}
@@ -199,24 +189,19 @@ async function handleDelete() {
 
 	deleting = true;
 	try {
-		const result = await deleteUser(data.user.id);
+		const result = await withErrorHandling(
+			() => deleteUser(data.user!.id),
+			{ showErrorToast: false }
+		);
 
 		if (result.error) {
-			const status = result.response?.status ?? 500;
 			const errorBody = result.error as { error_code?: string; detail?: string };
-			throw new ApiError(
-				status,
-				errorBody?.error_code ?? 'UNKNOWN_ERROR',
-				errorBody?.detail ?? 'Failed to delete user'
-			);
+			showError('Failed to delete user', errorBody?.detail ?? 'An error occurred');
+			return;
 		}
 
-		toast.success('User deleted successfully');
+		showSuccess('User deleted successfully');
 		goto('/users');
-	} catch (error) {
-		toast.error('Failed to delete user', {
-			description: getErrorMessage(error)
-		});
 	} finally {
 		deleting = false;
 		showDeleteDialog = false;

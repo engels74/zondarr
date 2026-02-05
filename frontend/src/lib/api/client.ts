@@ -8,6 +8,7 @@
  */
 
 import createClient from 'openapi-fetch';
+import { showApiError, showNetworkError } from '$lib/utils/toast';
 import type { components, paths } from './types';
 
 // Base URL from environment variable, defaults to empty string for same-origin
@@ -87,6 +88,61 @@ export interface ValidationErrorResponse extends ErrorResponse {
 		field: string;
 		messages: string[];
 	}>;
+}
+
+// =============================================================================
+// Error Handling Wrapper
+// =============================================================================
+
+/** Options for the withErrorHandling wrapper */
+export interface WithErrorHandlingOptions {
+	/** Whether to show error toasts automatically (default: true) */
+	showErrorToast?: boolean;
+}
+
+/**
+ * Wrapper for API calls that handles errors and shows toasts.
+ *
+ * Automatically displays toast notifications for API errors and network failures.
+ * Use this wrapper around API calls to provide consistent error feedback to users.
+ *
+ * @param apiCall - Function that returns a promise with { data, error } shape
+ * @param options - Configuration options
+ * @returns The API call result with { data, error } shape
+ *
+ * @example
+ * ```ts
+ * const result = await withErrorHandling(() => deleteInvitation(id));
+ * if (result.data) {
+ *   showSuccess('Invitation deleted');
+ * }
+ * ```
+ */
+export async function withErrorHandling<T>(
+	apiCall: () => Promise<{ data?: T; error?: unknown }>,
+	options?: WithErrorHandlingOptions
+): Promise<{ data?: T; error?: unknown }> {
+	const { showErrorToast = true } = options ?? {};
+
+	try {
+		const result = await apiCall();
+
+		if (result.error && showErrorToast) {
+			showApiError(result.error);
+		}
+
+		return result;
+	} catch (error) {
+		if (error instanceof TypeError && error.message.toLowerCase().includes('fetch')) {
+			if (showErrorToast) {
+				showNetworkError();
+			}
+		} else if (showErrorToast) {
+			showApiError(error);
+		}
+
+		return { error };
+	}
 }
 
 // =============================================================================
