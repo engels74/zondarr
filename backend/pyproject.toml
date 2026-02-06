@@ -50,6 +50,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "S106"]
+"src/zondarr/app.py" = ["E402"]  # warnings filter must run before litestar imports
 "__init__.py" = ["F401"]
 
 [tool.ruff.format]
