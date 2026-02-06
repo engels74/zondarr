@@ -28,6 +28,17 @@ class Settings(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     port: Annotated[int, msgspec.Meta(ge=1, le=65535)] = 8000
     debug: bool = False
 
+    # CORS
+    cors_origins: Annotated[
+        list[str],
+        msgspec.Meta(
+            description=(
+                "Allowed CORS origins (empty = CORS disabled)."
+                " From comma-separated CORS_ORIGINS env var."
+            )
+        ),
+    ] = []
+
     # Security
     secret_key: Annotated[str, msgspec.Meta(min_length=32)]
 
@@ -72,6 +83,11 @@ def load_settings() -> Settings:
         "host": os.environ.get("HOST", "0.0.0.0"),  # noqa: S104
         "port": int(os.environ.get("PORT", "8000")),
         "debug": os.environ.get("DEBUG", "").lower() in ("true", "1", "yes"),
+        "cors_origins": [
+            origin.strip()
+            for origin in os.environ.get("CORS_ORIGINS", "").split(",")
+            if origin.strip()
+        ],
         "secret_key": secret_key,
         "expiration_check_interval_seconds": int(
             os.environ.get("EXPIRATION_CHECK_INTERVAL_SECONDS", "3600")

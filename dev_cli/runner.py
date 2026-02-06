@@ -100,7 +100,11 @@ class DevRunner:
         parent_env = dict(os.environ)
 
         if not self.frontend_only:
-            backend_env = {**parent_env, "DEBUG": "true"}
+            backend_env = {
+                **parent_env,
+                "DEBUG": "true",
+                "CORS_ORIGINS": f"http://localhost:{self.frontend_port}",
+            }
             self.servers.append(
                 ServerProcess(
                     name="backend",

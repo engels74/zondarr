@@ -18,7 +18,19 @@ Usage:
     app = create_app(settings=test_settings)
 """
 
+# Suppress Pydantic v1 compatibility warning on Python 3.14+.
+# Pydantic is a transitive dep of jellyfin-sdk, not used by Zondarr.
+# See also: pyproject.toml [tool.pytest.ini_options] filterwarnings.
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="Core Pydantic V1 functionality isn't compatible with Python 3.14",
+    category=UserWarning,
+)
+
 from litestar import Litestar
+from litestar.config.cors import CORSConfig
 from litestar.datastructures import State
 from litestar.di import Provide
 from litestar.openapi import OpenAPIConfig
@@ -106,6 +118,23 @@ def _create_structlog_config() -> StructlogConfig:
     return StructlogConfig()
 
 
+def _create_cors_config(settings: Settings) -> CORSConfig | None:
+    """Create CORS configuration if origins are specified.
+
+    Returns:
+        CORSConfig if cors_origins is non-empty, None otherwise.
+    """
+    if not settings.cors_origins:
+        return None
+    return CORSConfig(
+        allow_origins=settings.cors_origins,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+        allow_headers=["Authorization", "Content-Type"],
+        allow_credentials=True,
+        max_age=3600,
+    )
+
+
 def create_app(settings: Settings | None = None) -> Litestar:
     """Application factory for creating Litestar app instances.
 
@@ -156,6 +185,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
         dependencies={
             "session": Provide(provide_db_session),
         },
+        cors_config=_create_cors_config(settings),
         openapi_config=_create_openapi_config(),
         plugins=[
             StructlogPlugin(config=_create_structlog_config()),
