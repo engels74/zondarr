@@ -31,13 +31,19 @@ Example usage:
     )
 """
 
-from typing import ClassVar, Protocol
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from zondarr.models.media_server import ServerType
 
 from .exceptions import UnknownServerTypeError
 from .protocol import MediaClient
 from .types import Capability
+
+if TYPE_CHECKING:
+    from zondarr.config import Settings
+    from zondarr.models.media_server import MediaServer
 
 
 class MediaClientClass(Protocol):
@@ -90,6 +96,7 @@ class ClientRegistry:
         # (singleton pattern means __init__ may be called multiple times)
         if not hasattr(self, "_clients"):
             self._clients: dict[ServerType, MediaClientClass] = {}
+            self._settings: Settings | None = None
 
     def __new__(cls) -> ClientRegistry:
         """Create or return the singleton instance.
@@ -181,12 +188,75 @@ class ClientRegistry:
         client_class = self.get_client_class(server_type)
         return client_class(url=url, api_key=api_key)
 
+    def set_settings(self, settings: Settings) -> None:
+        """Inject application settings for env var credential overrides.
+
+        Args:
+            settings: The application Settings instance.
+        """
+        self._settings = settings
+
+    def _get_effective_credentials(
+        self,
+        server_type: ServerType,
+        *,
+        db_url: str,
+        db_api_key: str,
+    ) -> tuple[str, str]:
+        """Resolve effective credentials (env vars > DB).
+
+        Per-field override: if only the URL env var is set, the API key
+        still comes from the database, and vice versa.
+
+        Args:
+            server_type: The server type to resolve credentials for.
+            db_url: The URL stored in the database.
+            db_api_key: The API key stored in the database.
+
+        Returns:
+            A tuple of (effective_url, effective_api_key).
+        """
+        if self._settings is None:
+            return db_url, db_api_key
+
+        if server_type == ServerType.PLEX:
+            url = self._settings.plex_url or db_url
+            api_key = self._settings.plex_token or db_api_key
+        else:  # ServerType.JELLYFIN
+            url = self._settings.jellyfin_url or db_url
+            api_key = self._settings.jellyfin_api_key or db_api_key
+
+        return url, api_key
+
+    def create_client_for_server(self, server: MediaServer, /) -> MediaClient:
+        """Create a client for a media server, applying env var overrides.
+
+        Resolves effective credentials (env vars take precedence over DB
+        values) before creating the client instance.
+
+        Args:
+            server: The MediaServer entity (positional-only).
+
+        Returns:
+            A new client instance with effective credentials.
+
+        Raises:
+            UnknownServerTypeError: If no client is registered for the server type.
+        """
+        url, api_key = self._get_effective_credentials(
+            server.server_type,
+            db_url=server.url,
+            db_api_key=server.api_key,
+        )
+        return self.create_client(server.server_type, url=url, api_key=api_key)
+
     def clear(self) -> None:
         """Clear all registered clients.
 
         Primarily useful for testing to reset the registry state between tests.
         """
         self._clients.clear()
+        self._settings = None
 
 
 # Global registry instance for convenient access

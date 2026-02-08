@@ -191,23 +191,14 @@ class TestRedemptionCreatesUsersOnAllServers:
         mock_registry = MagicMock(spec=ClientRegistry)
         server_to_external_id: dict[UUID, str] = {}
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            # Find the server by URL to get its ID
-            del server_type, api_key  # Unused but required by interface
-            for server in servers:
-                if server.url == url:
-                    external_id = str(uuid4())
-                    server_to_external_id[server.id] = external_id
-                    return create_mock_client(external_id, username, email)
-            # Fallback - should not happen in normal test flow
-            return create_mock_client(str(uuid4()), username, email)
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            external_id = str(uuid4())
+            server_to_external_id[server.id] = external_id
+            return create_mock_client(external_id, username, email)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Create services with real repositories
         async with session_factory() as session:
@@ -292,17 +283,16 @@ class TestRedemptionCreatesUsersOnAllServers:
         mock_registry = MagicMock(spec=ClientRegistry)
 
         def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
+            server: MediaServer,
+            /,
         ) -> AsyncMock:
-            del server_type, api_key  # Unused but required by interface
             external_id = str(uuid4())
-            url_to_external_id[url] = external_id
+            url_to_external_id[server.url] = external_id
             return create_mock_client(external_id, username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         async with session_factory() as session:
             invitation_repo = InvitationRepository(session)
@@ -370,16 +360,13 @@ class TestRedemptionCreatesUsersOnAllServers:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         async with session_factory() as session:
             invitation_repo = InvitationRepository(session)
@@ -442,16 +429,13 @@ class TestRedemptionCreatesUsersOnAllServers:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         async with session_factory() as session:
             invitation_repo = InvitationRepository(session)
@@ -548,16 +532,13 @@ class TestRedemptionIncrementsUseCount:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), username, email)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption
         async with session_factory() as session:
@@ -636,16 +617,13 @@ class TestRedemptionIncrementsUseCount:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), base_username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute N redemptions with unique usernames
         for i in range(num_redemptions):
@@ -732,16 +710,13 @@ class TestRedemptionIncrementsUseCount:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption
         async with session_factory() as session:
@@ -840,16 +815,13 @@ class TestDurationDaysSetsExpiration:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
             return create_mock_client(str(uuid4()), username, email)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Capture time before redemption
         time_before = datetime.now(UTC)
@@ -943,16 +915,13 @@ class TestDurationDaysSetsExpiration:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Capture time before redemption
         time_before = datetime.now(UTC)
@@ -1042,16 +1011,13 @@ class TestDurationDaysSetsExpiration:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
             return create_mock_client(str(uuid4()), username, email)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption
         async with session_factory() as session:
@@ -1125,16 +1091,13 @@ class TestDurationDaysSetsExpiration:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption
         async with session_factory() as session:
@@ -1210,16 +1173,13 @@ class TestDurationDaysSetsExpiration:
         # Create mock registry
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, url, api_key
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
             return create_mock_client(str(uuid4()), username, None)
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption
         async with session_factory() as session:
@@ -1321,13 +1281,8 @@ class TestRollbackOnFailure:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, api_key, url  # Unused but required by interface
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server  # Unused but required by interface
 
             mock_client = AsyncMock()
 
@@ -1371,7 +1326,9 @@ class TestRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail
         async with session_factory() as session:
@@ -1463,13 +1420,8 @@ class TestRollbackOnFailure:
         create_call_count = 0
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, api_key, url
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
 
             mock_client = AsyncMock()
 
@@ -1505,7 +1457,9 @@ class TestRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail
         async with session_factory() as session:
@@ -1597,13 +1551,8 @@ class TestRollbackOnFailure:
         create_call_count = 0
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, api_key, url
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
 
             mock_client = AsyncMock()
 
@@ -1639,7 +1588,9 @@ class TestRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail
         async with session_factory() as session:
@@ -1746,13 +1697,8 @@ class TestRollbackOnFailure:
         create_call_count = 0
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del server_type, api_key, url
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
+            del server
 
             mock_client = AsyncMock()
 
@@ -1792,7 +1738,9 @@ class TestRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail on first server
         async with session_factory() as session:
@@ -1938,18 +1886,9 @@ class TestPlexRedemptionRollbackOnFailure:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del api_key
-
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
             mock_client = AsyncMock()
             external_id = str(uuid4())
-            # Capture server_type value to avoid closure issues
-            captured_server_type = server_type
 
             async def mock_create_user(
                 uname: str,
@@ -1962,11 +1901,11 @@ class TestPlexRedemptionRollbackOnFailure:
                 del plex_user_type  # Unused in mock
 
                 # Fail if this is the Plex server
-                if captured_server_type == ServerType.PLEX:
+                if server.server_type == ServerType.PLEX:
                     raise MediaClientError(
                         "Plex server failure",
                         operation="create_user",
-                        server_url=url,
+                        server_url=server.url,
                     )
 
                 # Success for Jellyfin servers
@@ -1990,7 +1929,9 @@ class TestPlexRedemptionRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail on Plex server
         async with session_factory() as session:
@@ -2115,17 +2056,8 @@ class TestPlexRedemptionRollbackOnFailure:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del api_key
-
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
             mock_client = AsyncMock()
-            # Capture server_type value to avoid closure issues
-            captured_server_type = server_type
 
             async def mock_create_user(
                 uname: str,
@@ -2138,11 +2070,11 @@ class TestPlexRedemptionRollbackOnFailure:
                 del plex_user_type
 
                 # Fail if this is the Plex server
-                if captured_server_type == ServerType.PLEX:
+                if server.server_type == ServerType.PLEX:
                     raise MediaClientError(
                         "Plex server failure",
                         operation="create_user",
-                        server_url=url,
+                        server_url=server.url,
                     )
 
                 return ExternalUser(
@@ -2160,7 +2092,9 @@ class TestPlexRedemptionRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail on Plex server
         async with session_factory() as session:
@@ -2291,14 +2225,7 @@ class TestPlexRedemptionRollbackOnFailure:
 
         mock_registry = MagicMock(spec=ClientRegistry)
 
-        def create_client_side_effect(
-            server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,
-        ) -> AsyncMock:
-            del api_key, server_type
-
+        def create_client_side_effect(server: MediaServer, /) -> AsyncMock:
             mock_client = AsyncMock()
             external_id = str(uuid4())
 
@@ -2320,7 +2247,7 @@ class TestPlexRedemptionRollbackOnFailure:
                     raise MediaClientError(
                         "Third server failure",
                         operation="create_user",
-                        server_url=url,
+                        server_url=server.url,
                     )
 
                 created_user_ids.append(external_id)
@@ -2343,7 +2270,9 @@ class TestPlexRedemptionRollbackOnFailure:
 
             return mock_client
 
-        mock_registry.create_client = MagicMock(side_effect=create_client_side_effect)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_client_side_effect
+        )
 
         # Execute redemption - should fail on third server
         async with session_factory() as session:

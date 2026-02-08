@@ -164,7 +164,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             user_repo = UserRepository(session)
             sync_service = SyncService(server_repo, user_repo)
@@ -231,7 +231,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             user_repo = UserRepository(session)
             sync_service = SyncService(server_repo, user_repo)
@@ -298,7 +298,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             user_repo = UserRepository(session)
             sync_service = SyncService(server_repo, user_repo)
@@ -382,7 +382,7 @@ class TestSyncIsIdempotent:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             user_repo = UserRepository(session)
             sync_service = SyncService(server_repo, user_repo)
@@ -487,7 +487,7 @@ class TestSyncDoesNotModifyUsers:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             sync_service = SyncService(server_repo, user_repo)
 
@@ -565,7 +565,7 @@ class TestSyncDoesNotModifyUsers:
             mock_client.__aexit__ = AsyncMock(return_value=None)
 
             mock_registry = MagicMock(spec=ClientRegistry)
-            mock_registry.create_client = MagicMock(return_value=mock_client)
+            mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
             user_repo = UserRepository(session)
             sync_service = SyncService(server_repo, user_repo)
@@ -636,12 +636,7 @@ class TestSyncTaskErrorResilience:
         call_count = 0
         successful_syncs: list[str] = []
 
-        def create_mock_client(
-            _server_type: ServerType,
-            *,
-            url: str,
-            api_key: str,  # pyright: ignore[reportUnusedParameter]
-        ) -> AsyncMock:
+        def create_mock_client(server: MediaServer, /) -> AsyncMock:
             nonlocal call_count
             current_call = call_count
             call_count += 1
@@ -656,14 +651,16 @@ class TestSyncTaskErrorResilience:
             else:
                 # This server will succeed
                 mock_client.list_users = AsyncMock(return_value=[])
-                successful_syncs.append(url)
+                successful_syncs.append(server.url)
 
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
             mock_client.__aexit__ = AsyncMock(return_value=None)
             return mock_client
 
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(side_effect=create_mock_client)
+        mock_registry.create_client_for_server = MagicMock(
+            side_effect=create_mock_client
+        )
 
         # Run the background task sync
         from zondarr.config import Settings

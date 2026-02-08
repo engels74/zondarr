@@ -97,11 +97,7 @@ class SyncService:
             raise NotFoundError("MediaServer", str(server_id))
 
         # Create the appropriate client using the registry
-        client = registry.create_client(
-            server.server_type,
-            url=server.url,
-            api_key=server.api_key,
-        )
+        client = registry.create_client_for_server(server)
 
         # Fetch users from the external media server
         async with client:

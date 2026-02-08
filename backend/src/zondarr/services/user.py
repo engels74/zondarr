@@ -202,11 +202,7 @@ class UserService:
 
         # Update external media server first (atomicity guarantee)
         server = user.media_server
-        client = registry.create_client(
-            server.server_type,
-            url=server.url,
-            api_key=server.api_key,
-        )
+        client = registry.create_client_for_server(server)
 
         try:
             async with client:
@@ -255,11 +251,7 @@ class UserService:
 
         # Delete from external media server first (atomicity guarantee)
         server = user.media_server
-        client = registry.create_client(
-            server.server_type,
-            url=server.url,
-            api_key=server.api_key,
-        )
+        client = registry.create_client_for_server(server)
 
         try:
             async with client:
@@ -449,11 +441,7 @@ class UserService:
 
         # Update external media server first (atomicity guarantee)
         server = user.media_server
-        client = registry.create_client(
-            server.server_type,
-            url=server.url,
-            api_key=server.api_key,
-        )
+        client = registry.create_client_for_server(server)
 
         try:
             async with client:

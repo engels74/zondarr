@@ -143,11 +143,7 @@ class RedemptionService:
 
         try:
             for server in invitation.target_servers:
-                client = registry.create_client(
-                    server.server_type,
-                    url=server.url,
-                    api_key=server.api_key,
-                )
+                client = registry.create_client_for_server(server)
 
                 async with client:
                     # Create user on the media server
@@ -290,11 +286,7 @@ class RedemptionService:
         """
         for server, external_user in created_users:
             try:
-                client = registry.create_client(
-                    server.server_type,
-                    url=server.url,
-                    api_key=server.api_key,
-                )
+                client = registry.create_client_for_server(server)
                 async with client:
                     deleted = await client.delete_user(external_user.external_user_id)
                     if deleted:

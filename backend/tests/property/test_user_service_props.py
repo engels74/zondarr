@@ -276,7 +276,7 @@ class TestEnableDisableAtomicity:
 
         # Create mock registry that returns successful client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_success(enabled=target_enabled)
         )
 
@@ -344,7 +344,7 @@ class TestEnableDisableAtomicity:
 
         # Create mock registry that returns failing client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_failure(
                 error_message="Jellyfin server unavailable"
             )
@@ -412,7 +412,7 @@ class TestEnableDisableAtomicity:
 
         # Create mock registry that returns "user not found" response
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_user_not_found()
         )
 
@@ -476,7 +476,7 @@ class TestEnableDisableAtomicity:
 
         # Create mock registry that returns successful client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_success(enabled=initial_enabled)
         )
 
@@ -534,7 +534,7 @@ class TestEnableDisableAtomicity:
 
         # Create mock registry that returns successful client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_success(enabled=target_enabled)
         )
 
@@ -610,7 +610,7 @@ class TestUserDeletionAtomicity:
 
         # Create mock registry that returns successful delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_success()
         )
 
@@ -667,7 +667,7 @@ class TestUserDeletionAtomicity:
 
         # Create mock registry that returns failing delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_failure(
                 error_message="Jellyfin server unavailable"
             )
@@ -735,7 +735,7 @@ class TestUserDeletionAtomicity:
 
         # Create mock registry that returns "user not found" response
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_user_not_found()
         )
 
@@ -807,7 +807,7 @@ class TestUserDeletionAtomicity:
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(return_value=mock_client)
+        mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
         # Execute delete operation - should fail
         async with db.session_factory() as session:
@@ -876,7 +876,7 @@ class TestUserDeletionAtomicity:
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(return_value=mock_client)
+        mock_registry.create_client_for_server = MagicMock(return_value=mock_client)
 
         # Execute delete operation
         async with db.session_factory() as session:
@@ -1010,7 +1010,7 @@ class TestIdentityCascade:
 
         # Create mock registry that returns successful delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_success()
         )
 
@@ -1085,7 +1085,7 @@ class TestIdentityCascade:
 
         # Create mock registry that returns successful delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_success()
         )
 
@@ -1158,7 +1158,7 @@ class TestIdentityCascade:
 
         # Create mock registry that returns failing delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_failure(
                 error_message="Jellyfin server unavailable"
             )
@@ -1240,7 +1240,7 @@ class TestIdentityCascade:
 
         # Create mock registry that returns successful delete client
         mock_registry = MagicMock(spec=ClientRegistry)
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_success()
         )
 
@@ -1264,7 +1264,7 @@ class TestIdentityCascade:
             )
 
         # Reset mock for second deletion
-        mock_registry.create_client = MagicMock(
+        mock_registry.create_client_for_server = MagicMock(
             return_value=create_mock_client_delete_success()
         )
 
