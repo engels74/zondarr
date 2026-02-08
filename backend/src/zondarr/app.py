@@ -171,6 +171,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
 
     # Register media clients in the global registry
     _register_media_clients()
+    registry.set_settings(settings)
 
     return Litestar(
         route_handlers=[

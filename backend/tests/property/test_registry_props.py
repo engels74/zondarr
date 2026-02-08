@@ -5,10 +5,13 @@ Properties: 5, 6, 7
 Validates: Requirements 4.2, 4.3, 4.4, 4.5
 """
 
+from unittest.mock import MagicMock
+
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from zondarr.config import Settings
 from zondarr.media.clients.jellyfin import JellyfinClient
 from zondarr.media.clients.plex import PlexClient
 from zondarr.media.exceptions import UnknownServerTypeError
@@ -211,3 +214,139 @@ class TestRegistrySingletonBehavior:
         for instance in instances:
             with pytest.raises(UnknownServerTypeError):
                 _ = instance.get_client_class(ServerType.JELLYFIN)
+
+
+class TestEffectiveCredentials:
+    """Tests for env var credential overrides via _get_effective_credentials."""
+
+    def test_returns_db_values_when_no_settings(self) -> None:
+        """When _settings is None, DB values are returned unchanged."""
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://db.url"
+        assert api_key == "db-key"
+
+    def test_returns_db_values_when_env_vars_not_set(self) -> None:
+        """When settings exist but media env vars are None, DB values are used."""
+        s = Settings(secret_key="a" * 32)
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://db.url"
+        assert api_key == "db-key"
+
+    def test_plex_url_overrides_db_url(self) -> None:
+        """PLEX_URL env var overrides DB URL; api_key preserved from DB."""
+        s = Settings(secret_key="a" * 32, plex_url="http://env.plex")
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://env.plex"
+        assert api_key == "db-key"
+
+    def test_plex_token_overrides_db_api_key(self) -> None:
+        """PLEX_TOKEN env var overrides DB api_key; URL preserved from DB."""
+        s = Settings(secret_key="a" * 32, plex_token="env-token")
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://db.url"
+        assert api_key == "env-token"
+
+    def test_both_plex_env_vars_override_both_db_values(self) -> None:
+        """Both PLEX_URL and PLEX_TOKEN override both DB values."""
+        s = Settings(
+            secret_key="a" * 32,
+            plex_url="http://env.plex",
+            plex_token="env-token",
+        )
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://env.plex"
+        assert api_key == "env-token"
+
+    def test_jellyfin_env_vars_override_db_values(self) -> None:
+        """JELLYFIN_URL and JELLYFIN_API_KEY override DB values."""
+        s = Settings(
+            secret_key="a" * 32,
+            jellyfin_url="http://env.jf",
+            jellyfin_api_key="env-jf-key",
+        )
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.JELLYFIN, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://env.jf"
+        assert api_key == "env-jf-key"
+
+    def test_plex_env_vars_do_not_affect_jellyfin(self) -> None:
+        """Plex env vars don't leak into Jellyfin credential resolution."""
+        s = Settings(
+            secret_key="a" * 32,
+            plex_url="http://env.plex",
+            plex_token="env-plex-token",
+        )
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.JELLYFIN, db_url="http://jf.db", db_api_key="jf-db-key"
+        )
+        assert url == "http://jf.db"
+        assert api_key == "jf-db-key"
+
+    def test_jellyfin_env_vars_do_not_affect_plex(self) -> None:
+        """Jellyfin env vars don't leak into Plex credential resolution."""
+        s = Settings(
+            secret_key="a" * 32,
+            jellyfin_url="http://env.jf",
+            jellyfin_api_key="env-jf-key",
+        )
+        registry.set_settings(s)
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://plex.db", db_api_key="plex-db-key"
+        )
+        assert url == "http://plex.db"
+        assert api_key == "plex-db-key"
+
+    def test_create_client_for_server_uses_effective_credentials(self) -> None:
+        """create_client_for_server resolves credentials and creates client."""
+        s = Settings(
+            secret_key="a" * 32,
+            jellyfin_url="http://env.jf:8096",
+            jellyfin_api_key="env-api-key",
+        )
+        registry.set_settings(s)
+
+        server = MagicMock()
+        server.server_type = ServerType.JELLYFIN
+        server.url = "http://db.jf:8096"
+        server.api_key = "db-api-key"
+
+        client = registry.create_client_for_server(server)
+        assert isinstance(client, JellyfinClient)
+        assert client.url == "http://env.jf:8096"
+        assert client.api_key == "env-api-key"
+
+    def test_clear_resets_settings(self) -> None:
+        """clear() resets _settings to None."""
+        s = Settings(secret_key="a" * 32, plex_url="http://env.plex")
+        registry.set_settings(s)
+        registry.clear()
+
+        url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
+            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+        )
+        assert url == "http://db.url"
+        assert api_key == "db-key"

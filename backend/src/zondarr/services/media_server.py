@@ -303,11 +303,7 @@ class MediaServerService:
 
         # Fetch libraries from the media server
         try:
-            client = self.registry.create_client(
-                server.server_type,
-                url=server.url,
-                api_key=server.api_key,
-            )
+            client = self.registry.create_client_for_server(server)
             async with client:
                 remote_libraries = await client.get_libraries()
         except Exception as e:
