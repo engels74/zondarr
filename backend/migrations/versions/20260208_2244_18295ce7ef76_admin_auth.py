@@ -21,7 +21,7 @@ depends_on: str | Sequence[str] | None = None
 
 def upgrade() -> None:
     """Create admin_accounts and refresh_tokens tables."""
-    op.create_table(
+    _ = op.create_table(
         "admin_accounts",
         sa.Column("username", sa.String(length=32), nullable=False),
         sa.Column("password_hash", sa.String(length=255), nullable=True),
@@ -51,7 +51,7 @@ def upgrade() -> None:
         )
         batch_op.create_index("ix_admin_accounts_username", ["username"], unique=True)
 
-    op.create_table(
+    _ = op.create_table(
         "refresh_tokens",
         sa.Column("admin_account_id", sa.Uuid(), nullable=False),
         sa.Column("token_hash", sa.String(length=64), nullable=False),

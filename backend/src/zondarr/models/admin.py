@@ -58,7 +58,9 @@ class AdminAccount(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         lazy="noload",
     )
 
-    __table_args__ = (Index("ix_admin_accounts_external_id", "external_id"),)
+    __table_args__: tuple[Index, ...] = (
+        Index("ix_admin_accounts_external_id", "external_id"),
+    )
 
 
 class RefreshToken(Base, UUIDPrimaryKeyMixin, TimestampMixin):

@@ -60,7 +60,7 @@ class AdminUser(msgspec.Struct):
 
 async def retrieve_user_handler(
     token: Token,
-    connection: ASGIConnection[Any, Any, Any, Any],
+    connection: ASGIConnection[Any, Any, Any, Any],  # pyright: ignore[reportExplicitAny]
 ) -> AdminUser | None:
     """Retrieve and verify admin user from JWT token.
 
@@ -80,8 +80,8 @@ async def retrieve_user_handler(
         return None
 
     try:
-        session_factory: async_sessionmaker[AsyncSession] = (
-            connection.app.state.session_factory  # pyright: ignore[reportAny]
+        session_factory: async_sessionmaker[AsyncSession] = (  # pyright: ignore[reportAny]
+            connection.app.state.session_factory
         )
         async with session_factory() as session:
             repo = AdminAccountRepository(session)
@@ -113,7 +113,8 @@ class FixedJWTCookieMiddleware(JWTCookieAuthenticationMiddleware):
     """
 
     async def authenticate_request(  # pyright: ignore[reportImplicitOverride]
-        self, connection: ASGIConnection[Any, Any, Any, Any]
+        self,
+        connection: ASGIConnection[Any, Any, Any, Any],  # pyright: ignore[reportExplicitAny]
     ) -> AuthenticationResult:
         """Extract JWT from header or cookie and authenticate."""
         auth_header = connection.headers.get(self.auth_header)

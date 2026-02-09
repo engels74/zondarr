@@ -1,6 +1,7 @@
 """Repositories for admin authentication entities."""
 
 from datetime import datetime
+from typing import override
 
 from sqlalchemy import delete, func, select
 
@@ -13,6 +14,7 @@ class AdminAccountRepository(Repository[AdminAccount]):
     """Repository for AdminAccount CRUD operations."""
 
     @property
+    @override
     def _model_class(self) -> type[AdminAccount]:
         return AdminAccount
 
@@ -84,6 +86,7 @@ class RefreshTokenRepository(Repository[RefreshToken]):
     """Repository for RefreshToken CRUD operations."""
 
     @property
+    @override
     def _model_class(self) -> type[RefreshToken]:
         return RefreshToken
 
@@ -149,7 +152,7 @@ class RefreshTokenRepository(Repository[RefreshToken]):
         try:
             stmt = delete(RefreshToken).where(RefreshToken.expires_at < now)
             result = await self.session.execute(stmt)
-            return result.rowcount  # pyright: ignore[reportAttributeAccessIssue, reportReturnType]
+            return result.rowcount  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownVariableType]
         except Exception as e:
             raise RepositoryError(
                 "Failed to delete expired tokens",

@@ -137,8 +137,10 @@ class AuthService:
 
         try:
             account = MyPlexAccount(token=auth_token)
-            plex_email: str = account.email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-            plex_username: str = account.username or plex_email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            _raw_email: object = account.email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            _raw_username: object = account.username  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+            plex_email = str(_raw_email)  # pyright: ignore[reportUnknownArgumentType]
+            plex_username = str(_raw_username) if _raw_username else plex_email  # pyright: ignore[reportUnknownArgumentType]
         except Exception as exc:
             raise AuthenticationError(
                 "Failed to verify Plex account", "PLEX_AUTH_FAILED"
@@ -210,9 +212,9 @@ class AuthService:
                         "INVALID_CREDENTIALS",
                     )
 
-                data = response.json()
-                user_data: dict[str, object] = data.get("User", {})  # pyright: ignore[reportAny, reportAssignmentType]
-                policy: dict[str, object] = user_data.get("Policy", {})  # pyright: ignore[reportAny, reportAssignmentType]
+                data = response.json()  # pyright: ignore[reportAny]
+                user_data: dict[str, object] = data.get("User", {})  # pyright: ignore[reportAny]
+                policy: dict[str, object] = user_data.get("Policy", {})  # pyright: ignore[reportAssignmentType]
                 is_admin: bool = policy.get("IsAdministrator", False)  # pyright: ignore[reportAssignmentType]
                 jellyfin_user_id: str = str(user_data.get("Id", ""))
 
@@ -278,7 +280,7 @@ class AuthService:
             user_agent=user_agent,
             ip_address=ip_address,
         )
-        await self.token_repo.create(refresh_token)
+        _ = await self.token_repo.create(refresh_token)
 
         return raw_token
 
@@ -331,7 +333,7 @@ class AuthService:
         Args:
             admin: The admin account.
         """
-        await self.token_repo.revoke_all_for_admin(admin.id)
+        _ = await self.token_repo.revoke_all_for_admin(admin.id)
 
     async def get_available_auth_methods(self) -> list[str]:
         """Get available authentication methods.
