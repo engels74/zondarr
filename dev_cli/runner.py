@@ -228,17 +228,36 @@ class DevRunner:
         ]
 
     async def _await_ready(self, server: ServerProcess) -> bool:
-        """Wait for a server's ready event with timeout. Returns True if ready."""
-        try:
-            _ = await asyncio.wait_for(
-                server.ready.wait(), timeout=self._STARTUP_TIMEOUT
-            )
+        """Wait for a server's ready event with timeout.
+
+        Races the ready event against process exit so an immediate crash
+        (e.g. import/config error) is reported without waiting the full
+        timeout.
+        """
+        assert server.process is not None
+        ready_task = asyncio.create_task(server.ready.wait())
+        exit_task = asyncio.create_task(server.process.wait())
+
+        done, pending = await asyncio.wait(
+            {ready_task, exit_task},
+            timeout=self._STARTUP_TIMEOUT,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        for task in pending:
+            _ = task.cancel()
+
+        if ready_task in done:
             return True
-        except TimeoutError:
-            print_error(
-                f"{server.name} did not start within {self._STARTUP_TIMEOUT:.0f}s"
-            )
+
+        if exit_task in done:
+            code = server.process.returncode
+            print_error(f"{server.name} exited with code {code} before becoming ready")
             return False
+
+        # Neither finished → timeout
+        print_error(f"{server.name} did not start within {self._STARTUP_TIMEOUT:.0f}s")
+        return False
 
     async def _check_startup(self) -> None:
         """Wait for all servers to become ready, trigger shutdown on timeout."""

@@ -115,7 +115,9 @@ def _load_dotenv(repo_root: Path, /) -> None:
         key, sep, value = line.partition("=")
         if not sep:
             continue
-        key = key.strip()
+        key = key.strip().removeprefix("export ")
+        if not key:
+            continue
         value = value.strip().strip("\"'")
         _ = os.environ.setdefault(key, value)
         count += 1
