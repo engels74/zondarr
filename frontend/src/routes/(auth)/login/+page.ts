@@ -1,5 +1,6 @@
 import { isRedirect, redirect } from '@sveltejs/kit';
 import { getAuthMethods } from '$lib/api/auth';
+import { isNetworkError } from '$lib/api/errors';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ fetch }) => {
@@ -15,7 +16,10 @@ export const load: PageLoad = async ({ fetch }) => {
 		};
 	} catch (e) {
 		if (isRedirect(e)) throw e;
-		// Backend unreachable — render login with default method
+		if (!isNetworkError(e)) {
+			console.warn('[login loader] unexpected error from getAuthMethods:', e);
+		}
+		// Backend unreachable or broken — render login with default method
 		return {
 			methods: ['local']
 		};
