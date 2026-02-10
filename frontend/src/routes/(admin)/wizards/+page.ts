@@ -42,11 +42,12 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		}
 
 		// Handle error response
+		const status = result.response?.status ?? 500;
 		const errorBody = result.error as { error_code?: string; detail?: string } | undefined;
 		return {
 			wizards: null as WizardListResponse | null,
 			error: new ApiError(
-				500,
+				status,
 				errorBody?.error_code ?? 'UNKNOWN_ERROR',
 				errorBody?.detail ?? 'An error occurred'
 			),

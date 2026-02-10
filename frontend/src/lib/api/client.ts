@@ -553,7 +553,12 @@ export interface ListWizardsParams {
  * @returns Paginated list of wizards
  */
 export async function getWizards(params: ListWizardsParams = {}, client: ApiClient = api) {
-	return client.GET('/api/v1/wizards', { params: { query: params } });
+	// Cap page_size at 100 as per requirements
+	const cappedParams = {
+		...params,
+		page_size: params.page_size ? Math.min(params.page_size, 100) : undefined
+	};
+	return client.GET('/api/v1/wizards', { params: { query: cappedParams } });
 }
 
 /**
