@@ -20,6 +20,8 @@ def run_checks(
 ) -> bool:
     """Run all pre-flight checks. Returns True if all critical checks pass."""
     ok = True
+    has_uv = True
+    has_bun = True
 
     # Load .env first so all subsequent steps have env vars available
     _load_dotenv(repo_root)
@@ -27,8 +29,10 @@ def run_checks(
     # Tool checks
     if not frontend_only and not _check_tool("uv", hint="https://docs.astral.sh/uv/"):
         ok = False
+        has_uv = False
     if not backend_only and not _check_tool("bun", hint="https://bun.sh/"):
         ok = False
+        has_bun = False
 
     # Port availability checks
     if not frontend_only and not _check_port(backend_port, "backend"):
@@ -42,18 +46,18 @@ def run_checks(
     if not backend_only and not _check_dir(repo_root / "frontend"):
         ok = False
 
-    # Auto-install backend dependencies if missing
-    if not frontend_only:
+    # Auto-install backend dependencies if missing (skip if uv not found)
+    if not frontend_only and has_uv:
         if not _install_backend_deps(repo_root / "backend"):
             ok = False
 
-    # Database migrations
-    if not frontend_only:
+    # Database migrations (skip if uv not found)
+    if not frontend_only and has_uv:
         if not _run_migrations(repo_root / "backend"):
             ok = False
 
-    # Auto-install frontend dependencies if missing
-    if not backend_only:
+    # Auto-install frontend dependencies if missing (skip if bun not found)
+    if not backend_only and has_bun:
         if not _install_frontend_deps(repo_root / "frontend"):
             ok = False
 

@@ -315,7 +315,7 @@ class DevRunner:
         import urllib.error
         import urllib.request
 
-        url = f"http://localhost:{port}/health/ready"
+        url = f"http://127.0.0.1:{port}/health/ready"
         print_info("Verifying backend health...")
 
         for _ in range(10):
@@ -325,9 +325,12 @@ class DevRunner:
                 response = await asyncio.to_thread(
                     urllib.request.urlopen, url, timeout=2
                 )
-                if response.status == 200:
-                    print_info("Backend health check passed")
-                    return True
+                try:
+                    if response.status == 200:
+                        print_info("Backend health check passed")
+                        return True
+                finally:
+                    response.close()
             except (urllib.error.URLError, OSError, TimeoutError):
                 pass
 
