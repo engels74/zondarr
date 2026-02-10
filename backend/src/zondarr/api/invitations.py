@@ -571,11 +571,14 @@ class InvitationController(Controller):
         Returns:
             WizardStepResponse.
         """
+        interaction_type = step.interaction_type
+        if hasattr(interaction_type, "value"):
+            interaction_type = interaction_type.value
         return WizardStepResponse(
             id=step.id,
             wizard_id=step.wizard_id,
             step_order=step.step_order,
-            interaction_type=step.interaction_type.value,
+            interaction_type=interaction_type,
             title=step.title,
             content_markdown=step.content_markdown,
             config=step.config,

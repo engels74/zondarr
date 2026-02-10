@@ -169,15 +169,16 @@ class InvitationService:
             post_wizard_id=post_wizard_id,
         )
 
-        # Add target servers if resolved
-        if resolved_servers:
-            invitation.target_servers = resolved_servers
+        # Always set relationships to avoid lazy-load in async context
+        invitation.target_servers = resolved_servers
+        invitation.allowed_libraries = resolved_libraries
 
-        # Add allowed libraries if resolved
-        if resolved_libraries:
-            invitation.allowed_libraries = resolved_libraries
+        created = await self.repository.create(invitation)
 
-        return await self.repository.create(invitation)
+        # Refresh to eagerly load wizard relationships set via FK
+        await self.repository.session.refresh(created, ["pre_wizard", "post_wizard"])
+
+        return created
 
     async def _validate_server_ids(
         self, server_ids: Sequence[UUID], /
