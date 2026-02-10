@@ -29,17 +29,19 @@ def print_error(msg: str, /) -> None:
 
 def print_banner(
     *,
-    backend_port: int,
+    backend_port: int | None,
     frontend_port: int | None,
 ) -> None:
     """Print startup banner with server URLs."""
     print()
     print(f"{BOLD}{GREEN}  Zondarr Dev Servers{RESET}")
     print(f"{DIM}  {'─' * 40}{RESET}")
-    print(f"  Backend:   {CYAN}http://localhost:{backend_port}{RESET}")
+    if backend_port is not None:
+        print(f"  Backend:   {CYAN}http://localhost:{backend_port}{RESET}")
     if frontend_port is not None:
         print(f"  Frontend:  {MAGENTA}http://localhost:{frontend_port}{RESET}")
-    print(f"  API Docs:  {CYAN}http://localhost:{backend_port}/docs{RESET}")
+    if backend_port is not None:
+        print(f"  API Docs:  {CYAN}http://localhost:{backend_port}/docs{RESET}")
     print(f"{DIM}  {'─' * 40}{RESET}")
     print(f"  Press {BOLD}Ctrl+C{RESET} to stop")
     print()

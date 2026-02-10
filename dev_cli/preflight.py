@@ -20,6 +20,8 @@ def run_checks(
 ) -> bool:
     """Run all pre-flight checks. Returns True if all critical checks pass."""
     ok = True
+    has_uv = True
+    has_bun = True
 
     # Load .env first so all subsequent steps have env vars available
     _load_dotenv(repo_root)
@@ -27,8 +29,10 @@ def run_checks(
     # Tool checks
     if not frontend_only and not _check_tool("uv", hint="https://docs.astral.sh/uv/"):
         ok = False
+        has_uv = False
     if not backend_only and not _check_tool("bun", hint="https://bun.sh/"):
         ok = False
+        has_bun = False
 
     # Port availability checks
     if not frontend_only and not _check_port(backend_port, "backend"):
@@ -42,21 +46,24 @@ def run_checks(
     if not backend_only and not _check_dir(repo_root / "frontend"):
         ok = False
 
-    # Database migrations
-    if not frontend_only:
+    # Auto-install backend dependencies if missing (skip if uv not found)
+    if not frontend_only and has_uv:
+        if not _install_backend_deps(repo_root / "backend"):
+            ok = False
+
+    # Database migrations (skip if uv not found)
+    if not frontend_only and has_uv:
         if not _run_migrations(repo_root / "backend"):
             ok = False
 
-    # Advisory checks (non-fatal)
-    if not frontend_only:
-        venv = repo_root / "backend" / ".venv"
-        if not venv.exists():
-            print_warn(f"{venv} not found — uv will auto-sync on first run")
+    # Auto-install frontend dependencies if missing (skip if bun not found)
+    if not backend_only and has_bun:
+        if not _install_frontend_deps(repo_root / "frontend"):
+            ok = False
 
-    if not backend_only:
-        node_modules = repo_root / "frontend" / "node_modules"
-        if not node_modules.exists():
-            print_warn(f"{node_modules} not found — bun will install on first run")
+    # Advisory: warn if backend is unreachable in frontend-only mode
+    if frontend_only:
+        _check_backend_reachable(backend_port)
 
     # SECRET_KEY
     _ensure_secret_key()
@@ -92,6 +99,56 @@ def _run_migrations(backend_dir: Path, /) -> bool:
     return True
 
 
+def _install_backend_deps(backend_dir: Path, /) -> bool:
+    """Run ``uv sync`` if the backend .venv is missing."""
+    venv = backend_dir / ".venv"
+    if venv.exists():
+        return True
+
+    print_info("Backend .venv not found — running uv sync --extra dev...")
+    result = subprocess.run(
+        ["uv", "sync", "--extra", "dev"],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print_error(f"uv sync failed:\n{result.stderr.strip()}")
+        return False
+    print_info("Backend dependencies installed")
+    return True
+
+
+def _install_frontend_deps(frontend_dir: Path, /) -> bool:
+    """Run ``bun install`` if node_modules is missing."""
+    node_modules = frontend_dir / "node_modules"
+    if node_modules.exists():
+        return True
+
+    print_info("node_modules not found — running bun install...")
+    result = subprocess.run(
+        ["bun", "install"],
+        cwd=frontend_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print_error(f"bun install failed:\n{result.stderr.strip()}")
+        return False
+    print_info("Frontend dependencies installed")
+    return True
+
+
+def _check_backend_reachable(port: int, /) -> None:
+    """Advisory check: warn if backend port is unreachable in frontend-only mode."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        if sock.connect_ex(("127.0.0.1", port)) != 0:
+            print_warn(
+                f"Backend is not running on port {port}"
+                " — API calls from the frontend will fail"
+            )
+
+
 def _ensure_secret_key() -> None:
     if os.environ.get("SECRET_KEY"):
         return
@@ -118,7 +175,15 @@ def _load_dotenv(repo_root: Path, /) -> None:
         key = key.strip().removeprefix("export ")
         if not key:
             continue
-        value = value.strip().strip("\"'")
+        value = value.strip()
+        if len(value) >= 2 and value[0] in ('"', "'") and value[-1] == value[0]:
+            # Quoted value — strip matching quotes, keep content as-is
+            value = value[1:-1]
+        else:
+            # Unquoted value — strip inline comments
+            comment_idx = value.find(" #")
+            if comment_idx != -1:
+                value = value[:comment_idx].rstrip()
         _ = os.environ.setdefault(key, value)
         count += 1
 

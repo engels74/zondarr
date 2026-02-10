@@ -19,6 +19,8 @@ class _Args(argparse.Namespace):
     skip_checks: bool = False
     backend_only: bool = False
     frontend_only: bool = False
+    open_browser: bool = False
+    no_reload: bool = False
 
 
 def _parse_args() -> _Args:
@@ -41,6 +43,19 @@ def _parse_args() -> _Args:
         "--skip-checks",
         action="store_true",
         help="Skip pre-flight checks",
+    )
+
+    _ = parser.add_argument(
+        "--open",
+        action="store_true",
+        dest="open_browser",
+        help="Open browser after servers are ready",
+    )
+
+    _ = parser.add_argument(
+        "--no-reload",
+        action="store_true",
+        help="Disable backend auto-reload on file changes",
     )
 
     exclusive = parser.add_mutually_exclusive_group()
@@ -71,9 +86,10 @@ async def _main() -> int:
         ):
             return 1
 
+    backend_port: int | None = None if args.frontend_only else args.backend_port
     frontend_port: int | None = None if args.backend_only else args.frontend_port
     print_banner(
-        backend_port=args.backend_port,
+        backend_port=backend_port,
         frontend_port=frontend_port,
     )
 
@@ -83,6 +99,8 @@ async def _main() -> int:
         frontend_port=args.frontend_port,
         backend_only=args.backend_only,
         frontend_only=args.frontend_only,
+        open_browser=args.open_browser,
+        reload=not args.no_reload,
     )
 
     try:
