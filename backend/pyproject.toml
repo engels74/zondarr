@@ -33,6 +33,7 @@ dev = [
     "hypothesis>=6.130",
     "ruff>=0.14",
     "basedpyright>=1.29",
+    "granian[reload]>=2.6",
 ]
 
 [project.scripts]

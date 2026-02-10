@@ -101,9 +101,9 @@ def _install_backend_deps(backend_dir: Path, /) -> bool:
     if venv.exists():
         return True
 
-    print_info("Backend .venv not found — running uv sync...")
+    print_info("Backend .venv not found — running uv sync --extra dev...")
     result = subprocess.run(
-        ["uv", "sync"],
+        ["uv", "sync", "--extra", "dev"],
         cwd=backend_dir,
         capture_output=True,
         text=True,
@@ -171,7 +171,15 @@ def _load_dotenv(repo_root: Path, /) -> None:
         key = key.strip().removeprefix("export ")
         if not key:
             continue
-        value = value.strip().strip("\"'")
+        value = value.strip()
+        if len(value) >= 2 and value[0] in ('"', "'") and value[-1] == value[0]:
+            # Quoted value — strip matching quotes, keep content as-is
+            value = value[1:-1]
+        else:
+            # Unquoted value — strip inline comments
+            comment_idx = value.find(" #")
+            if comment_idx != -1:
+                value = value[:comment_idx].rstrip()
         _ = os.environ.setdefault(key, value)
         count += 1
 

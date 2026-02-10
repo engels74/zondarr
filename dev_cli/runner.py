@@ -68,6 +68,7 @@ class ServerProcess:
         if self.process is None or self.process.returncode is not None:
             return
         pid = self.process.pid
+        assert pid is not None, "Process started but has no PID"
         print_info(f"Stopping {self.name} (pid={pid})...")
 
         # Signal the entire process group on Unix to catch worker processes
@@ -106,6 +107,7 @@ class DevRunner:
         backend_only: bool,
         frontend_only: bool,
         open_browser: bool = False,
+        reload: bool = True,
     ) -> None:
         self.repo_root = repo_root
         self.backend_port = backend_port
@@ -113,6 +115,7 @@ class DevRunner:
         self.backend_only = backend_only
         self.frontend_only = frontend_only
         self.open_browser = open_browser
+        self.reload = reload
         self.shutdown_event = asyncio.Event()
         self.servers: list[ServerProcess] = []
 
@@ -125,21 +128,24 @@ class DevRunner:
                 "DEBUG": "true",
                 "CORS_ORIGINS": f"http://localhost:{self.frontend_port}",
             }
+            backend_cmd = [
+                "uv",
+                "run",
+                "granian",
+                "zondarr.app:app",
+                "--interface",
+                "asgi",
+                "--host",
+                "0.0.0.0",
+                "--port",
+                str(self.backend_port),
+            ]
+            if self.reload:
+                backend_cmd.append("--reload")
             self.servers.append(
                 ServerProcess(
                     name="backend",
-                    cmd=[
-                        "uv",
-                        "run",
-                        "granian",
-                        "zondarr.app:app",
-                        "--interface",
-                        "asgi",
-                        "--host",
-                        "0.0.0.0",
-                        "--port",
-                        str(self.backend_port),
-                    ],
+                    cmd=backend_cmd,
                     cwd=self.repo_root / "backend",
                     env=backend_env,
                     color=CYAN,
@@ -358,10 +364,12 @@ class DevRunner:
                 for task in done:
                     server = process_tasks[task]
                     code = task.result()
-                    if code != 0:
+                    if code == 0:
+                        print_info(f"{server.name} exited cleanly")
+                    else:
                         print_error(f"{server.name} exited with code {code}")
-                        self.shutdown_event.set()
-                        return
+                    self.shutdown_event.set()
+                    return
         finally:
             for task in pending:
                 task.cancel()
