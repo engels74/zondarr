@@ -108,7 +108,8 @@ $effect(() => {
 			mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
 		].join(' ')}
 	>
-		<div class="flex h-14 items-center px-4">
+		<div class="flex h-14 items-center gap-2.5 px-4">
+			<img src="/zondarr-logo.svg" alt="" class="size-7" aria-hidden="true" />
 			<span class="font-display text-lg font-bold text-cr-accent">Zondarr</span>
 		</div>
 		<Separator class="bg-cr-border" />
@@ -143,7 +144,8 @@ $effect(() => {
 	<div class="flex">
 		<!-- Desktop Sidebar -->
 		<aside class="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-cr-border bg-cr-bg">
-			<div class="flex h-14 items-center px-4">
+			<div class="flex h-14 items-center gap-2.5 px-4">
+				<img src="/zondarr-logo.svg" alt="" class="size-7" aria-hidden="true" />
 				<span class="font-display text-lg font-bold text-cr-accent">Zondarr</span>
 			</div>
 			<Separator class="bg-cr-border" />

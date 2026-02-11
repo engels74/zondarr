@@ -21,7 +21,8 @@ const { children }: Props = $props();
 <div class="min-h-screen bg-cr-bg">
 	<!-- Minimal header with branding and theme toggle -->
 	<header class="sticky top-0 z-50 flex h-14 items-center justify-between border-b border-cr-border bg-cr-bg px-4 md:px-6">
-		<a href="/" class="font-display text-lg font-bold text-cr-accent">
+		<a href="/" class="flex items-center gap-2.5 font-display text-lg font-bold text-cr-accent">
+			<img src="/zondarr-logo.svg" alt="" class="size-7" aria-hidden="true" />
 			Zondarr
 		</a>
 		<ThemeToggle />
