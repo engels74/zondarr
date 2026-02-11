@@ -197,38 +197,33 @@ class DevRunner:
         backend = next((s for s in self.servers if s.name == "backend"), None)
         frontend = next((s for s in self.servers if s.name == "frontend"), None)
 
-        # Start backend first (if present) and wait for it to be ready
-        if backend is not None:
-            await backend.start()
-            assert backend.process is not None
-            assert backend.process.stdout is not None
-            assert backend.process.stderr is not None
-            tasks.extend(self._stream_tasks(backend))
+        # Start all processes concurrently (frontend doesn't need backend at startup)
+        for server in self.servers:
+            await server.start()
+            tasks.extend(self._stream_tasks(server))
 
+        # Await backend ready + health check first (if present)
+        if backend is not None:
             ready = await self._await_ready(backend)
             if not ready:
                 self.shutdown_event.set()
                 await asyncio.gather(*tasks, return_exceptions=True)
-                await backend.stop()
+                for server in self.servers:
+                    await server.stop()
                 return 1
 
-            # Verify lifespans are initialized before starting frontend
+            # Verify lifespans are initialized
             if frontend is not None:
                 healthy = await self._verify_health(self.backend_port)
                 if not healthy:
                     self.shutdown_event.set()
                     await asyncio.gather(*tasks, return_exceptions=True)
-                    await backend.stop()
+                    for server in self.servers:
+                        await server.stop()
                     return 1
 
-        # Start frontend (if present) and wait for it to be ready
+        # Await frontend ready (likely already done since it started in parallel)
         if frontend is not None:
-            await frontend.start()
-            assert frontend.process is not None
-            assert frontend.process.stdout is not None
-            assert frontend.process.stderr is not None
-            tasks.extend(self._stream_tasks(frontend))
-
             ready = await self._await_ready(frontend)
             if not ready:
                 self.shutdown_event.set()
@@ -318,7 +313,8 @@ class DevRunner:
         url = f"http://127.0.0.1:{port}/health/ready"
         print_info("Verifying backend health...")
 
-        for _ in range(10):
+        delay = 0.1
+        for _ in range(15):
             if self.shutdown_event.is_set():
                 return False
             try:
@@ -334,9 +330,10 @@ class DevRunner:
             except (urllib.error.URLError, OSError, TimeoutError):
                 pass
 
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(delay)
+            delay = min(delay * 1.5, 0.5)
 
-        print_error("Backend health check failed after 10 attempts")
+        print_error("Backend health check failed after 15 attempts")
         return False
 
     async def _watch_exits(self) -> None:
