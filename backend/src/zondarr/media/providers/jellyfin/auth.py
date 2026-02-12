@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from zondarr.core.exceptions import AuthenticationError
-from zondarr.models.admin import AdminAccount, AuthMethod
+from zondarr.models.admin import AdminAccount
 
 if TYPE_CHECKING:
     from zondarr.config import Settings
@@ -102,9 +102,7 @@ class JellyfinAdminAuth:
             )
 
         # Check for existing account with this external ID
-        admin = await admin_repo.get_by_external_id(
-            jellyfin_user_id, AuthMethod.JELLYFIN
-        )
+        admin = await admin_repo.get_by_external_id(jellyfin_user_id, "jellyfin")
 
         if admin is not None:
             if not admin.enabled:
@@ -115,7 +113,7 @@ class JellyfinAdminAuth:
         # Auto-create admin account for Jellyfin admin
         admin = AdminAccount(
             username=username.lower().replace(" ", "_")[:32],
-            auth_method=AuthMethod.JELLYFIN,
+            auth_method="jellyfin",
             external_id=jellyfin_user_id,
             enabled=True,
             last_login_at=datetime.now(UTC),

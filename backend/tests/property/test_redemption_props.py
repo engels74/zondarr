@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from tests.conftest import TestDB
 from zondarr.media.registry import ClientRegistry
 from zondarr.media.types import ExternalUser
-from zondarr.models import Invitation, ServerType
+from zondarr.models import Invitation
 from zondarr.models.media_server import MediaServer
 from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.invitation import InvitationRepository
@@ -100,7 +100,7 @@ async def create_media_servers(
         for i in range(count):
             server = MediaServer(
                 name=f"TestServer{i}",
-                server_type=ServerType.JELLYFIN,
+                server_type="jellyfin",
                 url=f"http://server{i}.local:8096",
                 api_key=f"test-api-key-{i}",
                 enabled=True,
@@ -1842,7 +1842,7 @@ class TestPlexRedemptionRollbackOnFailure:
             for i in range(num_jellyfin_servers):
                 server = MediaServer(
                     name=f"JellyfinServer{i}",
-                    server_type=ServerType.JELLYFIN,
+                    server_type="jellyfin",
                     url=f"http://jellyfin{i}.local:8096",
                     api_key=f"jellyfin-api-key-{i}",
                     enabled=True,
@@ -1857,7 +1857,7 @@ class TestPlexRedemptionRollbackOnFailure:
         async with session_factory() as sess:
             plex_server = MediaServer(
                 name="PlexServer",
-                server_type=ServerType.PLEX,
+                server_type="plex",
                 url="http://plex.local:32400",
                 api_key="plex-api-key",
                 enabled=True,
@@ -1901,7 +1901,7 @@ class TestPlexRedemptionRollbackOnFailure:
                 del plex_user_type  # Unused in mock
 
                 # Fail if this is the Plex server
-                if server.server_type == ServerType.PLEX:
+                if server.server_type == "plex":
                     raise MediaClientError(
                         "Plex server failure",
                         operation="create_user",
@@ -2007,7 +2007,7 @@ class TestPlexRedemptionRollbackOnFailure:
             for i in range(num_jellyfin_servers):
                 server = MediaServer(
                     name=f"JellyfinServer{i}",
-                    server_type=ServerType.JELLYFIN,
+                    server_type="jellyfin",
                     url=f"http://jellyfin{i}.local:8096",
                     api_key=f"jellyfin-api-key-{i}",
                     enabled=True,
@@ -2022,7 +2022,7 @@ class TestPlexRedemptionRollbackOnFailure:
         async with session_factory() as sess:
             plex_server = MediaServer(
                 name="PlexServer",
-                server_type=ServerType.PLEX,
+                server_type="plex",
                 url="http://plex.local:32400",
                 api_key="plex-api-key",
                 enabled=True,
@@ -2070,7 +2070,7 @@ class TestPlexRedemptionRollbackOnFailure:
                 del plex_user_type
 
                 # Fail if this is the Plex server
-                if server.server_type == ServerType.PLEX:
+                if server.server_type == "plex":
                     raise MediaClientError(
                         "Plex server failure",
                         operation="create_user",
@@ -2171,7 +2171,7 @@ class TestPlexRedemptionRollbackOnFailure:
             # First Jellyfin server
             jellyfin1 = MediaServer(
                 name="Jellyfin1",
-                server_type=ServerType.JELLYFIN,
+                server_type="jellyfin",
                 url="http://jellyfin1.local:8096",
                 api_key="jellyfin1-api-key",
                 enabled=True,
@@ -2182,7 +2182,7 @@ class TestPlexRedemptionRollbackOnFailure:
             # Plex server
             plex = MediaServer(
                 name="Plex",
-                server_type=ServerType.PLEX,
+                server_type="plex",
                 url="http://plex.local:32400",
                 api_key="plex-api-key",
                 enabled=True,
@@ -2193,7 +2193,7 @@ class TestPlexRedemptionRollbackOnFailure:
             # Second Jellyfin server (will fail)
             jellyfin2 = MediaServer(
                 name="Jellyfin2",
-                server_type=ServerType.JELLYFIN,
+                server_type="jellyfin",
                 url="http://jellyfin2.local:8096",
                 api_key="jellyfin2-api-key",
                 enabled=True,

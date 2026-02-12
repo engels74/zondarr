@@ -1,13 +1,11 @@
 """Admin authentication models.
 
 Provides:
-- AuthMethod: StrEnum for authentication methods (local, plex, jellyfin)
 - AdminAccount: Admin user account for Zondarr dashboard access
 - RefreshToken: JWT refresh tokens stored in DB for revocation support
 """
 
 from datetime import datetime
-from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import Boolean, ForeignKey, Index, String
@@ -16,19 +14,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from zondarr.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
-class AuthMethod(StrEnum):
-    """Supported authentication methods."""
-
-    LOCAL = "local"
-    PLEX = "plex"
-    JELLYFIN = "jellyfin"
-
-
 class AdminAccount(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """Admin user account for Zondarr dashboard access.
 
     Separate from Identity/User which represent media server accounts.
-    Supports local password auth and external auth via Plex/Jellyfin.
+    Supports local password auth and external auth via registered providers.
 
     Attributes:
         id: UUID primary key.
@@ -46,7 +36,7 @@ class AdminAccount(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     email: Mapped[str | None] = mapped_column(String(255), default=None)
-    auth_method: Mapped[str] = mapped_column(String(50), default=AuthMethod.LOCAL)
+    auth_method: Mapped[str] = mapped_column(String(50), default="local")
     external_id: Mapped[str | None] = mapped_column(String(255), default=None)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(default=None)

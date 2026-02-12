@@ -1,8 +1,4 @@
 """Jellyfin-specific API schemas.
 
-Re-exports from api/schemas.py for provider package structure.
+Currently empty - Jellyfin uses the generic ExternalLoginRequest schema.
 """
-
-from zondarr.api.schemas import JellyfinLoginRequest
-
-__all__ = ["JellyfinLoginRequest"]

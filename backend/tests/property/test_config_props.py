@@ -6,7 +6,6 @@ Validates: Requirements 1.3, 1.5, 1.6
 """
 
 import os
-from typing import ClassVar
 
 import msgspec
 import pytest
@@ -215,81 +214,3 @@ class TestConfigurationValidationFailsFast:
                     os.environ[var] = value
                 elif var in os.environ:
                     del os.environ[var]
-
-
-class TestMediaServerEnvVars:
-    """Tests for optional media server credential environment variables."""
-
-    _ENV_VARS: ClassVar[list[str]] = [
-        "SECRET_KEY",
-        "PLEX_URL",
-        "PLEX_TOKEN",
-        "JELLYFIN_URL",
-        "JELLYFIN_API_KEY",
-    ]
-
-    def _save_and_clear(self) -> dict[str, str | None]:
-        original: dict[str, str | None] = {}
-        for var in self._ENV_VARS:
-            original[var] = os.environ.pop(var, None)
-        return original
-
-    def _restore(self, original: dict[str, str | None]) -> None:
-        for var, value in original.items():
-            if value is not None:
-                os.environ[var] = value
-            elif var in os.environ:
-                del os.environ[var]
-
-    def test_media_env_vars_load_correctly(self) -> None:
-        """Media server env vars are loaded into Settings."""
-        original = self._save_and_clear()
-        try:
-            os.environ["SECRET_KEY"] = "a" * 32
-            os.environ["PLEX_URL"] = "http://plex:32400"
-            os.environ["PLEX_TOKEN"] = "plex-token-123"  # noqa: S105
-            os.environ["JELLYFIN_URL"] = "http://jf:8096"
-            os.environ["JELLYFIN_API_KEY"] = "jf-api-key"
-
-            result = load_settings()
-
-            assert result.plex_url == "http://plex:32400"
-            assert result.plex_token == "plex-token-123"  # noqa: S105
-            assert result.jellyfin_url == "http://jf:8096"
-            assert result.jellyfin_api_key == "jf-api-key"
-        finally:
-            self._restore(original)
-
-    def test_media_env_vars_default_to_none(self) -> None:
-        """Media server env vars default to None when not set."""
-        original = self._save_and_clear()
-        try:
-            os.environ["SECRET_KEY"] = "a" * 32
-
-            result = load_settings()
-
-            assert result.plex_url is None
-            assert result.plex_token is None
-            assert result.jellyfin_url is None
-            assert result.jellyfin_api_key is None
-        finally:
-            self._restore(original)
-
-    def test_empty_strings_become_none(self) -> None:
-        """Empty string env vars are normalized to None."""
-        original = self._save_and_clear()
-        try:
-            os.environ["SECRET_KEY"] = "a" * 32
-            os.environ["PLEX_URL"] = ""
-            os.environ["PLEX_TOKEN"] = ""
-            os.environ["JELLYFIN_URL"] = ""
-            os.environ["JELLYFIN_API_KEY"] = ""
-
-            result = load_settings()
-
-            assert result.plex_url is None
-            assert result.plex_token is None
-            assert result.jellyfin_url is None
-            assert result.jellyfin_api_key is None
-        finally:
-            self._restore(original)

@@ -127,7 +127,7 @@ class MediaServerCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True
 
     Attributes:
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         api_key: Authentication token for the media server.
     """
@@ -162,7 +162,7 @@ class MediaServerResponse(msgspec.Struct, omit_defaults=True):
     Attributes:
         id: Unique identifier for the server.
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         enabled: Whether the server is active for user management.
         created_at: When the server was added.
@@ -210,7 +210,7 @@ class MediaServerWithLibrariesResponse(msgspec.Struct, omit_defaults=True):
     Attributes:
         id: Unique identifier for the server.
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         enabled: Whether the server is active for user management.
         created_at: When the server was added.
@@ -970,7 +970,7 @@ class ConnectionTestRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=
     """Request to test a media server connection.
 
     Attributes:
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         api_key: Authentication token for the media server.
     """
@@ -1047,7 +1047,7 @@ class AuthMethodsResponse(msgspec.Struct, kw_only=True):
     """Response listing available authentication methods.
 
     Attributes:
-        methods: List of available auth method names (local, plex, jellyfin).
+        methods: List of available auth method names ("local" plus any configured external providers).
         setup_required: True if no admin accounts exist yet.
         provider_auth: Metadata for each external auth provider.
     """
@@ -1079,30 +1079,6 @@ class LoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
         password: Admin password.
     """
 
-    username: str
-    password: str
-
-
-class PlexLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Plex OAuth token login request.
-
-    Attributes:
-        auth_token: Plex auth token from OAuth flow.
-    """
-
-    auth_token: str
-
-
-class JellyfinLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Jellyfin credential login request.
-
-    Attributes:
-        server_url: Jellyfin server URL.
-        username: Jellyfin username.
-        password: Jellyfin password.
-    """
-
-    server_url: UrlStr
     username: str
     password: str
 
@@ -1195,46 +1171,6 @@ class SyncResult(msgspec.Struct, kw_only=True):
     stale_users: list[str]
     matched_users: int
     imported_users: int = 0
-
-
-# =============================================================================
-# Plex OAuth Schemas
-# =============================================================================
-
-
-class PlexOAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from Plex OAuth PIN creation.
-
-    Implements Requirements 13.2: PIN creation returns valid response.
-
-    Attributes:
-        pin_id: The PIN identifier for status checking.
-        code: The PIN code to display to the user.
-        auth_url: URL where user authenticates (plex.tv/link).
-        expires_at: When the PIN expires.
-    """
-
-    pin_id: int
-    code: str
-    auth_url: str
-    expires_at: datetime
-
-
-class PlexOAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from Plex OAuth PIN status check.
-
-    Implements Requirements 14.2, 14.3: PIN verification returns status and email.
-
-    Attributes:
-        authenticated: Whether the PIN has been authenticated.
-        email: User's Plex email (only if authenticated).
-        error: Error message (only if failed).
-    """
-
-    authenticated: bool
-    auth_token: str | None = None
-    email: str | None = None
-    error: str | None = None
 
 
 # =============================================================================

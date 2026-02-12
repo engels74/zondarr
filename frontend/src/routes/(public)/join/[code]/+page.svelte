@@ -8,8 +8,8 @@
  * - Target servers and allowed libraries for valid codes
  * - Duration information if set
  * - Error messages for invalid codes with failure reasons
- * - Jellyfin registration form for Jellyfin servers
- * - Plex OAuth flow for Plex servers
+ * - Registration form for credential-based servers
+ * - OAuth flow for OAuth-based servers
  * - Post-wizard flow (if configured) after registration
  * - Success page after successful registration
  *
@@ -76,8 +76,8 @@ type FlowStep =
 	| "validation"
 	| "pre_wizard"
 	| "registration"
-	| "plex_oauth"
-	| "plex_redeeming"
+	| "oauth"
+	| "oauth_redeeming"
 	| "post_wizard"
 	| "success"
 	| "error";
@@ -96,7 +96,7 @@ let formData = $state<RegistrationInput>({
 let formErrors = $state<Record<string, string[]>>({});
 
 // Plex OAuth state
-let plexEmail = $state<string | null>(null);
+let oauthEmail = $state<string | null>(null);
 
 // Response data
 let redemptionResponse = $state<RedemptionResponse | null>(null);
@@ -137,7 +137,7 @@ const oauthServerType = $derived(
 	data.validation?.target_servers?.find((s) => {
 		const provider = getProvider(s.server_type);
 		return provider?.join_flow_type === "oauth_link";
-	})?.server_type ?? "plex",
+	})?.server_type ?? "",
 );
 
 // Check if invitation has pre-wizard
@@ -232,7 +232,7 @@ function handleContinue() {
 
 	// Determine which registration flow to use based on server types
 	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
-		currentStep = "plex_oauth";
+		currentStep = "oauth";
 	} else {
 		currentStep = "registration";
 	}
@@ -244,7 +244,7 @@ function handleContinue() {
 function handleBack() {
 	currentStep = "validation";
 	formErrors = {};
-	plexEmail = null;
+	oauthEmail = null;
 }
 
 /**
@@ -254,7 +254,7 @@ function handlePreWizardComplete() {
 	preWizardCompleted = true;
 	// Proceed to registration
 	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
-		currentStep = "plex_oauth";
+		currentStep = "oauth";
 	} else {
 		currentStep = "registration";
 	}
@@ -381,9 +381,9 @@ async function handleRegistrationSubmit() {
 /**
  * Handle Plex OAuth authentication success.
  */
-async function handlePlexAuthenticated(email: string) {
-	plexEmail = email;
-	currentStep = "plex_redeeming";
+async function handleOAuthAuthenticated(email: string) {
+	oauthEmail = email;
+	currentStep = "oauth_redeeming";
 
 	// Proceed to redeem the invitation with Plex credentials
 	// For Plex, we use the email as username and a placeholder password
@@ -391,7 +391,7 @@ async function handlePlexAuthenticated(email: string) {
 	try {
 		const response = await redeemInvitation(data.code, {
 			username: email,
-			password: "plex_oauth", // Placeholder - backend handles Plex auth differently
+			password: "oauth_placeholder", // Placeholder - backend handles OAuth auth differently
 			email: email,
 		});
 
@@ -444,9 +444,9 @@ async function handlePlexAuthenticated(email: string) {
 /**
  * Handle Plex OAuth cancellation.
  */
-function handlePlexCancel() {
+function handleOAuthCancel() {
 	currentStep = "validation";
-	plexEmail = null;
+	oauthEmail = null;
 }
 
 /**
@@ -454,10 +454,10 @@ function handlePlexCancel() {
  */
 function handleRegistrationRetry() {
 	redemptionError = null;
-	plexEmail = null;
+	oauthEmail = null;
 	// Go back to appropriate registration step
 	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
-		currentStep = "plex_oauth";
+		currentStep = "oauth";
 	} else {
 		currentStep = "registration";
 	}
@@ -490,9 +490,9 @@ function renderInteraction(
 				Complete the required steps to continue
 			{:else if currentStep === 'registration'}
 				Create your account
-			{:else if currentStep === 'plex_oauth'}
-				Sign in with Plex
-			{:else if currentStep === 'plex_redeeming'}
+			{:else if currentStep === 'oauth'}
+				Sign in to continue
+			{:else if currentStep === 'oauth_redeeming'}
 				Adding you to the server...
 			{:else if currentStep === 'post_wizard'}
 				Almost there! Complete the final steps
@@ -637,7 +637,7 @@ function renderInteraction(
 		</Card>
 
 	<!-- Plex OAuth flow state -->
-	{:else if currentStep === 'plex_oauth' && data.validation?.valid}
+	{:else if currentStep === 'oauth' && data.validation?.valid}
 		<Card class="border-cr-border bg-cr-surface">
 			<CardHeader>
 				<div class="flex items-center gap-3">
@@ -661,14 +661,14 @@ function renderInteraction(
 			<CardContent>
 				<OAuthJoinFlow
 					serverType={oauthServerType}
-					onAuthenticated={handlePlexAuthenticated}
-					onCancel={handlePlexCancel}
+					onAuthenticated={handleOAuthAuthenticated}
+					onCancel={handleOAuthCancel}
 				/>
 			</CardContent>
 		</Card>
 
 	<!-- Plex redeeming state -->
-	{:else if currentStep === 'plex_redeeming'}
+	{:else if currentStep === 'oauth_redeeming'}
 		<Card class="border-cr-border bg-cr-surface">
 			<CardHeader>
 				<CardTitle class="text-cr-text">Adding You to the Server</CardTitle>
@@ -678,9 +678,9 @@ function renderInteraction(
 			</CardHeader>
 			<CardContent class="flex flex-col items-center gap-4 py-8">
 				<div class="size-8 animate-spin rounded-full border-2 border-cr-accent border-t-transparent"></div>
-				{#if plexEmail}
+				{#if oauthEmail}
 					<p class="text-sm text-cr-text-muted">
-						Signed in as <span class="font-medium text-cr-text">{plexEmail}</span>
+						Signed in as <span class="font-medium text-cr-text">{oauthEmail}</span>
 					</p>
 				{/if}
 			</CardContent>

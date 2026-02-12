@@ -13,7 +13,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from zondarr.services.plex_oauth import (
+from zondarr.media.providers.plex.oauth_service import (
     PlexOAuthError,
     PlexOAuthPin,
     PlexOAuthResult,

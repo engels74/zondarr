@@ -13,7 +13,7 @@ import { cleanup, render } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import * as fc from 'fast-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PlexOAuthCheckResponse, PlexOAuthPinResponse } from '$lib/api/client';
+import type { OAuthCheckResponse, OAuthPinResponse } from '$lib/api/client';
 import * as apiClient from '$lib/api/client';
 import OAuthJoinFlow from './oauth-join-flow.svelte';
 
@@ -22,8 +22,8 @@ vi.mock('$lib/api/client', async () => {
 	const actual = await vi.importActual('$lib/api/client');
 	return {
 		...actual,
-		createPlexPin: vi.fn(),
-		checkPlexPin: vi.fn()
+		createOAuthPin: vi.fn(),
+		checkOAuthPin: vi.fn()
 	};
 });
 
@@ -60,7 +60,7 @@ const pinResponseArb = fc.record({
 const authenticatedCheckResponseArb = fc.record({
 	authenticated: fc.constant(true),
 	email: fc.emailAddress(),
-	error: fc.constant(null)
+	error: fc.constant(undefined)
 });
 
 // =============================================================================
@@ -86,44 +86,38 @@ describe('Property 32: Plex OAuth Polling', () => {
 		let pollCount = 0;
 		const pollsBeforeAuth = 3;
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
 			auth_url: 'https://plex.tv/auth',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		const authResponse: PlexOAuthCheckResponse = {
+		const authResponse: OAuthCheckResponse = {
 			authenticated: true,
-			email: 'test@example.com',
-			error: null
+			email: 'test@example.com'
 		};
 
-		// Mock createPlexPin to return the generated PIN
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		// Mock createOAuthPin to return the generated PIN
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
-		// Mock checkPlexPin to return pending until pollsBeforeAuth, then authenticated
-		vi.mocked(apiClient.checkPlexPin).mockImplementation(async () => {
+		// Mock checkOAuthPin to return pending until pollsBeforeAuth, then authenticated
+		vi.mocked(apiClient.checkOAuthPin).mockImplementation(async () => {
 			pollCount++;
 			if (pollCount >= pollsBeforeAuth) {
 				return {
 					data: authResponse,
-					error: undefined,
-					response: new Response()
+					error: undefined
 				};
 			}
 			return {
 				data: {
-					authenticated: false,
-					email: null,
-					error: null
-				} as PlexOAuthCheckResponse,
-				error: undefined,
-				response: new Response()
+					authenticated: false
+				} as OAuthCheckResponse,
+				error: undefined
 			};
 		});
 
@@ -141,7 +135,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance timers to trigger polling
@@ -151,7 +145,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Verify polling occurred
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(pollsBeforeAuth);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(pollsBeforeAuth);
 		});
 
 		// Verify onAuthenticated was called with the email
@@ -170,28 +164,24 @@ describe('Property 32: Plex OAuth Polling', () => {
 		vi.clearAllMocks();
 
 		// Create a PIN that expires in 4 seconds
-		const expiredPinResponse: PlexOAuthPinResponse = {
+		const expiredPinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
 			auth_url: 'https://plex.tv/auth',
 			expires_at: new Date(Date.now() + 4000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: expiredPinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		// Always return pending
-		vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
 			data: {
-				authenticated: false,
-				email: null,
-				error: null
-			} as PlexOAuthCheckResponse,
-			error: undefined,
-			response: new Response()
+				authenticated: false
+			} as OAuthCheckResponse,
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();
@@ -207,7 +197,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance time past expiration (poll at 2s, 4s would be past expiration)
@@ -232,28 +222,24 @@ describe('Property 32: Plex OAuth Polling', () => {
 	it('should poll at 2 second intervals', async () => {
 		vi.clearAllMocks();
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
 			auth_url: 'https://plex.tv/auth',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		// Always return pending
-		vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
 			data: {
-				authenticated: false,
-				email: null,
-				error: null
-			} as PlexOAuthCheckResponse,
-			error: undefined,
-			response: new Response()
+				authenticated: false
+			} as OAuthCheckResponse,
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();
@@ -269,29 +255,29 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance 1 second - should not poll yet
 		await vi.advanceTimersByTimeAsync(1000);
-		expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(0);
+		expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(0);
 
 		// Advance another 1 second (total 2s) - should poll
 		await vi.advanceTimersByTimeAsync(1000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance another 2 seconds - should poll again
 		await vi.advanceTimersByTimeAsync(2000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(2);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(2);
 		});
 
 		// Advance another 2 seconds - should poll again
 		await vi.advanceTimersByTimeAsync(2000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(3);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(3);
 		});
 	});
 });
@@ -313,20 +299,16 @@ describe('Plex OAuth Flow Component', () => {
 			fc.property(pinResponseArb, (pinResponse) => {
 				vi.clearAllMocks();
 
-				vi.mocked(apiClient.createPlexPin).mockResolvedValue({
-					data: pinResponse as PlexOAuthPinResponse,
-					error: undefined,
-					response: new Response()
+				vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
+					data: pinResponse as OAuthPinResponse,
+					error: undefined
 				});
 
-				vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
+				vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
 					data: {
-						authenticated: false,
-						email: null,
-						error: null
-					} as PlexOAuthCheckResponse,
-					error: undefined,
-					response: new Response()
+						authenticated: false
+					} as OAuthCheckResponse,
+					error: undefined
 				});
 
 				// Verify the PIN code format is valid
@@ -358,17 +340,16 @@ describe('Plex OAuth Flow Component', () => {
 	it('should open Plex auth URL in new window', async () => {
 		vi.clearAllMocks();
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
 			auth_url: 'https://plex.tv/auth/test',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();

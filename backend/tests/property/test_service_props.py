@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 from tests.conftest import TestDB, create_test_engine
 from zondarr.core.exceptions import NotFoundError, ValidationError
 from zondarr.media.registry import ClientRegistry
-from zondarr.models import Invitation, ServerType
+from zondarr.models import Invitation
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.services.invitation import (
@@ -32,7 +32,7 @@ name_strategy = st.text(
     max_size=50,
 ).filter(lambda x: x.strip())
 url_strategy = st.from_regex(r"https?://[a-z0-9]+\.[a-z]{2,}", fullmatch=True)
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(["jellyfin", "plex"])
 # Use UUIDs for codes to ensure uniqueness across Hypothesis examples
 code_strategy = st.uuids().map(lambda u: str(u).replace("-", "")[:12].upper())
 
@@ -51,7 +51,7 @@ class TestServiceValidatesBeforePersisting:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> None:
@@ -98,7 +98,7 @@ class TestServiceValidatesBeforePersisting:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> None:

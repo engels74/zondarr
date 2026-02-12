@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 import structlog
 
 from zondarr.core.exceptions import AuthenticationError
-from zondarr.models.admin import AdminAccount, AuthMethod, RefreshToken
+from zondarr.models.admin import AdminAccount, RefreshToken
 from zondarr.repositories.admin import AdminAccountRepository, RefreshTokenRepository
 from zondarr.services.password import hash_password, needs_rehash, verify_password
 
@@ -88,7 +88,7 @@ class AuthService:
             username=username,
             password_hash=hash_password(password),
             email=email,
-            auth_method=AuthMethod.LOCAL,
+            auth_method="local",
             enabled=True,
         )
         return await self.admin_repo.create(admin)

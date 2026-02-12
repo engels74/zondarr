@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 from zondarr.core.exceptions import AuthenticationError
-from zondarr.models.admin import AdminAccount, AuthMethod
+from zondarr.models.admin import AdminAccount
 
 if TYPE_CHECKING:
     from zondarr.config import Settings
@@ -90,7 +90,7 @@ class PlexAdminAuth:
             )
 
         # Check for existing account with this external ID
-        admin = await admin_repo.get_by_external_id(plex_email, AuthMethod.PLEX)
+        admin = await admin_repo.get_by_external_id(plex_email, "plex")
 
         if admin is not None:
             if not admin.enabled:
@@ -102,7 +102,7 @@ class PlexAdminAuth:
         admin = AdminAccount(
             username=plex_username.lower().replace(" ", "_")[:32],
             email=plex_email,
-            auth_method=AuthMethod.PLEX,
+            auth_method="plex",
             external_id=plex_email,
             enabled=True,
             last_login_at=datetime.now(UTC),

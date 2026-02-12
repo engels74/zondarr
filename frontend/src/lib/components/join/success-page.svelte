@@ -113,7 +113,7 @@ function getServerUrl(user: UserResponse): string | undefined {
 				<div>
 					<p class="font-medium text-cr-text">Download a Media Player</p>
 					<p class="text-sm text-cr-text-muted">
-						Install Jellyfin on your device from the official website or app store.
+						Install a compatible media player app on your device.
 					</p>
 				</div>
 			</div>

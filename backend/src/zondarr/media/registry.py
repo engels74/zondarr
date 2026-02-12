@@ -51,13 +51,11 @@ class ClientRegistry:
     """Singleton registry for media server provider implementations.
 
     Manages the mapping between server types (strings) and their
-    ProviderDescriptor instances. Supports both the legacy register(type, class)
-    API and the new register(descriptor) API.
+    ProviderDescriptor instances.
 
     Attributes:
         _instance: Class-level singleton instance storage.
         _providers: Mapping from server type strings to ProviderDescriptors.
-        _clients: Legacy mapping for backwards compatibility.
     """
 
     _instance: ClassVar[ClientRegistry | None] = None
@@ -66,7 +64,6 @@ class ClientRegistry:
         """Initialize the registry if not already done."""
         if not hasattr(self, "_providers"):
             self._providers: dict[str, ProviderDescriptor] = {}
-            self._clients: dict[str, MediaClientClass] = {}
             self._settings: Settings | None = None
 
     def __new__(cls) -> ClientRegistry:
@@ -75,38 +72,18 @@ class ClientRegistry:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def register(
-        self,
-        descriptor_or_type: ProviderDescriptor | str,
-        client_class: MediaClientClass | None = None,
-        /,
-    ) -> None:
-        """Register a provider or client implementation.
-
-        Supports two call signatures:
-        - register(descriptor) — new ProviderDescriptor-based registration
-        - register(server_type, client_class) — legacy registration
+    def register(self, descriptor: ProviderDescriptor, /) -> None:
+        """Register a provider implementation.
 
         Args:
-            descriptor_or_type: A ProviderDescriptor instance, or a server type
-                string/enum for legacy usage.
-            client_class: Client class for legacy registration (only used when
-                first arg is a string/enum).
+            descriptor: A ProviderDescriptor instance.
         """
-        if client_class is not None:
-            # Legacy call: register(server_type, client_class)
-            key = str(descriptor_or_type)
-            self._clients[key] = client_class
-        else:
-            # New call: register(descriptor)
-            descriptor: ProviderDescriptor = descriptor_or_type  # pyright: ignore[reportAssignmentType]
-            key = descriptor.metadata.server_type
-            self._providers[key] = descriptor
-            self._clients[key] = descriptor.client_class
+        key = descriptor.metadata.server_type
+        self._providers[key] = descriptor
 
     def registered_types(self) -> frozenset[str]:
         """Return all registered server type strings."""
-        return frozenset(self._clients.keys())
+        return frozenset(self._providers.keys())
 
     def get_provider(self, server_type: str, /) -> ProviderDescriptor:
         """Get the ProviderDescriptor for a server type.
@@ -120,16 +97,15 @@ class ClientRegistry:
         Raises:
             UnknownServerTypeError: If no provider is registered.
         """
-        key = str(server_type)
-        if (provider := self._providers.get(key)) is None:
-            raise UnknownServerTypeError(key)
+        if (provider := self._providers.get(server_type)) is None:
+            raise UnknownServerTypeError(server_type)
         return provider
 
     def get_client_class(self, server_type: str, /) -> MediaClientClass:
         """Get the client class for a server type.
 
         Args:
-            server_type: The server type string or enum.
+            server_type: The server type string.
 
         Returns:
             The registered client class.
@@ -137,10 +113,7 @@ class ClientRegistry:
         Raises:
             UnknownServerTypeError: If no client is registered.
         """
-        key = str(server_type)
-        if (client_class := self._clients.get(key)) is None:
-            raise UnknownServerTypeError(key)
-        return client_class
+        return self.get_provider(server_type).client_class
 
     def get_capabilities(self, server_type: str, /) -> set[Capability]:
         """Get capabilities for a server type."""
@@ -191,7 +164,7 @@ class ClientRegistry:
         """Create a client instance for a media server.
 
         Args:
-            server_type: The server type string or enum.
+            server_type: The server type string.
             url: The base URL of the media server.
             api_key: The API key for authentication.
 
@@ -208,7 +181,7 @@ class ClientRegistry:
         """Inject application settings for env var credential overrides.
 
         If provider_credentials is not already populated, populate it
-        from env vars using registry metadata + legacy fields.
+        from env vars using registry metadata.
         """
         if not settings.provider_credentials:
             self._populate_provider_credentials(settings)
@@ -219,8 +192,7 @@ class ClientRegistry:
         """Populate provider_credentials from env vars using registry metadata.
 
         Reads each registered provider's declared env var names and populates
-        the provider_credentials dict. Falls back to legacy fields for
-        backwards compatibility.
+        the provider_credentials dict.
         """
         provider_creds: dict[str, dict[str, str]] = {}
 
@@ -237,25 +209,6 @@ class ClientRegistry:
 
             if creds:
                 provider_creds[meta.server_type] = creds
-
-        # Backwards compatibility: also check legacy fields
-        # Only use legacy values when the provider doesn't already have that key
-        if settings.plex_url:
-            _ = provider_creds.setdefault("plex", {}).setdefault(
-                "url", settings.plex_url
-            )
-        if settings.plex_token:
-            _ = provider_creds.setdefault("plex", {}).setdefault(
-                "api_key", settings.plex_token
-            )
-        if settings.jellyfin_url:
-            _ = provider_creds.setdefault("jellyfin", {}).setdefault(
-                "url", settings.jellyfin_url
-            )
-        if settings.jellyfin_api_key:
-            _ = provider_creds.setdefault("jellyfin", {}).setdefault(
-                "api_key", settings.jellyfin_api_key
-            )
 
         settings.provider_credentials = provider_creds
 
@@ -282,10 +235,8 @@ class ClientRegistry:
         if self._settings is None:
             return db_url, db_api_key
 
-        key = str(server_type)
-
         # Try provider credentials from settings first
-        provider_creds = self._settings.provider_credentials.get(key, {})
+        provider_creds = self._settings.provider_credentials.get(server_type, {})
         url = provider_creds.get("url") or db_url
         api_key = provider_creds.get("api_key") or db_api_key
 
@@ -303,18 +254,16 @@ class ClientRegistry:
         Raises:
             UnknownServerTypeError: If no client is registered.
         """
-        server_type = str(server.server_type)
         url, api_key = self._get_effective_credentials(
-            server_type,
+            server.server_type,
             db_url=server.url,
             db_api_key=server.api_key,
         )
-        return self.create_client(server_type, url=url, api_key=api_key)
+        return self.create_client(server.server_type, url=url, api_key=api_key)
 
     def clear(self) -> None:
-        """Clear all registered providers and clients."""
+        """Clear all registered providers."""
         self._providers.clear()
-        self._clients.clear()
         self._settings = None
 
 

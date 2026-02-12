@@ -16,7 +16,19 @@ from zondarr.media.clients.jellyfin import JellyfinClient
 from zondarr.media.clients.plex import PlexClient
 from zondarr.media.exceptions import UnknownServerTypeError
 from zondarr.media.registry import ClientRegistry, registry
-from zondarr.models.media_server import ServerType
+
+
+def _make_descriptor(server_type: str, client_class: type) -> MagicMock:
+    """Create a minimal mock ProviderDescriptor."""
+    descriptor = MagicMock()
+    metadata = MagicMock()
+    metadata.server_type = server_type
+    metadata.env_url_var = f"{server_type.upper()}_URL"
+    metadata.env_api_key_var = f"{server_type.upper()}_API_KEY"
+    descriptor.metadata = metadata
+    descriptor.client_class = client_class
+    return descriptor
+
 
 # Strategy for valid URLs
 valid_url = st.sampled_from(
@@ -36,15 +48,15 @@ valid_api_key = st.text(
 )
 
 # Strategy for server types
-server_type_strategy = st.sampled_from(list(ServerType))
+server_type_strategy = st.sampled_from(["jellyfin", "plex"])
 
 
 @pytest.fixture(autouse=True)
 def reset_registry() -> None:
     """Reset the registry before each test to ensure isolation."""
     registry.clear()
-    registry.register(ServerType.JELLYFIN, JellyfinClient)
-    registry.register(ServerType.PLEX, PlexClient)
+    registry.register(_make_descriptor("jellyfin", JellyfinClient))
+    registry.register(_make_descriptor("plex", PlexClient))
 
 
 class TestRegistryReturnsCorrectClient:
@@ -61,7 +73,7 @@ class TestRegistryReturnsCorrectClient:
         self, url: str, api_key: str
     ) -> None:
         """Registry returns JellyfinClient for JELLYFIN server type."""
-        client = registry.create_client(ServerType.JELLYFIN, url=url, api_key=api_key)
+        client = registry.create_client("jellyfin", url=url, api_key=api_key)
 
         assert isinstance(client, JellyfinClient)
         assert client.url == url
@@ -71,7 +83,7 @@ class TestRegistryReturnsCorrectClient:
     @given(url=valid_url, api_key=valid_api_key)
     def test_plex_client_returned_for_plex_type(self, url: str, api_key: str) -> None:
         """Registry returns PlexClient for PLEX server type."""
-        client = registry.create_client(ServerType.PLEX, url=url, api_key=api_key)
+        client = registry.create_client("plex", url=url, api_key=api_key)
 
         assert isinstance(client, PlexClient)
         assert client.url == url
@@ -80,7 +92,7 @@ class TestRegistryReturnsCorrectClient:
     @settings(max_examples=50)
     @given(server_type=server_type_strategy, url=valid_url, api_key=valid_api_key)
     def test_client_class_matches_registered_type(
-        self, server_type: ServerType, url: str, api_key: str
+        self, server_type: str, url: str, api_key: str
     ) -> None:
         """Registry returns the correct client class for any registered server type."""
         client_class = registry.get_client_class(server_type)
@@ -91,7 +103,7 @@ class TestRegistryReturnsCorrectClient:
 
     @settings(max_examples=50)
     @given(server_type=server_type_strategy)
-    def test_capabilities_match_client_class(self, server_type: ServerType) -> None:
+    def test_capabilities_match_client_class(self, server_type: str) -> None:
         """Registry capabilities match the client class capabilities."""
         client_class = registry.get_client_class(server_type)
         registry_caps = registry.get_capabilities(server_type)
@@ -118,9 +130,9 @@ class TestRegistryRaisesErrorForUnknownTypes:
         registry.clear()
 
         with pytest.raises(UnknownServerTypeError) as exc_info:
-            _ = registry.get_client_class(ServerType.JELLYFIN)
+            _ = registry.get_client_class("jellyfin")
 
-        assert exc_info.value.server_type == ServerType.JELLYFIN
+        assert exc_info.value.server_type == "jellyfin"
         assert exc_info.value.error_code == "UNKNOWN_SERVER_TYPE"
 
     @settings(max_examples=25)
@@ -132,15 +144,15 @@ class TestRegistryRaisesErrorForUnknownTypes:
         registry.clear()
 
         with pytest.raises(UnknownServerTypeError) as exc_info:
-            _ = registry.create_client(ServerType.PLEX, url=url, api_key=api_key)
+            _ = registry.create_client("plex", url=url, api_key=api_key)
 
-        assert exc_info.value.server_type == ServerType.PLEX
+        assert exc_info.value.server_type == "plex"
         assert exc_info.value.error_code == "UNKNOWN_SERVER_TYPE"
 
     @settings(max_examples=25)
     @given(server_type=server_type_strategy)
     def test_get_capabilities_raises_for_unregistered_type(
-        self, server_type: ServerType
+        self, server_type: str
     ) -> None:
         """get_capabilities raises UnknownServerTypeError for unregistered types."""
         registry.clear()
@@ -187,7 +199,7 @@ class TestRegistrySingletonBehavior:
     @given(server_type=server_type_strategy, url=valid_url, api_key=valid_api_key)
     def test_registration_visible_across_instances(
         self,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> None:
@@ -195,10 +207,10 @@ class TestRegistrySingletonBehavior:
         _ = server_type, url, api_key
 
         registry.clear()
-        registry.register(ServerType.JELLYFIN, JellyfinClient)
+        registry.register(_make_descriptor("jellyfin", JellyfinClient))
 
         new_instance = ClientRegistry()
-        client_class = new_instance.get_client_class(ServerType.JELLYFIN)
+        client_class = new_instance.get_client_class("jellyfin")
 
         assert client_class is JellyfinClient
 
@@ -206,14 +218,14 @@ class TestRegistrySingletonBehavior:
     @given(st.integers(min_value=2, max_value=5))
     def test_clear_affects_all_instances(self, num_instances: int) -> None:
         """Clearing the registry affects all instances."""
-        registry.register(ServerType.JELLYFIN, JellyfinClient)
+        registry.register(_make_descriptor("jellyfin", JellyfinClient))
 
         instances = [ClientRegistry() for _ in range(num_instances)]
         instances[0].clear()
 
         for instance in instances:
             with pytest.raises(UnknownServerTypeError):
-                _ = instance.get_client_class(ServerType.JELLYFIN)
+                _ = instance.get_client_class("jellyfin")
 
 
 class TestEffectiveCredentials:
@@ -222,7 +234,7 @@ class TestEffectiveCredentials:
     def test_returns_db_values_when_no_settings(self) -> None:
         """When _settings is None, DB values are returned unchanged."""
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://db.url"
         assert api_key == "db-key"
@@ -233,89 +245,99 @@ class TestEffectiveCredentials:
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://db.url"
         assert api_key == "db-key"
 
     def test_plex_url_overrides_db_url(self) -> None:
-        """PLEX_URL env var overrides DB URL; api_key preserved from DB."""
-        s = Settings(secret_key="a" * 32, plex_url="http://env.plex")
+        """Provider credentials URL overrides DB URL; api_key preserved from DB."""
+        s = Settings(
+            secret_key="a" * 32,
+            provider_credentials={"plex": {"url": "http://env.plex"}},
+        )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://env.plex"
         assert api_key == "db-key"
 
     def test_plex_token_overrides_db_api_key(self) -> None:
-        """PLEX_TOKEN env var overrides DB api_key; URL preserved from DB."""
-        s = Settings(secret_key="a" * 32, plex_token="env-token")
+        """Provider credentials api_key overrides DB api_key; URL preserved from DB."""
+        s = Settings(
+            secret_key="a" * 32,
+            provider_credentials={"plex": {"api_key": "env-token"}},
+        )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://db.url"
         assert api_key == "env-token"
 
     def test_both_plex_env_vars_override_both_db_values(self) -> None:
-        """Both PLEX_URL and PLEX_TOKEN override both DB values."""
+        """Both provider URL and api_key override both DB values."""
         s = Settings(
             secret_key="a" * 32,
-            plex_url="http://env.plex",
-            plex_token="env-token",
+            provider_credentials={
+                "plex": {"url": "http://env.plex", "api_key": "env-token"}
+            },
         )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://env.plex"
         assert api_key == "env-token"
 
     def test_jellyfin_env_vars_override_db_values(self) -> None:
-        """JELLYFIN_URL and JELLYFIN_API_KEY override DB values."""
+        """Jellyfin provider credentials override DB values."""
         s = Settings(
             secret_key="a" * 32,
-            jellyfin_url="http://env.jf",
-            jellyfin_api_key="env-jf-key",
+            provider_credentials={
+                "jellyfin": {"url": "http://env.jf", "api_key": "env-jf-key"}
+            },
         )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.JELLYFIN, db_url="http://db.url", db_api_key="db-key"
+            "jellyfin", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://env.jf"
         assert api_key == "env-jf-key"
 
     def test_plex_env_vars_do_not_affect_jellyfin(self) -> None:
-        """Plex env vars don't leak into Jellyfin credential resolution."""
+        """Plex provider credentials don't leak into Jellyfin credential resolution."""
         s = Settings(
             secret_key="a" * 32,
-            plex_url="http://env.plex",
-            plex_token="env-plex-token",
+            provider_credentials={
+                "plex": {"url": "http://env.plex", "api_key": "env-plex-token"}
+            },
         )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.JELLYFIN, db_url="http://jf.db", db_api_key="jf-db-key"
+            "jellyfin", db_url="http://jf.db", db_api_key="jf-db-key"
         )
         assert url == "http://jf.db"
         assert api_key == "jf-db-key"
 
     def test_jellyfin_env_vars_do_not_affect_plex(self) -> None:
-        """Jellyfin env vars don't leak into Plex credential resolution."""
+        """Jellyfin provider credentials don't leak into Plex credential resolution."""
         s = Settings(
             secret_key="a" * 32,
-            jellyfin_url="http://env.jf",
-            jellyfin_api_key="env-jf-key",
+            provider_credentials={
+                "jellyfin": {"url": "http://env.jf", "api_key": "env-jf-key"}
+            },
         )
         registry.set_settings(s)
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://plex.db", db_api_key="plex-db-key"
+            "plex", db_url="http://plex.db", db_api_key="plex-db-key"
         )
         assert url == "http://plex.db"
         assert api_key == "plex-db-key"
@@ -324,13 +346,14 @@ class TestEffectiveCredentials:
         """create_client_for_server resolves credentials and creates client."""
         s = Settings(
             secret_key="a" * 32,
-            jellyfin_url="http://env.jf:8096",
-            jellyfin_api_key="env-api-key",
+            provider_credentials={
+                "jellyfin": {"url": "http://env.jf:8096", "api_key": "env-api-key"}
+            },
         )
         registry.set_settings(s)
 
         server = MagicMock()
-        server.server_type = ServerType.JELLYFIN
+        server.server_type = "jellyfin"
         server.url = "http://db.jf:8096"
         server.api_key = "db-api-key"
 
@@ -341,12 +364,15 @@ class TestEffectiveCredentials:
 
     def test_clear_resets_settings(self) -> None:
         """clear() resets _settings to None."""
-        s = Settings(secret_key="a" * 32, plex_url="http://env.plex")
+        s = Settings(
+            secret_key="a" * 32,
+            provider_credentials={"plex": {"url": "http://env.plex"}},
+        )
         registry.set_settings(s)
         registry.clear()
 
         url, api_key = registry._get_effective_credentials(  # pyright: ignore[reportPrivateUsage]
-            ServerType.PLEX, db_url="http://db.url", db_api_key="db-key"
+            "plex", db_url="http://db.url", db_api_key="db-key"
         )
         assert url == "http://db.url"
         assert api_key == "db-key"

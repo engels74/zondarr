@@ -46,7 +46,7 @@ let showApiKey = $state(false);
 // Form data state
 let formData = $state<CreateServerInput>({
 	name: "",
-	server_type: "jellyfin",
+	server_type: "",
 	url: "",
 	api_key: "",
 });
@@ -60,7 +60,7 @@ let errors = $state<Record<string, string[]>>({});
 function resetForm() {
 	formData = {
 		name: "",
-		server_type: "jellyfin",
+		server_type: "",
 		url: "",
 		api_key: "",
 	};
@@ -183,7 +183,7 @@ function handleCancel() {
 				Add Media Server
 			</Dialog.Title>
 			<Dialog.Description class="text-cr-text-muted">
-				Connect a Jellyfin or Plex media server to manage user access.
+				Connect a media server to manage user access.
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -243,7 +243,7 @@ function handleCancel() {
 					id="url"
 					type="url"
 					bind:value={formData.url}
-					placeholder="https://jellyfin.example.com"
+					placeholder="https://media.example.com"
 					disabled={submitting}
 					class="border-cr-border bg-cr-bg text-cr-text placeholder:text-cr-text-muted/50 focus:border-cr-accent font-mono text-sm"
 					data-field="url"

@@ -24,10 +24,10 @@ import {
 import { onDestroy } from "svelte";
 import { toast } from "svelte-sonner";
 import {
-	checkPlexPin,
-	createPlexPin,
-	type PlexOAuthCheckResponse,
-	type PlexOAuthPinResponse,
+	checkOAuthPin,
+	createOAuthPin,
+	type OAuthCheckResponse,
+	type OAuthPinResponse,
 } from "$lib/api/client";
 import { getErrorMessage } from "$lib/api/errors";
 import { Button } from "$lib/components/ui/button";
@@ -66,7 +66,7 @@ type FlowStep =
 let currentStep = $state<FlowStep>("idle");
 
 // PIN data
-let pinData = $state<PlexOAuthPinResponse | null>(null);
+let pinData = $state<OAuthPinResponse | null>(null);
 let authenticatedEmail = $state<string | null>(null);
 let errorMessage = $state<string | null>(null);
 
@@ -97,14 +97,14 @@ function isPinExpired(expiresAt: string): boolean {
 }
 
 /**
- * Start the Plex OAuth flow.
+ * Start the OAuth flow.
  */
 async function startOAuthFlow() {
 	currentStep = "creating_pin";
 	errorMessage = null;
 
 	try {
-		const { data, error } = await createPlexPin();
+		const { data, error } = await createOAuthPin(serverType);
 
 		if (error) {
 			throw new Error(getErrorMessage(error));
@@ -149,7 +149,7 @@ function startPolling() {
 		}
 
 		try {
-			const { data, error } = await checkPlexPin(pinData.pin_id);
+			const { data, error } = await checkOAuthPin(serverType, pinData.pin_id);
 
 			if (error) {
 				// Don't stop polling on transient errors
@@ -159,7 +159,7 @@ function startPolling() {
 
 			if (!data) return;
 
-			const checkResponse = data as PlexOAuthCheckResponse;
+			const checkResponse = data as OAuthCheckResponse;
 
 			if (checkResponse.authenticated && checkResponse.email) {
 				stopPolling();

@@ -17,8 +17,8 @@ from litestar.di import Provide
 from litestar.testing import AsyncTestClient
 from litestar.types import AnyCallable
 
-from zondarr.api.plex_oauth import PlexOAuthController
-from zondarr.services.plex_oauth import (
+from zondarr.media.providers.plex.controller import PlexOAuthController
+from zondarr.media.providers.plex.oauth_service import (
     PlexOAuthError,
     PlexOAuthPin,
     PlexOAuthResult,

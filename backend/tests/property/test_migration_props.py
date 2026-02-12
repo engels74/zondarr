@@ -19,13 +19,12 @@ from zondarr.models import (
     Invitation,
     Library,
     MediaServer,
-    ServerType,
     User,
 )
 from zondarr.models.base import Base
 
 # Custom strategies for model fields
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(["jellyfin", "plex"])
 name_strategy = st.text(
     alphabet=st.characters(categories=("L", "N")),
     min_size=1,
@@ -85,7 +84,7 @@ class TestMigrationsPreserveData:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
         enabled: bool,
@@ -206,7 +205,7 @@ class TestMigrationsPreserveData:
             server = MediaServer()
             server.id = server_id
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://test.local"
             server.api_key = "testkey"
             server.enabled = True
@@ -255,7 +254,7 @@ class TestMigrationsPreserveData:
             server = MediaServer()
             server.id = server_id
             server.name = "Test Server"
-            server.server_type = ServerType.PLEX
+            server.server_type = "plex"
             server.url = "http://plex.local"
             server.api_key = "plexkey"
             server.enabled = True
@@ -388,7 +387,7 @@ class TestMigrationSchemaIntegrity:
                 server = MediaServer()
                 server.id = server_id
                 server.name = "Test Server"
-                server.server_type = ServerType.JELLYFIN
+                server.server_type = "jellyfin"
                 server.url = "http://test.local"
                 server.api_key = "testkey"
                 server.enabled = True

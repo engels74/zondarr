@@ -28,7 +28,6 @@ from tests.conftest import TestDB
 from zondarr.core.exceptions import ValidationError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import ClientRegistry
-from zondarr.models import ServerType
 from zondarr.models.identity import Identity, User
 from zondarr.models.media_server import MediaServer
 from zondarr.repositories.identity import IdentityRepository
@@ -186,7 +185,7 @@ async def create_test_user_with_server(
         # Create media server
         server = MediaServer(
             name="TestServer",
-            server_type=ServerType.JELLYFIN,
+            server_type="jellyfin",
             url="http://jellyfin.local:8096",
             api_key="test-api-key",
             enabled=True,
@@ -924,7 +923,7 @@ async def create_multiple_users_for_identity(
         # Create media server
         server = MediaServer(
             name="TestServer",
-            server_type=ServerType.JELLYFIN,
+            server_type="jellyfin",
             url="http://jellyfin.local:8096",
             api_key="test-api-key",
             enabled=True,
