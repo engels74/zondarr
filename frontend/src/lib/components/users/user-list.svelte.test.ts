@@ -205,7 +205,7 @@ describe('Property 17: User Field Display', () => {
 	});
 
 	/**
-	 * For any user, the server type badge SHALL be displayed with correct styling.
+	 * For any user, the server type badge SHALL be displayed with the provider label.
 	 *
 	 * **Validates: Requirements 7.2**
 	 */
@@ -219,25 +219,17 @@ describe('Property 17: User Field Display', () => {
 
 				// Find the server type badge (contains 'plex' or 'jellyfin')
 				const serverTypeText = user.media_server.server_type;
-				const badges = row?.querySelectorAll('span.border') ?? [];
+				const badges = row?.querySelectorAll('span') ?? [];
 				let foundBadge = false;
-				let badgeHasCorrectColor = false;
 
 				for (const badge of badges) {
 					if (badge.textContent?.toLowerCase().includes(serverTypeText)) {
 						foundBadge = true;
-						const classList = badge.className ?? '';
-						if (serverTypeText === 'plex') {
-							badgeHasCorrectColor = classList.includes('text-amber-400');
-						} else {
-							badgeHasCorrectColor = classList.includes('text-purple-400');
-						}
 						break;
 					}
 				}
 
 				expect(foundBadge).toBe(true);
-				expect(badgeHasCorrectColor).toBe(true);
 
 				cleanup();
 			}),

@@ -1,23 +1,28 @@
 <script lang="ts">
-import { loginPlex } from "$lib/api/auth";
+import { loginExternal } from "$lib/api/auth";
 import { Button } from "$lib/components/ui/button";
+import { getProviderColor, getProviderIconSvg } from "$lib/stores/providers.svelte";
 
 interface Props {
+	method: string;
+	displayName: string;
 	onsuccess: () => void;
 	onerror: (message: string) => void;
 }
 
-const { onsuccess, onerror }: Props = $props();
+const { method, displayName, onsuccess, onerror }: Props = $props();
 
 let loading = $state(false);
 
-async function handlePlexLogin() {
+const color = $derived(getProviderColor(method));
+const iconSvg = $derived(getProviderIconSvg(method));
+
+async function handleOAuthLogin() {
 	loading = true;
 	try {
-		// Create a Plex OAuth PIN via the backend
 		const API_BASE_URL = import.meta.env.VITE_API_URL ?? "";
 		const pinResponse = await fetch(
-			`${API_BASE_URL}/api/v1/join/plex/oauth/pin`,
+			`${API_BASE_URL}/api/v1/join/${method}/oauth/pin`,
 			{
 				method: "POST",
 				credentials: "include",
@@ -25,7 +30,7 @@ async function handlePlexLogin() {
 		);
 
 		if (!pinResponse.ok) {
-			onerror("Failed to start Plex authentication");
+			onerror(`Failed to start ${displayName} authentication`);
 			return;
 		}
 
@@ -34,18 +39,16 @@ async function handlePlexLogin() {
 			auth_url: string;
 		};
 
-		// Open Plex auth in a popup
 		const popup = window.open(
 			pinData.auth_url,
-			"plex-auth",
+			`${method}-auth`,
 			"width=800,height=600",
 		);
 
-		// Poll for completion
 		const pollInterval = setInterval(async () => {
 			try {
 				const checkResponse = await fetch(
-					`${API_BASE_URL}/api/v1/join/plex/oauth/pin/${pinData.pin_id}`,
+					`${API_BASE_URL}/api/v1/join/${method}/oauth/pin/${pinData.pin_id}`,
 					{ credentials: "include" },
 				);
 
@@ -60,11 +63,12 @@ async function handlePlexLogin() {
 					clearInterval(pollInterval);
 					popup?.close();
 
-					// Exchange Plex token for Zondarr session
-					const result = await loginPlex(checkData.auth_token);
+					const result = await loginExternal(method, {
+						auth_token: checkData.auth_token,
+					});
 					if (result.error) {
 						const err = result.error as { detail?: string };
-						onerror(err.detail ?? "Plex login failed");
+						onerror(err.detail ?? `${displayName} login failed`);
 					} else {
 						onsuccess();
 					}
@@ -81,7 +85,7 @@ async function handlePlexLogin() {
 			loading = false;
 		}, 300_000);
 	} catch {
-		onerror("Failed to connect to Plex");
+		onerror(`Failed to connect to ${displayName}`);
 	} finally {
 		loading = false;
 	}
@@ -89,17 +93,26 @@ async function handlePlexLogin() {
 </script>
 
 <Button
-	onclick={handlePlexLogin}
+	onclick={handleOAuthLogin}
 	disabled={loading}
 	variant="outline"
-	class="w-full border-cr-border bg-cr-bg text-cr-text hover:bg-[#E5A00D]/10 hover:text-[#E5A00D] hover:border-[#E5A00D]/30"
+	class="w-full border-cr-border bg-cr-bg text-cr-text"
+	style="--provider-color: {color}"
 >
 	<svg class="mr-2 size-4" viewBox="0 0 24 24" fill="currentColor">
-		<path d="M11.643 0H4.68l7.679 12-7.679 12h6.963L19.32 12z" />
+		<path d={iconSvg} />
 	</svg>
 	{#if loading}
-		Connecting to Plex...
+		Connecting to {displayName}...
 	{:else}
-		Sign in with Plex
+		Sign in with {displayName}
 	{/if}
 </Button>
+
+<style>
+	:global(button[style*="--provider-color"]:hover) {
+		background: color-mix(in srgb, var(--provider-color) 10%, transparent) !important;
+		color: var(--provider-color) !important;
+		border-color: color-mix(in srgb, var(--provider-color) 30%, transparent) !important;
+	}
+</style>

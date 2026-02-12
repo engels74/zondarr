@@ -23,6 +23,7 @@ import StatusBadge, {
 } from "$lib/components/status-badge.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Table from "$lib/components/ui/table";
+import { getProviderBadgeStyle } from "$lib/stores/providers.svelte";
 
 interface Props {
 	user: UserDetailResponse;
@@ -100,14 +101,7 @@ const expiresDisplay = $derived.by(() => {
 	return formatted;
 });
 
-/**
- * Get server type badge class.
- */
-const serverTypeClass = $derived.by(() => {
-	return user.media_server.server_type === "plex"
-		? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-		: "bg-purple-500/15 text-purple-400 border-purple-500/30";
-});
+const badgeStyle = $derived(getProviderBadgeStyle(user.media_server.server_type));
 
 /**
  * Navigate to user detail page.
@@ -167,7 +161,8 @@ function handleDelete() {
 	<Table.Cell>
 		<div class="flex items-center gap-2">
 			<span
-				class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium {serverTypeClass}"
+				class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
+				style={badgeStyle}
 			>
 				{user.media_server.server_type}
 			</span>

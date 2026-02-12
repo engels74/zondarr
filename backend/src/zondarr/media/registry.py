@@ -1,41 +1,35 @@
-"""Client registry for media server implementations.
+"""Provider registry for media server implementations.
 
-Provides a singleton registry that manages available media client implementations.
-The registry allows:
-- Registering client classes for specific server types
-- Looking up client classes by server type
-- Querying capabilities for a server type
-- Creating client instances with connection parameters
-
-Uses ClassVar for singleton pattern to ensure a single registry instance
-throughout the application lifecycle.
+Provides a singleton registry that manages available media server providers.
+The registry stores ProviderDescriptor instances keyed by server_type string,
+enabling:
+- Dynamic provider registration
+- Provider metadata queries
+- Client class lookups
+- Capability queries
+- Client instance creation with credential resolution
+- Admin auth provider lookups
 
 Example usage:
     from zondarr.media.registry import registry
-    from zondarr.models.media_server import ServerType
 
-    # Register a client (typically done at app startup)
-    registry.register(ServerType.JELLYFIN, JellyfinClient)
+    # Register providers (typically done at app startup)
+    registry.register(PlexProvider())
+    registry.register(JellyfinProvider())
 
     # Get client class
-    client_class = registry.get_client_class(ServerType.JELLYFIN)
+    client_class = registry.get_client_class("plex")
 
     # Query capabilities
-    caps = registry.get_capabilities(ServerType.JELLYFIN)
+    caps = registry.get_capabilities("plex")
 
     # Create a client instance
-    client = registry.create_client(
-        ServerType.JELLYFIN,
-        url="http://jellyfin.local:8096",
-        api_key="secret-key",
-    )
+    client = registry.create_client("plex", url="http://...", api_key="...")
 """
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, Protocol
-
-from zondarr.models.media_server import ServerType
 
 from .exceptions import UnknownServerTypeError
 from .protocol import MediaClient
@@ -45,25 +39,22 @@ if TYPE_CHECKING:
     from zondarr.config import Settings
     from zondarr.models.media_server import MediaServer
 
+    from .provider import (
+        AdminAuthDescriptor,
+        AdminAuthProvider,
+        ProviderDescriptor,
+        ProviderMetadata,
+    )
+
 
 class MediaClientClass(Protocol):
     """Protocol for media client classes that can be instantiated.
 
     Defines the expected constructor signature for media client implementations.
-    This allows the registry to properly type-check client class registration
-    and instantiation.
     """
 
     def __call__(self, *, url: str, api_key: str) -> MediaClient:
-        """Create a new client instance.
-
-        Args:
-            url: The base URL of the media server.
-            api_key: The API key for authentication.
-
-        Returns:
-            A MediaClient instance.
-        """
+        """Create a new client instance."""
         ...
 
     @classmethod
@@ -78,113 +69,141 @@ class MediaClientClass(Protocol):
 
 
 class ClientRegistry:
-    """Singleton registry for media client implementations.
+    """Singleton registry for media server provider implementations.
 
-    Manages the mapping between server types and their client implementations.
-    Uses ClassVar for singleton instance storage to ensure all code paths
-    share the same registry state.
-
-    The registry is typically populated at application startup by registering
-    client classes for each supported server type. Client instances are then
-    created on-demand when needed for specific media server operations.
+    Manages the mapping between server types (strings) and their
+    ProviderDescriptor instances. Supports both the legacy register(type, class)
+    API and the new register(descriptor) API.
 
     Attributes:
         _instance: Class-level singleton instance storage.
-        _clients: Mapping from server types to client classes.
+        _providers: Mapping from server type strings to ProviderDescriptors.
+        _clients: Legacy mapping for backwards compatibility.
     """
 
     _instance: ClassVar[ClientRegistry | None] = None
 
     def __init__(self) -> None:
-        """Initialize the registry's client mapping if not already done."""
-        # Only initialize _clients if this is a fresh instance
-        # (singleton pattern means __init__ may be called multiple times)
-        if not hasattr(self, "_clients"):
-            self._clients: dict[ServerType, MediaClientClass] = {}
+        """Initialize the registry if not already done."""
+        if not hasattr(self, "_providers"):
+            self._providers: dict[str, ProviderDescriptor] = {}
+            self._clients: dict[str, MediaClientClass] = {}
             self._settings: Settings | None = None
 
     def __new__(cls) -> ClientRegistry:
-        """Create or return the singleton instance.
-
-        Returns:
-            The singleton ClientRegistry instance.
-        """
+        """Create or return the singleton instance."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def register(
         self,
-        server_type: ServerType,
-        client_class: MediaClientClass,
+        descriptor_or_type: ProviderDescriptor | str,
+        client_class: MediaClientClass | None = None,
         /,
     ) -> None:
-        """Register a client implementation for a server type.
+        """Register a provider or client implementation.
 
-        Associates a client class with a server type. If a client is already
-        registered for the given type, it will be replaced.
+        Supports two call signatures:
+        - register(descriptor) — new ProviderDescriptor-based registration
+        - register(server_type, client_class) — legacy registration
 
         Args:
-            server_type: The server type to register (positional-only).
-            client_class: The client class implementing MediaClient protocol
-                (positional-only).
+            descriptor_or_type: A ProviderDescriptor instance, or a server type
+                string/enum for legacy usage.
+            client_class: Client class for legacy registration (only used when
+                first arg is a string/enum).
         """
-        self._clients[server_type] = client_class
+        if client_class is not None:
+            # Legacy call: register(server_type, client_class)
+            key = str(descriptor_or_type)
+            self._clients[key] = client_class
+        else:
+            # New call: register(descriptor)
+            descriptor: ProviderDescriptor = descriptor_or_type  # pyright: ignore[reportAssignmentType]
+            key = descriptor.metadata.server_type
+            self._providers[key] = descriptor
+            self._clients[key] = descriptor.client_class
 
-    def get_client_class(self, server_type: ServerType, /) -> MediaClientClass:
+    def registered_types(self) -> frozenset[str]:
+        """Return all registered server type strings."""
+        return frozenset(self._clients.keys())
+
+    def get_provider(self, server_type: str, /) -> ProviderDescriptor:
+        """Get the ProviderDescriptor for a server type.
+
+        Args:
+            server_type: The server type string.
+
+        Returns:
+            The registered ProviderDescriptor.
+
+        Raises:
+            UnknownServerTypeError: If no provider is registered.
+        """
+        key = str(server_type)
+        if (provider := self._providers.get(key)) is None:
+            raise UnknownServerTypeError(key)
+        return provider
+
+    def get_client_class(self, server_type: str, /) -> MediaClientClass:
         """Get the client class for a server type.
 
-        Looks up the registered client class for the given server type.
-
         Args:
-            server_type: The server type to look up (positional-only).
+            server_type: The server type string or enum.
 
         Returns:
-            The registered client class for the server type.
+            The registered client class.
 
         Raises:
-            UnknownServerTypeError: If no client is registered for the server type.
+            UnknownServerTypeError: If no client is registered.
         """
-        if (client_class := self._clients.get(server_type)) is None:
-            raise UnknownServerTypeError(server_type)
+        key = str(server_type)
+        if (client_class := self._clients.get(key)) is None:
+            raise UnknownServerTypeError(key)
         return client_class
 
-    def get_capabilities(self, server_type: ServerType, /) -> set[Capability]:
-        """Get capabilities for a server type.
-
-        Queries the registered client class for its declared capabilities.
-
-        Args:
-            server_type: The server type to query (positional-only).
-
-        Returns:
-            A set of Capability enum values supported by the client.
-
-        Raises:
-            UnknownServerTypeError: If no client is registered for the server type.
-        """
+    def get_capabilities(self, server_type: str, /) -> set[Capability]:
+        """Get capabilities for a server type."""
         return self.get_client_class(server_type).capabilities()
 
-    def get_supported_permissions(self, server_type: ServerType, /) -> frozenset[str]:
-        """Get supported permissions for a server type.
+    def get_supported_permissions(self, server_type: str, /) -> frozenset[str]:
+        """Get supported permissions for a server type."""
+        return self.get_client_class(server_type).supported_permissions()
 
-        Queries the registered client class for its declared
-        supported permission keys.
+    def get_all_metadata(self) -> list[ProviderMetadata]:
+        """Get metadata for all registered providers."""
+        return [desc.metadata for desc in self._providers.values()]
+
+    def get_all_descriptors(self) -> list[ProviderDescriptor]:
+        """Get all registered ProviderDescriptor instances."""
+        return list(self._providers.values())
+
+    def get_admin_auth_descriptors(self) -> list[AdminAuthDescriptor]:
+        """Get admin auth descriptors for all providers that support it."""
+        result: list[AdminAuthDescriptor] = []
+        for desc in self._providers.values():
+            if desc.admin_auth is not None:
+                result.append(desc.admin_auth)
+        return result
+
+    def get_admin_auth_provider(self, method: str) -> AdminAuthProvider | None:
+        """Get the admin auth provider for a given method name.
 
         Args:
-            server_type: The server type to query (positional-only).
+            method: The auth method name (e.g., "plex", "jellyfin").
 
         Returns:
-            A frozenset of permission key strings.
-
-        Raises:
-            UnknownServerTypeError: If no client is registered for the server type.
+            The AdminAuthProvider instance, or None if not found.
         """
-        return self.get_client_class(server_type).supported_permissions()
+        for desc in self._providers.values():
+            if desc.admin_auth is not None and desc.admin_auth.method_name == method:
+                return desc.admin_auth_provider
+        return None
 
     def create_client(
         self,
-        server_type: ServerType,
+        server_type: str,
         /,
         *,
         url: str,
@@ -192,20 +211,16 @@ class ClientRegistry:
     ) -> MediaClient:
         """Create a client instance for a media server.
 
-        Instantiates a client with the provided connection parameters.
-        The server_type is positional-only, while url and api_key are
-        keyword-only to make the intent clear at call sites.
-
         Args:
-            server_type: The server type to create a client for (positional-only).
-            url: The base URL of the media server (keyword-only).
-            api_key: The API key for authentication (keyword-only).
+            server_type: The server type string or enum.
+            url: The base URL of the media server.
+            api_key: The API key for authentication.
 
         Returns:
-            A new client instance configured for the specified server.
+            A new client instance.
 
         Raises:
-            UnknownServerTypeError: If no client is registered for the server type.
+            UnknownServerTypeError: If no client is registered.
         """
         client_class = self.get_client_class(server_type)
         return client_class(url=url, api_key=api_key)
@@ -213,25 +228,30 @@ class ClientRegistry:
     def set_settings(self, settings: Settings) -> None:
         """Inject application settings for env var credential overrides.
 
-        Args:
-            settings: The application Settings instance.
+        If provider_credentials is not already populated, populate it
+        from legacy fields for backwards compatibility.
         """
+        from zondarr.config import _populate_provider_credentials
+
+        if not settings.provider_credentials:
+            _populate_provider_credentials(settings)
+
         self._settings = settings
 
     def _get_effective_credentials(
         self,
-        server_type: ServerType,
+        server_type: str,
         *,
         db_url: str,
         db_api_key: str,
     ) -> tuple[str, str]:
         """Resolve effective credentials (env vars > DB).
 
-        Per-field override: if only the URL env var is set, the API key
-        still comes from the database, and vice versa.
+        Dynamically reads env var names from provider metadata,
+        removing the need for per-provider if/else branches.
 
         Args:
-            server_type: The server type to resolve credentials for.
+            server_type: The server type string.
             db_url: The URL stored in the database.
             db_api_key: The API key stored in the database.
 
@@ -241,42 +261,38 @@ class ClientRegistry:
         if self._settings is None:
             return db_url, db_api_key
 
-        if server_type == ServerType.PLEX:
-            url = self._settings.plex_url or db_url
-            api_key = self._settings.plex_token or db_api_key
-        else:  # ServerType.JELLYFIN
-            url = self._settings.jellyfin_url or db_url
-            api_key = self._settings.jellyfin_api_key or db_api_key
+        key = str(server_type)
+
+        # Try provider credentials from settings first
+        provider_creds = self._settings.provider_credentials.get(key, {})
+        url = provider_creds.get("url") or db_url
+        api_key = provider_creds.get("api_key") or db_api_key
 
         return url, api_key
 
     def create_client_for_server(self, server: MediaServer, /) -> MediaClient:
         """Create a client for a media server, applying env var overrides.
 
-        Resolves effective credentials (env vars take precedence over DB
-        values) before creating the client instance.
-
         Args:
-            server: The MediaServer entity (positional-only).
+            server: The MediaServer entity.
 
         Returns:
             A new client instance with effective credentials.
 
         Raises:
-            UnknownServerTypeError: If no client is registered for the server type.
+            UnknownServerTypeError: If no client is registered.
         """
+        server_type = str(server.server_type)
         url, api_key = self._get_effective_credentials(
-            server.server_type,
+            server_type,
             db_url=server.url,
             db_api_key=server.api_key,
         )
-        return self.create_client(server.server_type, url=url, api_key=api_key)
+        return self.create_client(server_type, url=url, api_key=api_key)
 
     def clear(self) -> None:
-        """Clear all registered clients.
-
-        Primarily useful for testing to reset the registry state between tests.
-        """
+        """Clear all registered providers and clients."""
+        self._providers.clear()
         self._clients.clear()
         self._settings = None
 

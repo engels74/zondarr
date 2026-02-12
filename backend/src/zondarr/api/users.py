@@ -422,7 +422,7 @@ class UserController(Controller):
         media_server_response = MediaServerResponse(
             id=user.media_server.id,
             name=user.media_server.name,
-            server_type=user.media_server.server_type.value,
+            server_type=user.media_server.server_type,
             url=user.media_server.url,
             enabled=user.media_server.enabled,
             created_at=user.media_server.created_at,

@@ -133,7 +133,7 @@ class MediaServerCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True
     """
 
     name: NonEmptyStr
-    server_type: Annotated[str, msgspec.Meta(pattern=r"^(jellyfin|plex)$")]
+    server_type: NonEmptyStr
     url: UrlStr
     api_key: ApiKeyStr
 
@@ -975,7 +975,7 @@ class ConnectionTestRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=
         api_key: Authentication token for the media server.
     """
 
-    server_type: Annotated[str, msgspec.Meta(pattern=r"^(jellyfin|plex)$")]
+    server_type: NonEmptyStr
     url: UrlStr
     api_key: ApiKeyStr
 
@@ -1009,16 +1009,52 @@ AdminUsername = Annotated[
 AdminPassword = Annotated[str, msgspec.Meta(min_length=15, max_length=128)]
 
 
+class AuthFieldInfo(msgspec.Struct, kw_only=True):
+    """Auth field descriptor for frontend form rendering.
+
+    Attributes:
+        name: Field key (e.g., "server_url").
+        label: Display label (e.g., "Server URL").
+        field_type: HTML input type ("text", "password", "url").
+        placeholder: Placeholder text for the input.
+        required: Whether the field is required.
+    """
+
+    name: str
+    label: str
+    field_type: str
+    placeholder: str = ""
+    required: bool = True
+
+
+class ProviderAuthInfo(msgspec.Struct, kw_only=True):
+    """Auth method metadata for a provider.
+
+    Attributes:
+        method_name: Auth method identifier (e.g., "plex").
+        display_name: Human-readable name (e.g., "Plex").
+        flow_type: Auth flow type ("oauth" or "credentials").
+        fields: Field descriptors for credential-based flows.
+    """
+
+    method_name: str
+    display_name: str
+    flow_type: str
+    fields: list[AuthFieldInfo] = []
+
+
 class AuthMethodsResponse(msgspec.Struct, kw_only=True):
     """Response listing available authentication methods.
 
     Attributes:
-        methods: List of available auth methods (local, plex, jellyfin).
+        methods: List of available auth method names (local, plex, jellyfin).
         setup_required: True if no admin accounts exist yet.
+        provider_auth: Metadata for each external auth provider.
     """
 
     methods: list[str]
     setup_required: bool
+    provider_auth: list[ProviderAuthInfo] = []
 
 
 class AdminSetupRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -1069,6 +1105,19 @@ class JellyfinLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=T
     server_url: UrlStr
     username: str
     password: str
+
+
+class ExternalLoginRequest(msgspec.Struct, kw_only=True):
+    """External provider login request.
+
+    Accepts arbitrary credential fields as a dict. The provider's
+    AdminAuthProvider validates the required fields.
+
+    Attributes:
+        credentials: Provider-specific credential key-value pairs.
+    """
+
+    credentials: dict[str, str]
 
 
 class RefreshRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -1186,3 +1235,32 @@ class PlexOAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
     auth_token: str | None = None
     email: str | None = None
     error: str | None = None
+
+
+# =============================================================================
+# Provider Metadata Schemas
+# =============================================================================
+
+
+class ProviderMetadataResponse(msgspec.Struct, kw_only=True, omit_defaults=True):
+    """Provider metadata for frontend rendering.
+
+    Attributes:
+        server_type: Provider identifier string (e.g., "plex").
+        display_name: Human-readable name (e.g., "Plex").
+        color: Brand hex color (e.g., "#E5A00D").
+        icon_svg: SVG markup for the provider icon.
+        api_key_help_text: Help text for the "add server" form.
+        capabilities: List of supported capability strings.
+        supported_permissions: List of supported permission keys.
+        join_flow_type: Join flow type ("oauth_link" or "credential_create").
+    """
+
+    server_type: str
+    display_name: str
+    color: str
+    icon_svg: str
+    api_key_help_text: str = ""
+    capabilities: list[str] = []
+    supported_permissions: list[str] = []
+    join_flow_type: str | None = None

@@ -4,8 +4,7 @@ Provides endpoints for admin authentication:
 - GET /api/auth/methods — Available auth methods + setup_required flag
 - POST /api/auth/setup — Create first admin account
 - POST /api/auth/login — Local username/password login
-- POST /api/auth/login/plex — Plex OAuth token login
-- POST /api/auth/login/jellyfin — Jellyfin credentials login
+- POST /api/auth/login/{method} — External provider login (plex, jellyfin, etc.)
 - POST /api/auth/refresh — Exchange refresh token for new access token
 - POST /api/auth/logout — Revoke tokens and clear cookies
 - GET /api/auth/me — Current admin info (requires auth)
@@ -22,17 +21,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from zondarr.core.auth import AdminUser
 from zondarr.core.exceptions import AuthenticationError
+from zondarr.media.registry import registry
 from zondarr.repositories.admin import AdminAccountRepository, RefreshTokenRepository
 from zondarr.services.auth import AuthService
 
 from .schemas import (
     AdminMeResponse,
     AdminSetupRequest,
+    AuthFieldInfo,
     AuthMethodsResponse,
     AuthTokenResponse,
-    JellyfinLoginRequest,
+    ExternalLoginRequest,
     LoginRequest,
-    PlexLoginRequest,
+    ProviderAuthInfo,
     RefreshRequest,
 )
 
@@ -79,12 +80,42 @@ class AuthController(Controller):
         summary="Get available authentication methods",
         exclude_from_auth=True,
     )
-    async def get_methods(self, session: AsyncSession) -> AuthMethodsResponse:
+    async def get_methods(
+        self, session: AsyncSession, state: State
+    ) -> AuthMethodsResponse:
         """Return available auth methods and whether setup is required."""
         service = self._create_auth_service(session)
-        methods = await service.get_available_auth_methods()
+        settings = state.settings  # pyright: ignore[reportAny]
+        methods = await service.get_available_auth_methods(settings=settings)
         setup = await service.setup_required()
-        return AuthMethodsResponse(methods=methods, setup_required=setup)
+
+        # Build provider auth metadata from registry
+        provider_auth: list[ProviderAuthInfo] = []
+        for desc in registry.get_admin_auth_descriptors():
+            if desc.method_name in methods:
+                provider_auth.append(
+                    ProviderAuthInfo(
+                        method_name=desc.method_name,
+                        display_name=desc.display_name,
+                        flow_type=desc.flow_type,
+                        fields=[
+                            AuthFieldInfo(
+                                name=f.name,
+                                label=f.label,
+                                field_type=f.field_type,
+                                placeholder=f.placeholder,
+                                required=f.required,
+                            )
+                            for f in desc.fields
+                        ],
+                    )
+                )
+
+        return AuthMethodsResponse(
+            methods=methods,
+            setup_required=setup,
+            provider_auth=provider_auth,
+        )
 
     @post(
         "/setup",
@@ -153,53 +184,30 @@ class AuthController(Controller):
         )
 
     @post(
-        "/login/plex",
+        "/login/{method:str}",
         status_code=HTTP_200_OK,
-        summary="Login with Plex OAuth token",
+        summary="Login with external provider",
         exclude_from_auth=True,
     )
-    async def login_plex(
+    async def login_external(
         self,
-        data: PlexLoginRequest,
+        method: str,
+        data: ExternalLoginRequest,
         session: AsyncSession,
         state: State,
     ) -> Response[AuthTokenResponse]:
-        """Authenticate with Plex OAuth token."""
+        """Authenticate with an external provider (plex, jellyfin, etc.).
+
+        The credentials dict contents vary by provider:
+        - plex: {"auth_token": "..."}
+        - jellyfin: {"server_url": "...", "username": "...", "password": "..."}
+        """
         service = self._create_auth_service(session)
-        plex_token: str | None = state.settings.plex_token  # pyright: ignore[reportAny]
-        admin = await service.authenticate_plex(
-            data.auth_token, configured_plex_token=plex_token
-        )
-
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
-        _, access_cookie = self._create_access_token(
-            str(admin.id), secret_key, secure=secure
-        )
-        refresh_token = await service.create_refresh_token(admin)
-
-        return Response(
-            AuthTokenResponse(refresh_token=refresh_token),
-            status_code=HTTP_200_OK,
-            cookies=[access_cookie],
-        )
-
-    @post(
-        "/login/jellyfin",
-        status_code=HTTP_200_OK,
-        summary="Login with Jellyfin credentials",
-        exclude_from_auth=True,
-    )
-    async def login_jellyfin(
-        self,
-        data: JellyfinLoginRequest,
-        session: AsyncSession,
-        state: State,
-    ) -> Response[AuthTokenResponse]:
-        """Authenticate with Jellyfin admin credentials."""
-        service = self._create_auth_service(session)
-        admin = await service.authenticate_jellyfin(
-            data.server_url, data.username, data.password
+        settings = state.settings  # pyright: ignore[reportAny]
+        admin = await service.authenticate_external(
+            method,
+            data.credentials,
+            settings=settings,
         )
 
         secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]

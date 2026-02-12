@@ -38,9 +38,9 @@ import {
 import { getErrorMessage, isNetworkError } from "$lib/api/errors";
 import ErrorState from "$lib/components/error-state.svelte";
 import {
-	JellyfinRegistrationForm,
-	PlexOAuthFlow,
+	OAuthJoinFlow,
 	RegistrationError,
+	RegistrationForm,
 	SuccessPage,
 } from "$lib/components/join";
 import { Button } from "$lib/components/ui/button";
@@ -62,10 +62,11 @@ import {
 	WizardShell,
 } from "$lib/components/wizard";
 import {
-	type JellyfinRegistrationInput,
-	jellyfinRegistrationSchema,
+	type RegistrationInput,
+	registrationSchema,
 	transformRegistrationFormData,
 } from "$lib/schemas/join";
+import { getProvider, getProviderLabel } from "$lib/stores/providers.svelte";
 import type { PageData } from "./$types";
 
 const { data }: { data: PageData } = $props();
@@ -87,7 +88,7 @@ let isRetrying = $state(false);
 let isSubmitting = $state(false);
 
 // Form data
-let formData = $state<JellyfinRegistrationInput>({
+let formData = $state<RegistrationInput>({
 	username: "",
 	password: "",
 	email: "",
@@ -116,16 +117,27 @@ const serverUrls = $derived.by(() => {
 	return urls;
 });
 
-// Check if any target server is Jellyfin
-const hasJellyfinServer = $derived(
-	data.validation?.target_servers?.some((s) => s.server_type === "jellyfin") ??
-		false,
+// Determine join flow type from provider metadata
+const hasCredentialCreateServer = $derived(
+	data.validation?.target_servers?.some((s) => {
+		const provider = getProvider(s.server_type);
+		return provider?.join_flow_type === "credential_create";
+	}) ?? false,
 );
 
-// Check if any target server is Plex
-const hasPlexServer = $derived(
-	data.validation?.target_servers?.some((s) => s.server_type === "plex") ??
-		false,
+const hasOAuthLinkServer = $derived(
+	data.validation?.target_servers?.some((s) => {
+		const provider = getProvider(s.server_type);
+		return provider?.join_flow_type === "oauth_link";
+	}) ?? false,
+);
+
+// Get the first OAuth server type for branding
+const oauthServerType = $derived(
+	data.validation?.target_servers?.find((s) => {
+		const provider = getProvider(s.server_type);
+		return provider?.join_flow_type === "oauth_link";
+	})?.server_type ?? "plex",
 );
 
 // Check if invitation has pre-wizard
@@ -219,7 +231,7 @@ function handleContinue() {
 	}
 
 	// Determine which registration flow to use based on server types
-	if (hasPlexServer && !hasJellyfinServer) {
+	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
 		currentStep = "plex_oauth";
 	} else {
 		currentStep = "registration";
@@ -241,7 +253,7 @@ function handleBack() {
 function handlePreWizardComplete() {
 	preWizardCompleted = true;
 	// Proceed to registration
-	if (hasPlexServer && !hasJellyfinServer) {
+	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
 		currentStep = "plex_oauth";
 	} else {
 		currentStep = "registration";
@@ -300,7 +312,7 @@ function handlePostWizardCancel() {
  */
 async function handleRegistrationSubmit() {
 	// Validate form data
-	const result = jellyfinRegistrationSchema.safeParse(formData);
+	const result = registrationSchema.safeParse(formData);
 	if (!result.success) {
 		// Transform Zod errors to our format
 		const errors: Record<string, string[]> = {};
@@ -412,7 +424,7 @@ async function handlePlexAuthenticated(email: string) {
 					toast.success("Added to server! Please complete the final steps.");
 				} else {
 					currentStep = "success";
-					toast.success("Successfully added to Plex server!");
+					toast.success("Successfully added to server!");
 				}
 			} else {
 				toast.error("Registration failed");
@@ -444,7 +456,7 @@ function handleRegistrationRetry() {
 	redemptionError = null;
 	plexEmail = null;
 	// Go back to appropriate registration step
-	if (hasPlexServer && !hasJellyfinServer) {
+	if (hasOAuthLinkServer && !hasCredentialCreateServer) {
 		currentStep = "plex_oauth";
 	} else {
 		currentStep = "registration";
@@ -605,20 +617,14 @@ function renderInteraction(
 					<div>
 						<CardTitle class="text-cr-text">Create Your Account</CardTitle>
 						<CardDescription class="text-cr-text-muted">
-							{#if hasJellyfinServer && !hasPlexServer}
-								Enter your details to create a Jellyfin account
-							{:else if hasPlexServer && !hasJellyfinServer}
-								Sign in with your Plex account
-							{:else}
-								Complete registration for your media server access
-							{/if}
+								Enter your details to create your account
 						</CardDescription>
 					</div>
 				</div>
 			</CardHeader>
 			<CardContent>
-				{#if hasJellyfinServer}
-					<JellyfinRegistrationForm
+				{#if hasCredentialCreateServer}
+					<RegistrationForm
 						bind:formData
 						errors={formErrors}
 						submitting={isSubmitting}
@@ -645,15 +651,16 @@ function renderInteraction(
 						<ArrowLeft class="size-5" />
 					</Button>
 					<div>
-						<CardTitle class="text-cr-text">Sign in with Plex</CardTitle>
+						<CardTitle class="text-cr-text">Sign in with {getProviderLabel(oauthServerType)}</CardTitle>
 						<CardDescription class="text-cr-text-muted">
-							Authenticate with your Plex account to get access
+							Authenticate with your {getProviderLabel(oauthServerType)} account to get access
 						</CardDescription>
 					</div>
 				</div>
 			</CardHeader>
 			<CardContent>
-				<PlexOAuthFlow
+				<OAuthJoinFlow
+					serverType={oauthServerType}
 					onAuthenticated={handlePlexAuthenticated}
 					onCancel={handlePlexCancel}
 				/>

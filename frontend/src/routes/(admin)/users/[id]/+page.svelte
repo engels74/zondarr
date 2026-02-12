@@ -42,6 +42,7 @@ import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { Label } from "$lib/components/ui/label";
 import UserPermissionsEditor from "$lib/components/users/user-permissions-editor.svelte";
+import { getProviderBadgeStyle } from "$lib/stores/providers.svelte";
 import { showError, showSuccess } from "$lib/utils/toast";
 import type { PageData } from "./$types";
 
@@ -96,15 +97,7 @@ const statusLabel = $derived.by(() => {
 	return "Active";
 });
 
-/**
- * Get server type badge class.
- */
-const serverTypeClass = $derived.by(() => {
-	if (!data.user) return "";
-	return data.user.media_server.server_type === "plex"
-		? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-		: "bg-purple-500/15 text-purple-400 border-purple-500/30";
-});
+const badgeStyle = $derived(data.user ? getProviderBadgeStyle(data.user.media_server.server_type) : '');
 
 /**
  * Format date for display.
@@ -374,7 +367,8 @@ function viewLinkedUser(userId: string) {
 							<div class="flex items-center gap-2 mb-1">
 								<span class="font-medium text-cr-text">{data.user.media_server.name}</span>
 								<span
-									class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium {serverTypeClass}"
+									class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
+									style={badgeStyle}
 								>
 									{data.user.media_server.server_type}
 								</span>
@@ -521,9 +515,8 @@ function viewLinkedUser(userId: string) {
 										<div class="font-medium text-cr-text truncate">{linkedUser.username}</div>
 										<div class="flex items-center gap-2 mt-1">
 											<span
-												class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium {linkedUser.media_server.server_type === 'plex'
-													? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-													: 'bg-purple-500/15 text-purple-400 border-purple-500/30'}"
+												class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
+												style={getProviderBadgeStyle(linkedUser.media_server.server_type)}
 											>
 												{linkedUser.media_server.server_type}
 											</span>

@@ -10,9 +10,25 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 // Types
 // =============================================================================
 
+export interface AuthFieldInfo {
+	name: string;
+	label: string;
+	field_type: string;
+	placeholder: string;
+	required: boolean;
+}
+
+export interface ProviderAuthInfo {
+	method_name: string;
+	display_name: string;
+	flow_type: 'oauth' | 'credentials';
+	fields: AuthFieldInfo[];
+}
+
 export interface AuthMethodsResponse {
 	methods: string[];
 	setup_required: boolean;
+	provider_auth: ProviderAuthInfo[];
 }
 
 export interface AdminMeResponse {
@@ -75,32 +91,21 @@ export async function loginLocal(
 	return { data: result };
 }
 
-export async function loginPlex(
-	authToken: string,
+/**
+ * Authenticate via an external provider.
+ *
+ * @param method - Provider method name (e.g., "plex", "jellyfin")
+ * @param credentials - Provider-specific credentials
+ */
+export async function loginExternal(
+	method: string,
+	credentials: Record<string, string>,
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: AuthTokenResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/plex`, {
+	const response = await customFetch(`${API_BASE_URL}/api/auth/login/${method}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ auth_token: authToken }),
-		credentials: 'include'
-	});
-	if (!response.ok) {
-		const error = await response.json();
-		return { error };
-	}
-	const result = (await response.json()) as AuthTokenResponse;
-	return { data: result };
-}
-
-export async function loginJellyfin(
-	data: { server_url: string; username: string; password: string },
-	customFetch: typeof globalThis.fetch = fetch
-): Promise<{ data?: AuthTokenResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/jellyfin`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(data),
+		body: JSON.stringify({ credentials }),
 		credentials: 'include'
 	});
 	if (!response.ok) {

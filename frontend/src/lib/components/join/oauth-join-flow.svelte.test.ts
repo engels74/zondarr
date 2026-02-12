@@ -1,12 +1,12 @@
 /**
- * Property-based tests for Plex OAuth flow component.
+ * Property-based tests for OAuth join flow component.
  *
  * Tests the following properties:
- * - Property 32: Plex OAuth Polling
+ * - Property 32: OAuth Polling
  *
  * **Validates: Requirements 12.4**
  *
- * @module $lib/components/join/plex-oauth-flow.svelte.test
+ * @module $lib/components/join/oauth-join-flow.svelte.test
  */
 
 import { cleanup, render } from '@testing-library/svelte';
@@ -15,7 +15,7 @@ import * as fc from 'fast-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PlexOAuthCheckResponse, PlexOAuthPinResponse } from '$lib/api/client';
 import * as apiClient from '$lib/api/client';
-import PlexOAuthFlow from './plex-oauth-flow.svelte';
+import OAuthJoinFlow from './oauth-join-flow.svelte';
 
 // Mock the API client
 vi.mock('$lib/api/client', async () => {
@@ -130,12 +130,12 @@ describe('Property 32: Plex OAuth Polling', () => {
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: 'plex', onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		expect(signInButton).toBeTruthy();
 		await user.click(signInButton!);
 
@@ -197,12 +197,12 @@ describe('Property 32: Plex OAuth Polling', () => {
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: 'plex', onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for PIN creation
@@ -216,7 +216,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Wait for component to update to expired state
 		await vi.waitFor(() => {
-			const component = container.querySelector('[data-plex-oauth-flow]');
+			const component = container.querySelector('[data-oauth-join-flow]');
 			expect(component?.getAttribute('data-step')).toBe('expired');
 		});
 
@@ -259,12 +259,12 @@ describe('Property 32: Plex OAuth Polling', () => {
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: 'plex', onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for PIN creation
@@ -374,12 +374,12 @@ describe('Plex OAuth Flow Component', () => {
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: 'plex', onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for window.open to be called

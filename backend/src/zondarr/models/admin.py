@@ -46,7 +46,7 @@ class AdminAccount(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     password_hash: Mapped[str | None] = mapped_column(String(255), default=None)
     email: Mapped[str | None] = mapped_column(String(255), default=None)
-    auth_method: Mapped[AuthMethod] = mapped_column(default=AuthMethod.LOCAL)
+    auth_method: Mapped[str] = mapped_column(String(50), default=AuthMethod.LOCAL)
     external_id: Mapped[str | None] = mapped_column(String(255), default=None)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login_at: Mapped[datetime | None] = mapped_column(default=None)

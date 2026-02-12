@@ -16,6 +16,7 @@ import type { MediaServerWithLibrariesResponse } from "$lib/api/client";
 import StatusBadge from "$lib/components/status-badge.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
+import { getProviderBadgeStyle, getProviderLabel } from "$lib/stores/providers.svelte";
 
 interface Props {
 	server: MediaServerWithLibrariesResponse;
@@ -24,21 +25,8 @@ interface Props {
 
 const { server, onViewDetails }: Props = $props();
 
-/**
- * Get server type badge class based on server type.
- */
-const serverTypeClass = $derived.by(() => {
-	return server.server_type === "plex"
-		? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-		: "bg-purple-500/15 text-purple-400 border-purple-500/30";
-});
-
-/**
- * Get server type display name.
- */
-const serverTypeLabel = $derived(
-	server.server_type === "plex" ? "Plex" : "Jellyfin",
-);
+const badgeStyle = $derived(getProviderBadgeStyle(server.server_type));
+const serverTypeLabel = $derived(getProviderLabel(server.server_type));
 
 /**
  * Get library count text.
@@ -64,7 +52,8 @@ const libraryCountText = $derived.by(() => {
 					<Card.Title class="text-cr-text text-lg" data-field="name">{server.name}</Card.Title>
 					<div class="flex items-center gap-2 mt-1">
 						<span
-							class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium {serverTypeClass}"
+							class="inline-flex items-center rounded border px-1.5 py-0.5 text-xs font-medium"
+							style={badgeStyle}
 							data-field="server_type"
 						>
 							{serverTypeLabel}

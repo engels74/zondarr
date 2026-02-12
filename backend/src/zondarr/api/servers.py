@@ -25,7 +25,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import registry
-from zondarr.models.media_server import ServerType
 from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.repositories.user import UserRepository
@@ -179,7 +178,7 @@ class ServerController(Controller):
             MediaServerWithLibrariesResponse(
                 id=server.id,
                 name=server.name,
-                server_type=server.server_type.value,
+                server_type=server.server_type,
                 url=server.url,
                 enabled=server.enabled,
                 created_at=server.created_at,
@@ -228,12 +227,9 @@ class ServerController(Controller):
         Raises:
             ValidationError: If connection validation fails.
         """
-        # Convert server_type string to enum
-        server_type = ServerType(data.server_type)
-
         server = await media_server_service.add(
             name=data.name,
-            server_type=server_type,
+            server_type=data.server_type,
             url=data.url,
             api_key=data.api_key,
         )
@@ -263,7 +259,7 @@ class ServerController(Controller):
         return MediaServerWithLibrariesResponse(
             id=server.id,
             name=server.name,
-            server_type=server.server_type.value,
+            server_type=server.server_type,
             url=server.url,
             enabled=server.enabled,
             created_at=server.created_at,
@@ -304,7 +300,7 @@ class ServerController(Controller):
         return MediaServerResponse(
             id=server.id,
             name=server.name,
-            server_type=server.server_type.value,
+            server_type=server.server_type,
             url=server.url,
             enabled=server.enabled,
             created_at=server.created_at,

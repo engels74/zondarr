@@ -94,7 +94,7 @@ async def retrieve_user_handler(
                 id=admin.id,
                 username=admin.username,
                 email=admin.email,
-                auth_method=admin.auth_method.value,
+                auth_method=admin.auth_method,
             )
     except Exception:
         logger.exception("Failed to retrieve admin user from token")

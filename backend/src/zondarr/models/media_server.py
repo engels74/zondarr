@@ -51,7 +51,7 @@ class MediaServer(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__: str = "media_servers"
 
     name: Mapped[str] = mapped_column(String(255))
-    server_type: Mapped[ServerType] = mapped_column()
+    server_type: Mapped[str] = mapped_column(String(50))
     url: Mapped[str] = mapped_column(String(2048))
     api_key: Mapped[str] = mapped_column(String(512))  # Encrypted at rest
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)

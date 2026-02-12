@@ -388,7 +388,7 @@ export async function syncServer(serverId: string, dryRun = false, client: ApiCl
 /** Create server request */
 export interface CreateServerRequest {
 	name: string;
-	server_type: 'jellyfin' | 'plex';
+	server_type: string;
 	url: string;
 	api_key: string;
 }

@@ -36,9 +36,9 @@ import structlog
 from zondarr.core.exceptions import ValidationError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import registry
-from zondarr.media.types import ExternalUser, PlexUserType
+from zondarr.media.types import ExternalUser
 from zondarr.models.identity import Identity, User
-from zondarr.models.media_server import MediaServer, ServerType
+from zondarr.models.media_server import MediaServer
 from zondarr.services.invitation import InvitationService, InvitationValidationFailure
 from zondarr.services.user import UserService
 
@@ -99,7 +99,7 @@ class RedemptionService:
         username: str,
         password: str,
         email: str | None = None,
-        plex_user_type: PlexUserType = PlexUserType.FRIEND,
+        provider_params: dict[str, object] | None = None,
     ) -> tuple[Identity, Sequence[User]]:
         """Redeem an invitation code and create user accounts.
 
@@ -116,10 +116,10 @@ class RedemptionService:
             code: The invitation code to redeem (positional-only).
             username: Username for the new accounts (keyword-only).
             password: Password for the new accounts (keyword-only).
-            email: Optional email address (keyword-only). Required for Plex
-                Friend invitations when plex_user_type is FRIEND.
-            plex_user_type: Type of Plex user to create - FRIEND or HOME
-                (keyword-only). Only used for Plex servers. Defaults to FRIEND.
+            email: Optional email address (keyword-only).
+            provider_params: Optional provider-specific parameters (keyword-only).
+                Passed through to the media client's create_user method
+                if the client accepts extra keyword arguments.
 
         Returns:
             Tuple of (Identity, list of Users created).
@@ -147,19 +147,16 @@ class RedemptionService:
 
                 async with client:
                     # Create user on the media server
-                    # For Plex servers, pass the plex_user_type parameter
-                    if server.server_type == ServerType.PLEX:
-                        # PlexClient accepts plex_user_type parameter beyond the protocol
-                        # Cast to Any to allow the extra keyword argument
-                        plex_client: Any = client  # pyright: ignore[reportExplicitAny]
-                        external_user = await plex_client.create_user(  # pyright: ignore[reportAny]
+                    # Pass provider_params as extra kwargs if provided
+                    if provider_params:
+                        any_client: Any = client  # pyright: ignore[reportExplicitAny]
+                        external_user = await any_client.create_user(  # pyright: ignore[reportAny]
                             username,
                             password,
                             email=email,
-                            plex_user_type=plex_user_type,
+                            **provider_params,
                         )
                     else:
-                        # For non-Plex servers (e.g., Jellyfin), use standard call
                         external_user = await client.create_user(
                             username,
                             password,
@@ -173,11 +170,6 @@ class RedemptionService:
                         server_type=server.server_type,
                         username=username,
                         external_user_id=external_user.external_user_id,
-                        plex_user_type=(
-                            plex_user_type.value
-                            if server.server_type == ServerType.PLEX
-                            else None
-                        ),
                     )
 
                     # Step 3: Apply library restrictions (Requirement 14.5)

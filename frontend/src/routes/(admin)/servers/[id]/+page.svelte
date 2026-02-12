@@ -34,6 +34,7 @@ import StatusBadge from "$lib/components/status-badge.svelte";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { Label } from "$lib/components/ui/label";
+import { getProviderBadgeStyle, getProviderLabel } from "$lib/stores/providers.svelte";
 import { showError, showSuccess } from "$lib/utils/toast";
 import type { PageData } from "./$types";
 
@@ -48,23 +49,8 @@ let showSyncDialog = $state(false);
 let deleting = $state(false);
 let showDeleteDialog = $state(false);
 
-/**
- * Get server type badge class based on server type.
- */
-const serverTypeClass = $derived.by(() => {
-	if (!data.server) return "";
-	return data.server.server_type === "plex"
-		? "bg-amber-500/15 text-amber-400 border-amber-500/30"
-		: "bg-purple-500/15 text-purple-400 border-purple-500/30";
-});
-
-/**
- * Get server type display name.
- */
-const serverTypeLabel = $derived.by(() => {
-	if (!data.server) return "";
-	return data.server.server_type === "plex" ? "Plex" : "Jellyfin";
-});
+const badgeStyle = $derived(data.server ? getProviderBadgeStyle(data.server.server_type) : '');
+const serverTypeLabel = $derived(data.server ? getProviderLabel(data.server.server_type) : '');
 
 /**
  * Format date for display.
@@ -224,7 +210,8 @@ async function handleDelete() {
 						<Label class="text-cr-text-muted text-xs uppercase tracking-wide">Type</Label>
 						<div>
 							<span
-								class="inline-flex items-center rounded border px-2 py-1 text-sm font-medium {serverTypeClass}"
+								class="inline-flex items-center rounded border px-2 py-1 text-sm font-medium"
+								style={badgeStyle}
 							>
 								{serverTypeLabel}
 							</span>

@@ -61,6 +61,9 @@ class TestServiceValidatesBeforePersisting:
             repo = MediaServerRepository(session)
 
             mock_registry = MagicMock(spec=ClientRegistry)
+            mock_registry.registered_types = MagicMock(
+                return_value=frozenset({"plex", "jellyfin"})
+            )
             mock_client = AsyncMock()
             mock_client.test_connection = AsyncMock(return_value=False)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -105,6 +108,9 @@ class TestServiceValidatesBeforePersisting:
             repo = MediaServerRepository(session)
 
             mock_registry = MagicMock(spec=ClientRegistry)
+            mock_registry.registered_types = MagicMock(
+                return_value=frozenset({"plex", "jellyfin"})
+            )
             mock_client = AsyncMock()
             mock_client.test_connection = AsyncMock(return_value=True)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)

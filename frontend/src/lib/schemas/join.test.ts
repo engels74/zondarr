@@ -1,5 +1,5 @@
 /**
- * Property-based tests for Jellyfin registration schema.
+ * Property-based tests for registration schema.
  *
  * Tests the following properties:
  * - Property 30: Username Validation
@@ -12,7 +12,7 @@
 
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { jellyfinRegistrationSchema } from './join';
+import { registrationSchema } from './join';
 
 // =============================================================================
 // Property 30: Username Validation
@@ -29,7 +29,7 @@ describe('Property 30: Username Validation', () => {
 	it('should reject usernames shorter than 3 characters', () => {
 		fc.assert(
 			fc.property(fc.string({ minLength: 0, maxLength: 2 }), (shortUsername) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: shortUsername,
 					password: 'validpassword123'
 				});
@@ -61,7 +61,7 @@ describe('Property 30: Username Validation', () => {
 				(longUsername) => {
 					// Ensure it starts with a letter
 					const username = `a${longUsername.slice(1)}`;
-					const result = jellyfinRegistrationSchema.safeParse({
+					const result = registrationSchema.safeParse({
 						username,
 						password: 'validpassword123'
 					});
@@ -97,7 +97,7 @@ describe('Property 30: Username Validation', () => {
 					fc.stringMatching(/^[A-Z][a-z0-9_]{2,31}$/)
 				),
 				(invalidUsername) => {
-					const result = jellyfinRegistrationSchema.safeParse({
+					const result = registrationSchema.safeParse({
 						username: invalidUsername,
 						password: 'validpassword123'
 					});
@@ -137,7 +137,7 @@ describe('Property 30: Username Validation', () => {
 					)
 					.filter((s) => s.length >= 3 && s.length <= 32),
 				(invalidUsername) => {
-					const result = jellyfinRegistrationSchema.safeParse({
+					const result = registrationSchema.safeParse({
 						username: invalidUsername,
 						password: 'validpassword123'
 					});
@@ -164,7 +164,7 @@ describe('Property 30: Username Validation', () => {
 	it('should accept valid usernames', () => {
 		fc.assert(
 			fc.property(fc.stringMatching(/^[a-z][a-z0-9_]{2,31}$/), (validUsername) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: validUsername,
 					password: 'validpassword123'
 				});
@@ -191,7 +191,7 @@ describe('Property 31: Password Validation', () => {
 	it('should reject passwords shorter than 8 characters', () => {
 		fc.assert(
 			fc.property(fc.string({ minLength: 0, maxLength: 7 }), (shortPassword) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: 'validuser',
 					password: shortPassword
 				});
@@ -219,7 +219,7 @@ describe('Property 31: Password Validation', () => {
 	it('should accept passwords of 8 or more characters', () => {
 		fc.assert(
 			fc.property(fc.string({ minLength: 8, maxLength: 128 }), (validPassword) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: 'validuser',
 					password: validPassword
 				});
@@ -239,7 +239,7 @@ describe('Property 31: Password Validation', () => {
 	it('should reject passwords longer than 128 characters', () => {
 		fc.assert(
 			fc.property(fc.string({ minLength: 129, maxLength: 200 }), (longPassword) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: 'validuser',
 					password: longPassword
 				});
@@ -280,7 +280,7 @@ describe('Email Validation', () => {
 
 		fc.assert(
 			fc.property(commonEmailArb, (validEmail) => {
-				const result = jellyfinRegistrationSchema.safeParse({
+				const result = registrationSchema.safeParse({
 					username: 'validuser',
 					password: 'validpassword123',
 					email: validEmail
@@ -296,7 +296,7 @@ describe('Email Validation', () => {
 	 * For an empty email string, the Zod schema SHALL accept it (optional field).
 	 */
 	it('should accept empty email string', () => {
-		const result = jellyfinRegistrationSchema.safeParse({
+		const result = registrationSchema.safeParse({
 			username: 'validuser',
 			password: 'validpassword123',
 			email: ''
@@ -309,7 +309,7 @@ describe('Email Validation', () => {
 	 * For undefined email, the Zod schema SHALL accept it (optional field).
 	 */
 	it('should accept undefined email', () => {
-		const result = jellyfinRegistrationSchema.safeParse({
+		const result = registrationSchema.safeParse({
 			username: 'validuser',
 			password: 'validpassword123'
 		});
@@ -331,7 +331,7 @@ describe('Email Validation', () => {
 					fc.constant('double@@at.com')
 				),
 				(invalidEmail) => {
-					const result = jellyfinRegistrationSchema.safeParse({
+					const result = registrationSchema.safeParse({
 						username: 'validuser',
 						password: 'validpassword123',
 						email: invalidEmail

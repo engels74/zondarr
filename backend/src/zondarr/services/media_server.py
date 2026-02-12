@@ -14,7 +14,7 @@ from uuid import UUID
 
 from zondarr.core.exceptions import NotFoundError, ValidationError
 from zondarr.media.registry import ClientRegistry
-from zondarr.models.media_server import Library, MediaServer, ServerType
+from zondarr.models.media_server import Library, MediaServer
 from zondarr.repositories.media_server import MediaServerRepository
 
 
@@ -66,7 +66,7 @@ class MediaServerService:
         self,
         *,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
         enabled: bool = True,
@@ -79,7 +79,8 @@ class MediaServerService:
 
         Args:
             name: Human-readable name for the server (keyword-only).
-            server_type: Type of media server (jellyfin or plex) (keyword-only).
+            server_type: Type of media server (keyword-only). Must be a
+                registered provider type.
             url: Base URL for the media server API (keyword-only).
             api_key: Authentication token for the server (keyword-only).
             enabled: Whether the server should be active (keyword-only).
@@ -88,9 +89,21 @@ class MediaServerService:
             The created MediaServer entity with generated ID.
 
         Raises:
-            ValidationError: If the connection test fails.
+            ValidationError: If server_type is unknown or connection test fails.
             RepositoryError: If the database operation fails.
         """
+        # Validate server_type against registry
+        if server_type not in self.registry.registered_types():
+            raise ValidationError(
+                f"Unknown server type: {server_type}",
+                field_errors={
+                    "server_type": [
+                        f"Unsupported server type '{server_type}'. "
+                        f"Supported types: {', '.join(sorted(self.registry.registered_types()))}"
+                    ],
+                },
+            )
+
         # Validate connection before persisting (Property 10)
         connection_valid = await self.test_connection(
             server_type=server_type,
@@ -209,7 +222,7 @@ class MediaServerService:
     async def test_connection(
         self,
         *,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> bool:
