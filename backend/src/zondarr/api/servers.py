@@ -344,6 +344,7 @@ class ServerController(Controller):
 
     @post(
         "/test-connection",
+        status_code=200,
         summary="Test media server connection",
         description="Test connectivity and auto-detect server type. If server_type is omitted, probes all registered providers.",
     )

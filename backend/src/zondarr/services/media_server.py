@@ -286,7 +286,7 @@ class MediaServerService:
             except Exception:
                 return False, server_type, None
 
-        # Auto-detect: try all registered types concurrently
+        # Auto-detect: try all registered types, return on first success
         async def _try_type(st: str) -> tuple[bool, str, ServerInfo | None]:
             try:
                 return await asyncio.wait_for(
@@ -296,20 +296,25 @@ class MediaServerService:
             except Exception:
                 return False, st, None
 
-        tasks = [_try_type(st) for st in self.registry.registered_types()]
-        results = await asyncio.gather(*tasks)
-
-        for success, detected_type, info in results:
-            if success:
-                log.info(
-                    "server_type_detected",
-                    url=url,
-                    server_type=detected_type,
-                    server_name=info.server_name if info else None,
-                )
-                return True, detected_type, info
-
-        return False, None, None
+        tasks = [
+            asyncio.create_task(_try_type(st))
+            for st in self.registry.registered_types()
+        ]
+        try:
+            for future in asyncio.as_completed(tasks):
+                success, detected_type, info = await future
+                if success:
+                    log.info(
+                        "server_type_detected",
+                        url=url,
+                        server_type=detected_type,
+                        server_name=info.server_name if info else None,
+                    )
+                    return True, detected_type, info
+            return False, None, None
+        finally:
+            for task in tasks:
+                _ = task.cancel()
 
     async def _probe_type(
         self,

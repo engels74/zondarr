@@ -133,11 +133,19 @@ async function handleTestConnection() {
 	testing = true;
 	testResult = null;
 
+	const testedUrl = formData.url;
+	const testedApiKey = formData.api_key;
+
 	try {
 		const result = await withErrorHandling(
-			() => testConnection({ url: formData.url, api_key: formData.api_key }),
+			() => testConnection({ url: testedUrl, api_key: testedApiKey }),
 			{ showErrorToast: false }
 		);
+
+		// Discard stale results if inputs changed during the request
+		if (formData.url !== testedUrl || formData.api_key !== testedApiKey) {
+			return;
+		}
 
 		if (result.error || !result.data) {
 			const errorBody = result.error as { detail?: string; message?: string } | undefined;
