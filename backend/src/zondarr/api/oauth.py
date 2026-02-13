@@ -10,15 +10,14 @@ These endpoints are publicly accessible without authentication.
 """
 
 from collections.abc import Sequence
-from datetime import datetime
 from typing import TYPE_CHECKING, Annotated
 
-import msgspec
 from litestar import Controller, get, post
 from litestar.datastructures import State
 from litestar.params import Parameter
 from litestar.status_codes import HTTP_200_OK
 
+from zondarr.api.schemas import OAuthCheckResponse, OAuthPinResponse
 from zondarr.config import Settings
 from zondarr.core.exceptions import NotFoundError
 from zondarr.media.exceptions import UnknownServerTypeError
@@ -26,38 +25,6 @@ from zondarr.media.registry import registry
 
 if TYPE_CHECKING:
     from zondarr.media.provider import OAuthFlowProvider
-
-
-class OAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from OAuth PIN creation.
-
-    Attributes:
-        pin_id: The PIN identifier for status checking.
-        code: The PIN code to display to the user.
-        auth_url: URL where user authenticates.
-        expires_at: When the PIN expires.
-    """
-
-    pin_id: int
-    code: str
-    auth_url: str
-    expires_at: datetime
-
-
-class OAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from OAuth PIN status check.
-
-    Attributes:
-        authenticated: Whether the PIN has been authenticated.
-        auth_token: Auth token (only if authenticated).
-        email: User's email (only if authenticated).
-        error: Error message (only if failed).
-    """
-
-    authenticated: bool
-    auth_token: str | None = None
-    email: str | None = None
-    error: str | None = None
 
 
 def _resolve_flow(provider: str, state: State) -> OAuthFlowProvider:

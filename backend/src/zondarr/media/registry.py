@@ -193,6 +193,10 @@ class ClientRegistry:
 
         Reads each registered provider's declared env var names and populates
         the provider_credentials dict.
+
+        Note: Mutates ``settings.provider_credentials`` in place. This is safe
+        because Settings is created once per application lifecycle during
+        startup, before any concurrent access.
         """
         provider_creds: dict[str, dict[str, str]] = {}
 

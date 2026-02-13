@@ -8,6 +8,7 @@ Provides:
 - IdentityCreate/Response: Identity CRUD schemas
 - UserResponse: User response schema
 - HealthCheckResponse: Health endpoint response schema
+- OAuthPinResponse/OAuthCheckResponse: OAuth flow schemas
 
 Uses msgspec.Struct for high-performance serialization (10-80x faster than Pydantic).
 Validation constraints are defined via Meta annotations.
@@ -124,6 +125,10 @@ class ValidationErrorResponse(msgspec.Struct, kw_only=True):
 
 class MediaServerCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """Request to create a media server.
+
+    Note: server_type is validated as a non-empty string at the schema level.
+    Valid provider type checking is deferred to the service layer's registry
+    lookup, allowing new providers to be added without schema changes.
 
     Attributes:
         name: Human-readable name for the server.
@@ -1200,3 +1205,40 @@ class ProviderMetadataResponse(msgspec.Struct, kw_only=True, omit_defaults=True)
     capabilities: list[str] = []
     supported_permissions: list[str] = []
     join_flow_type: str | None = None
+
+
+# =============================================================================
+# OAuth Schemas
+# =============================================================================
+
+
+class OAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from OAuth PIN creation.
+
+    Attributes:
+        pin_id: The PIN identifier for status checking.
+        code: The PIN code to display to the user.
+        auth_url: URL where user authenticates.
+        expires_at: When the PIN expires.
+    """
+
+    pin_id: int
+    code: str
+    auth_url: str
+    expires_at: datetime
+
+
+class OAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from OAuth PIN status check.
+
+    Attributes:
+        authenticated: Whether the PIN has been authenticated.
+        auth_token: Auth token (only if authenticated).
+        email: User's email (only if authenticated).
+        error: Error message (only if failed).
+    """
+
+    authenticated: bool
+    auth_token: str | None = None
+    email: str | None = None
+    error: str | None = None

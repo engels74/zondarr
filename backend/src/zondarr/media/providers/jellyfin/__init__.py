@@ -6,6 +6,9 @@ client class, admin auth, join flow, and route handlers.
 
 import warnings
 
+# python-jellyfin-apiclient depends on Pydantic V1 which emits a
+# deprecation warning on Python 3.14. Suppress it before importing
+# any Jellyfin-related modules.
 warnings.filterwarnings(
     "ignore",
     message="Core Pydantic V1 functionality isn't compatible with Python 3.14",

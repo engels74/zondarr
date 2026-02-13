@@ -9,6 +9,9 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
+from plexapi.exceptions import PlexApiException
+from requests.exceptions import RequestException
+
 from zondarr.core.exceptions import AuthenticationError
 from zondarr.models.admin import AdminAccount
 
@@ -70,9 +73,13 @@ class PlexAdminAuth:
             _raw_username: object = account.username  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
             plex_email = str(_raw_email)  # pyright: ignore[reportUnknownArgumentType]
             plex_username = str(_raw_username) if _raw_username else plex_email  # pyright: ignore[reportUnknownArgumentType]
-        except Exception as exc:
+        except PlexApiException as exc:
             raise AuthenticationError(
                 "Failed to verify Plex account", "PLEX_AUTH_FAILED"
+            ) from exc
+        except RequestException as exc:
+            raise AuthenticationError(
+                "Failed to connect to Plex services", "PLEX_AUTH_FAILED"
             ) from exc
 
         # Verify the authenticating user is the configured Plex server owner
@@ -82,9 +89,13 @@ class PlexAdminAuth:
             )
             _raw_owner_email: object = owner_account.email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
             owner_email = str(_raw_owner_email)  # pyright: ignore[reportUnknownArgumentType]
-        except Exception as exc:
+        except PlexApiException as exc:
             raise AuthenticationError(
                 "Failed to verify Plex server owner", "PLEX_AUTH_FAILED"
+            ) from exc
+        except RequestException as exc:
+            raise AuthenticationError(
+                "Failed to connect to Plex services", "PLEX_AUTH_FAILED"
             ) from exc
 
         if plex_email.lower() != owner_email.lower():
