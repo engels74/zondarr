@@ -2213,7 +2213,25 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
     @given(
         url=url_strategy,
         api_key=api_key_strategy,
-        error_message=st.text(min_size=1, max_size=100).filter(lambda s: s.strip()),
+        error_message=st.text(min_size=1, max_size=100).filter(
+            lambda s: s.strip()
+            and not any(
+                kw in s.lower()
+                for kw in [
+                    "permission",
+                    "forbidden",
+                    "403",
+                    "not found",
+                    "does not exist",
+                    "taken",
+                ]
+            )
+            and not (
+                "already" in s.lower()
+                and ("shared" in s.lower() or "friend" in s.lower())
+            )
+            and not ("exists" in s.lower() and "user" in s.lower())
+        ),
     )
     @pytest.mark.asyncio
     async def test_list_users_raises_on_api_failure(
