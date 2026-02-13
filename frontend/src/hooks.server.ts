@@ -13,7 +13,7 @@ function isPublicPath(pathname: string): boolean {
 export const handle: Handle = async ({ event, resolve }) => {
 	// Try to get user info from the access token cookie
 	const accessToken = event.cookies.get('zondarr_access_token');
-	const skipAuth = env.DEV_SKIP_AUTH === 'true';
+	const skipAuth = ['true', '1', 'yes'].includes((env.DEV_SKIP_AUTH ?? '').toLowerCase());
 
 	if (accessToken || skipAuth) {
 		try {
