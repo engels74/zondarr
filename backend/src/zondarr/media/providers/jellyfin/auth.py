@@ -35,8 +35,8 @@ class JellyfinAdminAuth:
         """Authenticate via Jellyfin credentials.
 
         Args:
-            credentials: Must contain "server_url", "username", "password" keys.
-            settings: Application settings.
+            credentials: Must contain "username", "password" keys.
+            settings: Application settings (needs provider_credentials).
             admin_repo: Admin account repository.
 
         Returns:
@@ -45,17 +45,24 @@ class JellyfinAdminAuth:
         Raises:
             AuthenticationError: If verification fails.
         """
-        del settings  # required by AdminAuthProvider protocol
-
         import httpx
 
-        server_url = str(credentials.get("server_url", ""))
+        # Use configured Jellyfin URL — never trust caller-provided URLs
+        jf_creds = settings.provider_credentials.get("jellyfin", {})
+        server_url = jf_creds.get("url", "")
+
+        if not server_url:
+            raise AuthenticationError(
+                "Jellyfin authentication is not configured",
+                "JELLYFIN_NOT_CONFIGURED",
+            )
+
         username = str(credentials.get("username", ""))
         password = str(credentials.get("password", ""))
 
-        if not server_url or not username or not password:
+        if not username or not password:
             raise AuthenticationError(
-                "Server URL, username, and password are required",
+                "Username and password are required",
                 "MISSING_CREDENTIALS",
             )
 

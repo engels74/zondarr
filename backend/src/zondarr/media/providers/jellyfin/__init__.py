@@ -56,12 +56,6 @@ _JELLYFIN_ADMIN_AUTH = AdminAuthDescriptor(
     flow_type=AuthFlowType.CREDENTIALS,
     fields=[
         AuthFieldDescriptor(
-            name="server_url",
-            label="Server URL",
-            field_type="url",
-            placeholder="http://jellyfin.local:8096",
-        ),
-        AuthFieldDescriptor(
             name="username",
             label="Username",
             field_type="text",

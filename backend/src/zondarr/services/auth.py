@@ -153,6 +153,13 @@ class AuthService:
                 f"Unknown authentication method: {method}",
                 "UNKNOWN_AUTH_METHOD",
             )
+
+        if not provider.is_configured(settings):
+            raise AuthenticationError(
+                f"Authentication method not configured: {method}",
+                "AUTH_METHOD_NOT_CONFIGURED",
+            )
+
         return await provider.authenticate(
             credentials,
             settings=settings,
