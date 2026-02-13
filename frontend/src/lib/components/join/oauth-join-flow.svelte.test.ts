@@ -64,17 +64,17 @@ const authenticatedCheckResponseArb = fc.record({
 });
 
 // =============================================================================
-// Property 32: Plex OAuth Polling
+// Property 32: OAuth Polling
 // Validates: Requirements 12.4
 // =============================================================================
 
-describe('Property 32: Plex OAuth Polling', () => {
+describe('Property 32: OAuth Polling', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL poll the PIN status endpoint
+	 * For any OAuth flow, the frontend SHALL poll the PIN status endpoint
 	 * at regular intervals until authenticated=true is returned.
 	 *
 	 * **Validates: Requirements 12.4**
@@ -155,7 +155,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL stop polling when the PIN
+	 * For any OAuth flow, the frontend SHALL stop polling when the PIN
 	 * expires_at time is reached.
 	 *
 	 * **Validates: Requirements 12.4**
@@ -215,7 +215,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL poll at 2 second intervals.
+	 * For any OAuth flow, the frontend SHALL poll at 2 second intervals.
 	 *
 	 * **Validates: Requirements 12.4**
 	 */
@@ -283,10 +283,10 @@ describe('Property 32: Plex OAuth Polling', () => {
 });
 
 // =============================================================================
-// Additional Plex OAuth Flow Tests
+// Additional OAuth Flow Tests
 // =============================================================================
 
-describe('Plex OAuth Flow Component', () => {
+describe('OAuth Flow Component', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
@@ -335,9 +335,9 @@ describe('Plex OAuth Flow Component', () => {
 	});
 
 	/**
-	 * The component SHALL open Plex auth URL in a new window/tab.
+	 * The component SHALL open auth URL in a new window/tab.
 	 */
-	it('should open Plex auth URL in new window', async () => {
+	it('should open auth URL in new window', async () => {
 		vi.clearAllMocks();
 
 		const pinResponse: OAuthPinResponse = {

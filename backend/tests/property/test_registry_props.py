@@ -12,9 +12,9 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from zondarr.config import Settings
-from zondarr.media.clients.jellyfin import JellyfinClient
-from zondarr.media.clients.plex import PlexClient
 from zondarr.media.exceptions import UnknownServerTypeError
+from zondarr.media.providers.jellyfin.client import JellyfinClient
+from zondarr.media.providers.plex.client import PlexClient
 from zondarr.media.registry import ClientRegistry, registry
 
 

@@ -8,6 +8,7 @@ addition: create a provider module, implement ProviderDescriptor, register it.
 """
 
 from collections.abc import Mapping
+from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol
 
@@ -162,11 +163,59 @@ class MediaClientClass(Protocol):
         ...
 
 
+class OAuthPinResult(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Result from OAuth PIN creation.
+
+    Attributes:
+        pin_id: The PIN identifier for status checking.
+        code: The PIN code to display to the user.
+        auth_url: URL where user authenticates.
+        expires_at: When the PIN expires.
+    """
+
+    pin_id: int
+    code: str
+    auth_url: str
+    expires_at: datetime
+
+
+class OAuthCheckResult(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Result from OAuth PIN status check.
+
+    Attributes:
+        authenticated: Whether the PIN has been authenticated.
+        auth_token: Auth token (only if authenticated).
+        email: User's email (only if authenticated).
+        error: Error message (only if failed).
+    """
+
+    authenticated: bool
+    auth_token: str | None = None
+    email: str | None = None
+    error: str | None = None
+
+
+class OAuthFlowProvider(Protocol):
+    """Protocol for provider-specific OAuth flow implementations."""
+
+    async def create_pin(self) -> OAuthPinResult:
+        """Generate an OAuth PIN and return auth URL."""
+        ...
+
+    async def check_pin(self, pin_id: int, /) -> OAuthCheckResult:
+        """Check if a PIN has been authenticated."""
+        ...
+
+    async def close(self) -> None:
+        """Close resources."""
+        ...
+
+
 class ProviderDescriptor(Protocol):
     """Protocol that each media server provider implements.
 
     Declares everything about a provider: metadata, client class,
-    admin auth, join flow, and route handlers.
+    admin auth, join flow, route handlers, and OAuth support.
     """
 
     @property
@@ -197,4 +246,10 @@ class ProviderDescriptor(Protocol):
     @property
     def route_handlers(self) -> list[type] | None:
         """Litestar route handler classes to register, or None."""
+        ...
+
+    def create_oauth_flow_provider(
+        self, settings: Settings
+    ) -> OAuthFlowProvider | None:
+        """Create an OAuth flow provider, or None if not supported."""
         ...

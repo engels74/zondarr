@@ -112,7 +112,7 @@ class TestContextManagerRoundTrip:
         server_name: str,
     ) -> None:
         """Context manager initializes _server and _account on enter, cleans up on exit."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock server that will be returned by PlexServer constructor
         mock_server = MockPlexServer(url, api_key, friendly_name=server_name)
@@ -146,7 +146,7 @@ class TestContextManagerRoundTrip:
         api_key: str,
     ) -> None:
         """Context manager __aenter__ returns self."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_server = MockPlexServer(url, api_key)
 
@@ -168,7 +168,7 @@ class TestContextManagerRoundTrip:
         api_key: str,
     ) -> None:
         """Context manager cleans up _server and _account even when exception occurs."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_server = MockPlexServer(url, api_key)
 
@@ -198,42 +198,42 @@ class TestCapabilitiesDeclaration:
 
     def test_capabilities_includes_create_user(self) -> None:
         """PlexClient declares CREATE_USER capability."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert Capability.CREATE_USER in capabilities
 
     def test_capabilities_includes_delete_user(self) -> None:
         """PlexClient declares DELETE_USER capability."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert Capability.DELETE_USER in capabilities
 
     def test_capabilities_includes_library_access(self) -> None:
         """PlexClient declares LIBRARY_ACCESS capability."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert Capability.LIBRARY_ACCESS in capabilities
 
     def test_capabilities_excludes_enable_disable_user(self) -> None:
         """PlexClient does NOT declare ENABLE_DISABLE_USER capability."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert Capability.ENABLE_DISABLE_USER not in capabilities
 
     def test_capabilities_excludes_download_permission(self) -> None:
         """PlexClient does NOT declare DOWNLOAD_PERMISSION capability."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert Capability.DOWNLOAD_PERMISSION not in capabilities
 
     def test_capabilities_returns_exactly_three(self) -> None:
         """PlexClient declares exactly 3 capabilities."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         capabilities = PlexClient.capabilities()
         assert len(capabilities) == 3
@@ -289,7 +289,7 @@ class TestConnectionTestReturnValues:
         server_name: str,
     ) -> None:
         """test_connection returns True when server is reachable and token is valid."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_server = MockPlexServer(url, api_key, friendly_name=server_name)
 
@@ -312,7 +312,7 @@ class TestConnectionTestReturnValues:
         api_key: str,
     ) -> None:
         """test_connection returns False when client is not initialized (outside context)."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -334,7 +334,7 @@ class TestConnectionTestReturnValues:
         error_message: str,
     ) -> None:
         """test_connection returns False (not raises) when server query fails."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a mock server that raises an exception when friendlyName is accessed
         mock_server = MockPlexServerWithError(
@@ -361,7 +361,7 @@ class TestConnectionTestReturnValues:
         api_key: str,
     ) -> None:
         """test_connection never raises exceptions, always returns bool."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a mock server that raises a RuntimeError
         mock_server = MockPlexServerWithError(
@@ -431,7 +431,7 @@ class TestLibraryRetrievalProducesValidStructs:
         sections: list[tuple[int, str, str]],
     ) -> None:
         """get_libraries returns valid LibraryInfo structs for each section."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
         from zondarr.media.types import LibraryInfo
 
         mock_server = MockPlexServer(url, api_key)
@@ -474,7 +474,7 @@ class TestLibraryRetrievalProducesValidStructs:
         lib_type: str,
     ) -> None:
         """get_libraries maps section key→external_id, title→name, type→library_type."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_server = MockPlexServer(url, api_key)
         mock_server.library._sections = [  # pyright: ignore[reportPrivateUsage]
@@ -505,7 +505,7 @@ class TestLibraryRetrievalProducesValidStructs:
         api_key: str,
     ) -> None:
         """get_libraries returns empty sequence when server has no sections."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_server = MockPlexServer(url, api_key)
         mock_server.library._sections = []  # pyright: ignore[reportPrivateUsage]
@@ -529,8 +529,8 @@ class TestLibraryRetrievalProducesValidStructs:
         api_key: str,
     ) -> None:
         """get_libraries raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -650,7 +650,7 @@ class TestFriendCreationReturnsValidExternalUser:
         user_id: int,
     ) -> None:
         """Friend creation returns ExternalUser with non-empty external_user_id and matching email."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
         from zondarr.media.types import ExternalUser
 
         mock_user = MockMyPlexUser(user_id=user_id, username=email, email=email)
@@ -689,7 +689,7 @@ class TestFriendCreationReturnsValidExternalUser:
         username: str,
     ) -> None:
         """Friend creation uses the user ID returned by inviteFriend."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUser(user_id=user_id, username=username, email=email)
         mock_account = MockMyPlexAccountWithInvite(invite_result=mock_user)
@@ -720,8 +720,8 @@ class TestFriendCreationReturnsValidExternalUser:
         email: str,
     ) -> None:
         """Friend creation raises MediaClientError with USER_ALREADY_EXISTS on duplicate."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Simulate duplicate user error from Plex API
         mock_account = MockMyPlexAccountWithInvite(
@@ -753,8 +753,8 @@ class TestFriendCreationReturnsValidExternalUser:
         email: str,
     ) -> None:
         """Friend creation raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -848,7 +848,7 @@ class TestHomeUserCreationReturnsValidExternalUser:
         user_id: int,
     ) -> None:
         """Home User creation returns ExternalUser with non-empty external_user_id and matching username."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
         from zondarr.media.types import ExternalUser
 
         mock_user = MockMyPlexUser(user_id=user_id, username=username, email=None)
@@ -889,7 +889,7 @@ class TestHomeUserCreationReturnsValidExternalUser:
         user_id: int,
     ) -> None:
         """Home User creation uses the user ID returned by createHomeUser."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUser(user_id=user_id, username=username, email=None)
         mock_account = MockMyPlexAccountWithHomeUser(create_result=mock_user)
@@ -920,8 +920,8 @@ class TestHomeUserCreationReturnsValidExternalUser:
         username: str,
     ) -> None:
         """Home User creation raises MediaClientError with USERNAME_TAKEN on duplicate."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Simulate duplicate username error from Plex API
         mock_account = MockMyPlexAccountWithHomeUser(
@@ -955,8 +955,8 @@ class TestHomeUserCreationReturnsValidExternalUser:
         username: str,
     ) -> None:
         """Home User creation raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -1053,10 +1053,9 @@ class TestUserTypeRoutingCorrectness:
     Feature: plex-integration
     Property 6: User Type Routing Correctness
 
-    For any call to create_user, if plex_user_type is FRIEND and email is provided,
-    the Friend creation path is used; if plex_user_type is HOME, the Home User
-    creation path is used; if plex_user_type is FRIEND but no email is provided,
-    MediaClientError is raised.
+    For any call to create_user, if email is provided the Friend creation path
+    is used (inviteFriend); if no email is provided, the Home User creation
+    path is used (createHomeUser).
 
     **Validates: Requirements 6.1, 6.2, 6.3, 6.4**
     """
@@ -1078,9 +1077,8 @@ class TestUserTypeRoutingCorrectness:
         email: str,
         user_id: int,
     ) -> None:
-        """create_user with FRIEND type and email routes to inviteFriend."""
-        from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.types import PlexUserType
+        """create_user with email routes to inviteFriend."""
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUser(user_id=user_id, username=email, email=email)
         mock_account = MockMyPlexAccountWithBothMethods(invite_result=mock_user)
@@ -1094,7 +1092,6 @@ class TestUserTypeRoutingCorrectness:
                     username,
                     "ignored_password",
                     email=email,
-                    plex_user_type=PlexUserType.FRIEND,
                 )
 
                 # Verify inviteFriend was called, not createHomeUser
@@ -1119,9 +1116,8 @@ class TestUserTypeRoutingCorrectness:
         username: str,
         user_id: int,
     ) -> None:
-        """create_user with HOME type routes to createHomeUser."""
-        from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.types import PlexUserType
+        """create_user without email routes to createHomeUser."""
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUser(user_id=user_id, username=username, email=None)
         mock_account = MockMyPlexAccountWithBothMethods(create_result=mock_user)
@@ -1131,9 +1127,7 @@ class TestUserTypeRoutingCorrectness:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                result = await client.create_user(
-                    username, "ignored_password", plex_user_type=PlexUserType.HOME
-                )
+                result = await client.create_user(username, "ignored_password")
 
                 # Verify createHomeUser was called, not inviteFriend
                 assert mock_account.create_home_user_called is True
@@ -1149,36 +1143,31 @@ class TestUserTypeRoutingCorrectness:
         url=url_strategy,
         api_key=api_key_strategy,
         username=username_strategy,
+        user_id=st.integers(min_value=1, max_value=999999999),
     )
     @pytest.mark.asyncio
-    async def test_friend_type_without_email_raises_email_required(
+    async def test_create_user_without_email_creates_home_user(
         self,
         url: str,
         api_key: str,
         username: str,
+        user_id: int,
     ) -> None:
-        """create_user with FRIEND type but no email raises MediaClientError with EMAIL_REQUIRED."""
-        from zondarr.media.clients.plex import PlexClient
-        from zondarr.media.exceptions import MediaClientError
-        from zondarr.media.types import PlexUserType
+        """create_user without email routes to createHomeUser."""
+        from zondarr.media.providers.plex.client import PlexClient
 
-        mock_account = MockMyPlexAccountWithBothMethods()
+        mock_user = MockMyPlexUser(user_id=user_id, username=username, email=None)
+        mock_account = MockMyPlexAccountWithBothMethods(create_result=mock_user)
         mock_server = MockPlexServerWithBothMethods(url, api_key, account=mock_account)
 
         with patch("plexapi.server.PlexServer", return_value=mock_server):
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                with pytest.raises(MediaClientError) as exc_info:
-                    _ = await client.create_user(
-                        username, "ignored_password", plex_user_type=PlexUserType.FRIEND
-                    )
+                _ = await client.create_user(username, "ignored_password")
 
-                assert exc_info.value.media_error_code == "EMAIL_REQUIRED"
-                assert exc_info.value.operation == "create_user"
-                # Neither method should have been called
+                assert mock_account.create_home_user_called is True
                 assert mock_account.invite_friend_called is False
-                assert mock_account.create_home_user_called is False
 
     @settings(max_examples=25)
     @given(
@@ -1189,7 +1178,7 @@ class TestUserTypeRoutingCorrectness:
         user_id=st.integers(min_value=1, max_value=999999999),
     )
     @pytest.mark.asyncio
-    async def test_default_user_type_is_friend(
+    async def test_create_user_with_email_routes_to_friend(
         self,
         url: str,
         api_key: str,
@@ -1197,8 +1186,8 @@ class TestUserTypeRoutingCorrectness:
         email: str,
         user_id: int,
     ) -> None:
-        """create_user defaults to FRIEND type when plex_user_type is not specified."""
-        from zondarr.media.clients.plex import PlexClient
+        """create_user with email routes to inviteFriend."""
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUser(user_id=user_id, username=email, email=email)
         mock_account = MockMyPlexAccountWithBothMethods(invite_result=mock_user)
@@ -1208,12 +1197,11 @@ class TestUserTypeRoutingCorrectness:
             client = PlexClient(url=url, api_key=api_key)
 
             async with client:
-                # Don't specify plex_user_type - should default to FRIEND
                 result = await client.create_user(
                     username, "ignored_password", email=email
                 )
 
-                # Verify inviteFriend was called (default is FRIEND)
+                # Verify inviteFriend was called (email triggers Friend path)
                 assert mock_account.invite_friend_called is True
                 assert mock_account.create_home_user_called is False
                 assert result.email == email
@@ -1329,7 +1317,7 @@ class TestDeleteUserReturnValueCorrectness:
         username: str,
     ) -> None:
         """delete_user returns True when Friend is successfully deleted."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a Friend user (home=False)
         mock_user = MockMyPlexUserWithHome(
@@ -1365,7 +1353,7 @@ class TestDeleteUserReturnValueCorrectness:
         username: str,
     ) -> None:
         """delete_user returns True when Home User is successfully deleted."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a Home User (home=True)
         mock_user = MockMyPlexUserWithHome(
@@ -1399,7 +1387,7 @@ class TestDeleteUserReturnValueCorrectness:
         user_id: int,
     ) -> None:
         """delete_user returns False when user is not found."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Empty user list - user won't be found
         mock_account = MockMyPlexAccountWithUserManagement(users=[])
@@ -1430,8 +1418,8 @@ class TestDeleteUserReturnValueCorrectness:
         user_id: int,
     ) -> None:
         """delete_user raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -1449,9 +1437,11 @@ class TestDeleteUserReturnValueCorrectness:
         user_id=st.integers(min_value=1, max_value=999999999),
         username=username_strategy,
         error_message=st.text(min_size=1, max_size=100).filter(
-            lambda s: s.strip()
-            and "not found" not in s.lower()
-            and "does not exist" not in s.lower()
+            lambda s: (
+                s.strip()
+                and "not found" not in s.lower()
+                and "does not exist" not in s.lower()
+            )
         ),
     )
     @pytest.mark.asyncio
@@ -1465,7 +1455,7 @@ class TestDeleteUserReturnValueCorrectness:
     ) -> None:
         """delete_user raises ExternalServiceError on API failure (not 'not found')."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a Friend user that will fail to delete
         mock_user = MockMyPlexUserWithHome(
@@ -1600,7 +1590,7 @@ class TestLibraryAccessUpdateReturnValueCorrectness:
         library_ids: list[int],
     ) -> None:
         """set_library_access returns True when Friend's access is updated."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a Friend user
         mock_user = MockMyPlexUserWithHome(
@@ -1651,7 +1641,7 @@ class TestLibraryAccessUpdateReturnValueCorrectness:
         library_ids: list[int],
     ) -> None:
         """set_library_access returns True when Home User's access is updated."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create a Home User
         mock_user = MockMyPlexUserWithHome(
@@ -1696,7 +1686,7 @@ class TestLibraryAccessUpdateReturnValueCorrectness:
         user_id: int,
     ) -> None:
         """set_library_access returns False when user is not found."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Empty user list - user won't be found
         mock_account = MockMyPlexAccountWithLibraryAccess(users=[])
@@ -1729,7 +1719,7 @@ class TestLibraryAccessUpdateReturnValueCorrectness:
         username: str,
     ) -> None:
         """set_library_access with empty list revokes all access."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUserWithHome(
             user_id=user_id, username=username, email=f"{username}@test.com", home=False
@@ -1764,8 +1754,8 @@ class TestLibraryAccessUpdateReturnValueCorrectness:
         user_id: int,
     ) -> None:
         """set_library_access raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -1871,7 +1861,7 @@ class TestPermissionUpdateMappingAndReturnValue:
         can_download: bool,
     ) -> None:
         """update_permissions maps can_download to Plex allowSync setting."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUserWithHome(
             user_id=user_id, username=username, email=f"{username}@test.com", home=False
@@ -1908,7 +1898,7 @@ class TestPermissionUpdateMappingAndReturnValue:
         username: str,
     ) -> None:
         """update_permissions returns True when permissions are successfully updated."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUserWithHome(
             user_id=user_id, username=username, email=f"{username}@test.com", home=False
@@ -1940,7 +1930,7 @@ class TestPermissionUpdateMappingAndReturnValue:
         user_id: int,
     ) -> None:
         """update_permissions returns False when user is not found."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Empty user list - user won't be found
         mock_account = MockMyPlexAccountWithPermissions(users=[])
@@ -1971,8 +1961,8 @@ class TestPermissionUpdateMappingAndReturnValue:
         user_id: int,
     ) -> None:
         """update_permissions raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -2001,7 +1991,7 @@ class TestPermissionUpdateMappingAndReturnValue:
         username: str,
     ) -> None:
         """update_permissions with empty dict returns True (no-op for existing user)."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUserWithHome(
             user_id=user_id, username=username, email=f"{username}@test.com", home=False
@@ -2105,7 +2095,7 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
         users_data: list[tuple[int, str, str | None, bool]],
     ) -> None:
         """list_users returns all Friends and Home Users as ExternalUser structs."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
         from zondarr.media.types import ExternalUser
 
         # Create mock users
@@ -2151,7 +2141,7 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
         email: str,
     ) -> None:
         """list_users maps user fields correctly to ExternalUser."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_user = MockMyPlexUserWithHome(
             user_id=user_id, username=username, email=email, home=False
@@ -2183,7 +2173,7 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
         api_key: str,
     ) -> None:
         """list_users returns empty sequence when no users exist."""
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_account = MockMyPlexAccountWithUserList(users=[])
         mock_server = MockPlexServerWithUserList(url, api_key, account=mock_account)
@@ -2207,8 +2197,8 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
         api_key: str,
     ) -> None:
         """list_users raises MediaClientError when client is not initialized."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -2234,7 +2224,7 @@ class TestListUsersReturnsAllUsersAsExternalUserStructs:
     ) -> None:
         """list_users raises ExternalServiceError on API failure."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         mock_account = MockMyPlexAccountWithUserList(
             users_error=RuntimeError(error_message)
@@ -2294,8 +2284,8 @@ class TestErrorStructureContainsRequiredFields:
         api_key: str,
     ) -> None:
         """get_libraries error contains operation and server_url fields."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -2317,49 +2307,6 @@ class TestErrorStructureContainsRequiredFields:
     @given(
         url=url_strategy,
         api_key=api_key_strategy,
-    )
-    @pytest.mark.asyncio
-    async def test_create_user_email_required_error_contains_required_fields(
-        self,
-        url: str,
-        api_key: str,
-    ) -> None:
-        """create_user EMAIL_REQUIRED error contains operation and server_url fields."""
-        from zondarr.media.clients.plex import PlexClient, PlexErrorCode
-        from zondarr.media.exceptions import MediaClientError
-        from zondarr.media.types import PlexUserType
-
-        mock_server = MockPlexServer(url, api_key)
-
-        with patch("plexapi.server.PlexServer", return_value=mock_server):
-            client = PlexClient(url=url, api_key=api_key)
-
-            async with client:
-                # Try to create Friend without email
-                with pytest.raises(MediaClientError) as exc_info:
-                    _ = await client.create_user(
-                        "testuser",
-                        "password",
-                        plex_user_type=PlexUserType.FRIEND,
-                        email=None,
-                    )
-
-                error = exc_info.value
-                # operation field must be non-empty
-                assert error.operation
-                assert len(error.operation) > 0
-                assert error.operation == "create_user"
-                # server_url must match client's configured URL
-                assert error.server_url == url
-                # error_code should be EMAIL_REQUIRED
-                assert error.media_error_code == PlexErrorCode.EMAIL_REQUIRED
-                # cause field must be present
-                assert error.cause is not None
-
-    @settings(max_examples=100)
-    @given(
-        url=url_strategy,
-        api_key=api_key_strategy,
         email=email_strategy,
     )
     @pytest.mark.asyncio
@@ -2371,7 +2318,7 @@ class TestErrorStructureContainsRequiredFields:
     ) -> None:
         """create_friend error contains service_name field for external errors."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithInvite(
@@ -2405,7 +2352,7 @@ class TestErrorStructureContainsRequiredFields:
     ) -> None:
         """create_home_user error contains service_name field for external errors."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithHomeUser(
@@ -2441,7 +2388,7 @@ class TestErrorStructureContainsRequiredFields:
     ) -> None:
         """delete_user error contains service_name field for external errors."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2472,8 +2419,8 @@ class TestErrorStructureContainsRequiredFields:
         api_key: str,
     ) -> None:
         """list_users error contains operation and server_url fields."""
-        from zondarr.media.clients.plex import PlexClient
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
 
         client = PlexClient(url=url, api_key=api_key)
 
@@ -2512,7 +2459,7 @@ class TestErrorStructureContainsRequiredFields:
     ) -> None:
         """set_library_access error contains service_name field for external errors."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2548,7 +2495,7 @@ class TestErrorStructureContainsRequiredFields:
     ) -> None:
         """update_permissions error contains service_name field for external errors."""
         from zondarr.core.exceptions import ExternalServiceError
-        from zondarr.media.clients.plex import PlexClient
+        from zondarr.media.providers.plex.client import PlexClient
 
         # Create mock that raises an error
         mock_account = MockMyPlexAccountWithUserList(
@@ -2583,8 +2530,8 @@ class TestErrorStructureContainsRequiredFields:
         email: str,
     ) -> None:
         """USER_ALREADY_EXISTS error contains operation, server_url, and error_code."""
-        from zondarr.media.clients.plex import PlexClient, PlexErrorCode
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient, PlexErrorCode
 
         # Create mock that raises "already shared" error
         mock_account = MockMyPlexAccountWithInvite(
@@ -2624,8 +2571,8 @@ class TestErrorStructureContainsRequiredFields:
         username: str,
     ) -> None:
         """USERNAME_TAKEN error contains operation, server_url, and error_code."""
-        from zondarr.media.clients.plex import PlexClient, PlexErrorCode
         from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient, PlexErrorCode
 
         # Create mock that raises "username taken" error
         mock_account = MockMyPlexAccountWithHomeUser(

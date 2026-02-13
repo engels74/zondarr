@@ -40,6 +40,7 @@ from zondarr.api.errors import (
 from zondarr.api.health import HealthController
 from zondarr.api.invitations import InvitationController
 from zondarr.api.join import JoinController
+from zondarr.api.oauth import OAuthController
 from zondarr.api.providers import ProviderController
 from zondarr.api.servers import ServerController
 from zondarr.api.users import UserController
@@ -73,19 +74,11 @@ def _create_openapi_config() -> OpenAPIConfig:
         Tag(name="Media Servers", description="Media server management"),
         Tag(name="Invitations", description="Invitation management"),
         Tag(name="Join", description="Public invitation redemption"),
+        Tag(name="OAuth", description="OAuth authentication flows"),
         Tag(name="Providers", description="Provider metadata"),
         Tag(name="Users", description="User and identity management"),
         Tag(name="Wizards", description="Wizard management for onboarding flows"),
     ]
-
-    # Add dynamic tags from providers
-    for meta in registry.get_all_metadata():
-        tags.append(
-            Tag(
-                name=f"{meta.display_name} OAuth",
-                description=f"{meta.display_name} OAuth authentication flow",
-            )
-        )
 
     return OpenAPIConfig(
         title="Zondarr API",
@@ -181,6 +174,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
         HealthController,
         InvitationController,
         JoinController,
+        OAuthController,
         ProviderController,
         ServerController,
         UserController,

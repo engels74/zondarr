@@ -95,7 +95,7 @@ let formData = $state<RegistrationInput>({
 });
 let formErrors = $state<Record<string, string[]>>({});
 
-// Plex OAuth state
+// OAuth state
 let oauthEmail = $state<string | null>(null);
 
 // Response data
@@ -379,15 +379,15 @@ async function handleRegistrationSubmit() {
 }
 
 /**
- * Handle Plex OAuth authentication success.
+ * Handle OAuth authentication success.
  */
 async function handleOAuthAuthenticated(email: string) {
 	oauthEmail = email;
 	currentStep = "oauth_redeeming";
 
-	// Proceed to redeem the invitation with Plex credentials
-	// For Plex, we use the email as username and a placeholder password
-	// The backend will handle the actual Plex user creation
+	// Proceed to redeem the invitation with OAuth credentials
+	// Use the email as username and a placeholder password
+	// The backend will handle user creation via the provider's API
 	try {
 		const response = await redeemInvitation(data.code, {
 			username: email,
@@ -442,7 +442,7 @@ async function handleOAuthAuthenticated(email: string) {
 }
 
 /**
- * Handle Plex OAuth cancellation.
+ * Handle OAuth cancellation.
  */
 function handleOAuthCancel() {
 	currentStep = "validation";
@@ -636,7 +636,7 @@ function renderInteraction(
 			</CardContent>
 		</Card>
 
-	<!-- Plex OAuth flow state -->
+	<!-- OAuth flow state -->
 	{:else if currentStep === 'oauth' && data.validation?.valid}
 		<Card class="border-cr-border bg-cr-surface">
 			<CardHeader>
@@ -667,7 +667,7 @@ function renderInteraction(
 			</CardContent>
 		</Card>
 
-	<!-- Plex redeeming state -->
+	<!-- OAuth redeeming state -->
 	{:else if currentStep === 'oauth_redeeming'}
 		<Card class="border-cr-border bg-cr-surface">
 			<CardHeader>

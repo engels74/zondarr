@@ -41,6 +41,7 @@ if TYPE_CHECKING:
         AdminAuthDescriptor,
         AdminAuthProvider,
         MediaClientClass,
+        OAuthFlowProvider,
         ProviderDescriptor,
         ProviderMetadata,
     )
@@ -241,6 +242,26 @@ class ClientRegistry:
         api_key = provider_creds.get("api_key") or db_api_key
 
         return url, api_key
+
+    def create_oauth_flow_provider(
+        self,
+        server_type: str,
+        settings: Settings,
+    ) -> OAuthFlowProvider | None:
+        """Create an OAuth flow provider for a server type.
+
+        Args:
+            server_type: The server type string.
+            settings: Application settings.
+
+        Returns:
+            An OAuthFlowProvider instance, or None if not supported.
+
+        Raises:
+            UnknownServerTypeError: If no provider is registered.
+        """
+        provider = self.get_provider(server_type)
+        return provider.create_oauth_flow_provider(settings)
 
     def create_client_for_server(self, server: MediaServer, /) -> MediaClient:
         """Create a client for a media server, applying env var overrides.

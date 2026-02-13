@@ -83,21 +83,8 @@ export type RedeemInvitationRequest = components['schemas']['RedeemInvitationReq
 export type RedemptionResponse = components['schemas']['RedemptionResponse'];
 export type RedemptionErrorResponse = components['schemas']['RedemptionErrorResponse'];
 
-/** Generic OAuth PIN creation response. */
-export interface OAuthPinResponse {
-	pin_id: number;
-	code: string;
-	auth_url: string;
-	expires_at: string;
-}
-
-/** Generic OAuth PIN check response. */
-export interface OAuthCheckResponse {
-	authenticated: boolean;
-	auth_token?: string;
-	email?: string;
-	error?: string;
-}
+export type OAuthPinResponse = components['schemas']['OAuthPinResponse'];
+export type OAuthCheckResponse = components['schemas']['OAuthCheckResponse'];
 
 // ErrorResponse is manually defined because it's not used directly in endpoint responses
 export interface ErrorResponse {
@@ -476,13 +463,9 @@ export async function createOAuthPin(
 	provider: string,
 	client: ApiClient = api
 ): Promise<{ data?: OAuthPinResponse; error?: unknown }> {
-	const response = await client.POST(
-		'/api/v1/join/{provider}/oauth/pin' as '/api/v1/join/plex/oauth/pin',
-		{
-			params: { path: { provider } } as never
-		}
-	);
-	return response as { data?: OAuthPinResponse; error?: unknown };
+	return client.POST('/api/v1/join/{provider}/oauth/pin', {
+		params: { path: { provider } }
+	});
 }
 
 /**
@@ -497,13 +480,9 @@ export async function checkOAuthPin(
 	pinId: number,
 	client: ApiClient = api
 ): Promise<{ data?: OAuthCheckResponse; error?: unknown }> {
-	const response = await client.GET(
-		'/api/v1/join/{provider}/oauth/pin/{pin_id}' as '/api/v1/join/plex/oauth/pin/{pin_id}',
-		{
-			params: { path: { provider, pin_id: pinId } } as never
-		}
-	);
-	return response as { data?: OAuthCheckResponse; error?: unknown };
+	return client.GET('/api/v1/join/{provider}/oauth/pin/{pin_id}', {
+		params: { path: { provider, pin_id: pinId } }
+	});
 }
 
 // =============================================================================

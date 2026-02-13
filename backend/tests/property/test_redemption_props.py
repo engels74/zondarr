@@ -1896,10 +1896,7 @@ class TestPlexRedemptionRollbackOnFailure:
                 /,
                 *,
                 email: str | None = None,
-                plex_user_type: str | None = None,
             ) -> ExternalUser:
-                del plex_user_type  # Unused in mock
-
                 # Fail if this is the Plex server
                 if server.server_type == "plex":
                     raise MediaClientError(
@@ -2065,10 +2062,7 @@ class TestPlexRedemptionRollbackOnFailure:
                 /,
                 *,
                 email: str | None = None,
-                plex_user_type: str | None = None,
             ) -> ExternalUser:
-                del plex_user_type
-
                 # Fail if this is the Plex server
                 if server.server_type == "plex":
                     raise MediaClientError(
@@ -2235,10 +2229,8 @@ class TestPlexRedemptionRollbackOnFailure:
                 /,
                 *,
                 email: str | None = None,
-                plex_user_type: str | None = None,
             ) -> ExternalUser:
                 nonlocal create_call_count
-                del plex_user_type
 
                 create_call_count += 1
 

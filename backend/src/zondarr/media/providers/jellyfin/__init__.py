@@ -4,7 +4,15 @@ Implements ProviderDescriptor for Jellyfin, declaring metadata,
 client class, admin auth, join flow, and route handlers.
 """
 
-from zondarr.media.provider import (
+import warnings
+
+warnings.filterwarnings(
+    "ignore",
+    message="Core Pydantic V1 functionality isn't compatible with Python 3.14",
+    category=UserWarning,
+)
+
+from zondarr.media.provider import (  # noqa: E402
     AdminAuthDescriptor,
     AuthFieldDescriptor,
     AuthFlowType,
@@ -14,8 +22,8 @@ from zondarr.media.provider import (
     ProviderMetadata,
 )
 
-from .auth import JellyfinAdminAuth
-from .client import JellyfinClient
+from .auth import JellyfinAdminAuth  # noqa: E402
+from .client import JellyfinClient  # noqa: E402
 
 # Jellyfin logo SVG (simplified)
 _JELLYFIN_ICON_SVG = (
@@ -82,5 +90,12 @@ class JellyfinProvider:
         return JoinFlowDescriptor(flow_type=JoinFlowType.CREDENTIAL_CREATE)
 
     @property
-    def route_handlers(self) -> list[type] | None:
+    def route_handlers(self) -> None:
+        return None
+
+    def create_oauth_flow_provider(
+        self,
+        settings: object,  # pyright: ignore[reportUnusedParameter]
+    ) -> None:
+        """Jellyfin does not support OAuth flows."""
         return None

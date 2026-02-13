@@ -29,7 +29,6 @@ all created users are deleted via delete_user and no local records are created.
 
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 import structlog
 
@@ -99,7 +98,6 @@ class RedemptionService:
         username: str,
         password: str,
         email: str | None = None,
-        provider_params: dict[str, object] | None = None,
     ) -> tuple[Identity, Sequence[User]]:
         """Redeem an invitation code and create user accounts.
 
@@ -117,9 +115,6 @@ class RedemptionService:
             username: Username for the new accounts (keyword-only).
             password: Password for the new accounts (keyword-only).
             email: Optional email address (keyword-only).
-            provider_params: Optional provider-specific parameters (keyword-only).
-                Passed through to the media client's create_user method
-                if the client accepts extra keyword arguments.
 
         Returns:
             Tuple of (Identity, list of Users created).
@@ -146,22 +141,11 @@ class RedemptionService:
                 client = registry.create_client_for_server(server)
 
                 async with client:
-                    # Create user on the media server
-                    # Pass provider_params as extra kwargs if provided
-                    if provider_params:
-                        any_client: Any = client  # pyright: ignore[reportExplicitAny]
-                        external_user = await any_client.create_user(  # pyright: ignore[reportAny]
-                            username,
-                            password,
-                            email=email,
-                            **provider_params,
-                        )
-                    else:
-                        external_user = await client.create_user(
-                            username,
-                            password,
-                            email=email,
-                        )
+                    external_user = await client.create_user(
+                        username,
+                        password,
+                        email=email,
+                    )
                     created_external_users.append((server, external_user))
 
                     log.info(  # pyright: ignore[reportAny]
