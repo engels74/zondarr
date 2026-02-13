@@ -9,13 +9,19 @@ server configuration where test_connection() returns False, the service
 SHALL NOT persist the server and SHALL raise a validation error.
 """
 
+import asyncio
 from collections.abc import Sequence
 from uuid import UUID
 
+import structlog
+
 from zondarr.core.exceptions import NotFoundError, ValidationError
 from zondarr.media.registry import ClientRegistry
+from zondarr.media.types import ServerInfo
 from zondarr.models.media_server import Library, MediaServer
 from zondarr.repositories.media_server import MediaServerRepository
+
+log: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore[reportAny]
 
 
 class MediaServerService:
@@ -249,6 +255,71 @@ class MediaServerService:
         except Exception:
             # Any exception during connection test means failure
             return False
+
+    async def detect_and_test(
+        self,
+        *,
+        url: str,
+        api_key: str,
+        server_type: str | None = None,
+    ) -> tuple[bool, str | None, ServerInfo | None]:
+        """Test connection and optionally detect server type.
+
+        If server_type is provided, test only that type.
+        If None, try all registered types concurrently with 10s timeout each.
+
+        Args:
+            url: Base URL for the media server API (keyword-only).
+            api_key: Authentication token for the server (keyword-only).
+            server_type: Optional server type to test (keyword-only).
+
+        Returns:
+            Tuple of (success, detected_server_type, server_info).
+        """
+        if server_type is not None:
+            # Test a specific server type
+            try:
+                client = self.registry.create_client(
+                    server_type, url=url, api_key=api_key
+                )
+                async with client:
+                    connected = await client.test_connection()
+                    if not connected:
+                        return False, server_type, None
+                    info = await client.get_server_info()
+                    return True, server_type, info
+            except Exception:
+                return False, server_type, None
+
+        # Auto-detect: try all registered types concurrently
+        async def _try_type(st: str) -> tuple[bool, str, ServerInfo | None]:
+            try:
+                client = self.registry.create_client(st, url=url, api_key=api_key)
+                async with client:
+                    connected = await asyncio.wait_for(
+                        client.test_connection(), timeout=10
+                    )
+                    if not connected:
+                        return False, st, None
+                    info = await asyncio.wait_for(client.get_server_info(), timeout=10)
+                    return True, st, info
+            except Exception:
+                return False, st, None
+
+        tasks = [_try_type(st) for st in self.registry.registered_types()]
+        results = await asyncio.gather(*tasks)
+
+        for success, detected_type, info in results:
+            if success:
+                log.info(
+                    "server_type_detected",
+                    url=url,
+                    server_type=detected_type,
+                    server_name=info.server_name if info else None,
+                )
+                return True, detected_type, info
+
+        return False, None, None
 
     async def get_by_id(self, server_id: UUID, /) -> MediaServer:
         """Retrieve a media server by ID.

@@ -415,6 +415,48 @@ export async function getServer(serverId: string, client: ApiClient = api) {
 	});
 }
 
+/** Connection test request */
+export interface TestConnectionRequest {
+	url: string;
+	api_key: string;
+	server_type?: string;
+}
+
+/** Connection test response */
+export interface TestConnectionResponse {
+	success: boolean;
+	message: string;
+	server_type?: string | null;
+	server_name?: string | null;
+	version?: string | null;
+}
+
+/**
+ * Test a media server connection and optionally auto-detect server type.
+ * Uses direct fetch because the endpoint isn't in the generated OpenAPI types
+ * until types are regenerated.
+ *
+ * @param data - Connection test data (url, api_key, optional server_type)
+ * @returns Connection test response in { data, error } shape
+ */
+export async function testConnection(
+	data: TestConnectionRequest,
+	customFetch: typeof globalThis.fetch = fetch
+): Promise<{ data?: TestConnectionResponse; error?: unknown }> {
+	const response = await customFetch(`${API_BASE_URL}/api/v1/servers/test-connection`, {
+		method: 'POST',
+		credentials: 'include',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(data)
+	});
+
+	const body = await response.json();
+	if (!response.ok) {
+		return { error: body };
+	}
+	return { data: body as TestConnectionResponse };
+}
+
 /**
  * Delete a media server.
  *
