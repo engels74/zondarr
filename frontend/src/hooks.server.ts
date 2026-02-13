@@ -45,5 +45,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		redirect(302, '/login');
 	}
 
-	return resolve(event);
+	return resolve(event, {
+		filterSerializedResponseHeaders(name) {
+			return name === 'content-type' || name === 'content-length';
+		}
+	});
 };

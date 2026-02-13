@@ -1,5 +1,5 @@
 <script lang="ts">
-import { goto } from "$app/navigation";
+import { goto, invalidateAll } from "$app/navigation";
 import { getErrorDetail, loginLocal } from "$lib/api/auth";
 import CredentialLoginForm from "$lib/components/auth/credential-login-form.svelte";
 import LocalLoginForm from "$lib/components/auth/local-login-form.svelte";
@@ -21,11 +21,13 @@ async function handleLocalLogin(username: string, password: string) {
 		error = getErrorDetail(result.error, "Invalid credentials");
 		return;
 	}
+	await invalidateAll();
 	await goto("/dashboard");
 }
 
-function handleExternalSuccess() {
-	goto("/dashboard");
+async function handleExternalSuccess() {
+	await invalidateAll();
+	await goto("/dashboard");
 }
 
 function handleExternalError(message: string) {

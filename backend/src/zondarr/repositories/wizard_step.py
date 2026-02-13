@@ -121,6 +121,10 @@ class WizardStepRepository(Repository[WizardStep]):
             if old_order == new_order:
                 return  # No change needed
 
+            # Move step out of the way to avoid unique constraint violation
+            step.step_order = -1
+            await self.session.flush()
+
             # Shift other steps to make room
             if old_order < new_order:
                 # Moving down: shift steps between old and new positions up
@@ -145,7 +149,7 @@ class WizardStepRepository(Repository[WizardStep]):
                     .values(step_order=WizardStep.step_order + 1)
                 )
 
-            # Update the step's position
+            # Set final position
             step.step_order = new_order
             await self.session.flush()
         except RepositoryError:
