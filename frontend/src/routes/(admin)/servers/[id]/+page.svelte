@@ -154,15 +154,13 @@ async function handleDelete() {
 <div class="space-y-6">
 	<!-- Back button and header -->
 	<div class="flex items-center gap-4">
-		<Button
-			variant="ghost"
-			size="icon"
-			onclick={() => goto('/servers')}
-			class="text-cr-text-muted hover:text-cr-text"
+		<a
+			href="/servers"
+			class="inline-flex items-center justify-center size-9 rounded-md text-cr-text-muted hover:text-cr-text hover:bg-accent"
 			aria-label="Back to servers"
 		>
 			<ArrowLeft class="size-5" />
-		</Button>
+		</a>
 		<div class="flex-1">
 			<h1 class="text-xl font-semibold text-cr-text">Server Details</h1>
 			{#if data.server}

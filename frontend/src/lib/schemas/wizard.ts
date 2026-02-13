@@ -291,6 +291,10 @@ export function getDefaultConfig(type: InteractionType): {
 		case 'text_input':
 			return { label: 'Your response', required: true };
 		case 'quiz':
-			return { question: '', options: ['', ''], correct_answer_index: 0 };
+			return {
+				question: 'Enter your question here',
+				options: ['Option A', 'Option B'],
+				correct_answer_index: 0
+			};
 	}
 }

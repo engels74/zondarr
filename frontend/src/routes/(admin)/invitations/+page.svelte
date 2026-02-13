@@ -15,8 +15,9 @@ import { Plus } from "@lucide/svelte";
 import { toast } from "svelte-sonner";
 import { goto, invalidateAll } from "$app/navigation";
 import { page } from "$app/state";
-import type { ListInvitationsParams } from "$lib/api/client";
+import { deleteInvitation, type ListInvitationsParams, withErrorHandling } from "$lib/api/client";
 import { getErrorMessage, isNetworkError } from "$lib/api/errors";
+import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
 import EmptyState from "$lib/components/empty-state.svelte";
 import ErrorState from "$lib/components/error-state.svelte";
 import InvitationFilters from "$lib/components/invitations/invitation-filters.svelte";
@@ -24,12 +25,18 @@ import InvitationListSkeleton from "$lib/components/invitations/invitation-list-
 import InvitationTable from "$lib/components/invitations/invitation-table.svelte";
 import Pagination from "$lib/components/pagination.svelte";
 import { Button } from "$lib/components/ui/button";
+import { showSuccess } from "$lib/utils/toast";
 import type { PageData } from "./$types";
 
 const { data }: { data: PageData } = $props();
 
 // Loading state for refresh operations
 let isRefreshing = $state(false);
+
+// Delete state
+let deleteTarget = $state<string | null>(null);
+let showDeleteDialog = $state(false);
+let deleting = $state(false);
 
 // Derive current filter state from URL params
 const currentParams = $derived(data.params);
@@ -83,6 +90,33 @@ function handlePageChange(newPage: number) {
 function openCreateDialog() {
 	toast.info("Create invitation dialog will be implemented in Task 7");
 }
+
+/**
+ * Request deletion of an invitation (shows confirmation dialog).
+ */
+function handleDeleteRequest(id: string) {
+	deleteTarget = id;
+	showDeleteDialog = true;
+}
+
+/**
+ * Confirm and execute invitation deletion.
+ */
+async function handleDeleteConfirm() {
+	if (!deleteTarget) return;
+	deleting = true;
+	try {
+		const result = await withErrorHandling(() => deleteInvitation(deleteTarget!));
+		if (!result.error) {
+			showSuccess("Invitation deleted");
+			await invalidateAll();
+		}
+	} finally {
+		deleting = false;
+		showDeleteDialog = false;
+		deleteTarget = null;
+	}
+}
 </script>
 
 <div class="space-y-6">
@@ -124,7 +158,7 @@ function openCreateDialog() {
 		/>
 	{:else}
 		<!-- Invitation table -->
-		<InvitationTable invitations={data.invitations.items} />
+		<InvitationTable invitations={data.invitations.items} onDelete={handleDeleteRequest} />
 
 		<!-- Pagination -->
 		<Pagination
@@ -136,3 +170,14 @@ function openCreateDialog() {
 		/>
 	{/if}
 </div>
+
+<ConfirmDialog
+	open={showDeleteDialog}
+	title="Delete Invitation"
+	description="Are you sure you want to delete this invitation? This action cannot be undone."
+	confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+	variant="destructive"
+	loading={deleting}
+	onConfirm={handleDeleteConfirm}
+	onCancel={() => { showDeleteDialog = false; deleteTarget = null; }}
+/>

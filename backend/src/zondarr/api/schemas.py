@@ -548,12 +548,12 @@ class InvitationResponse(msgspec.Struct, omit_defaults=True):
     use_count: int
     enabled: bool
     created_at: datetime
+    is_active: bool
     expires_at: datetime | None = None
     max_uses: int | None = None
     duration_days: int | None = None
     created_by: str | None = None
     updated_at: datetime | None = None
-    is_active: bool = True
     remaining_uses: int | None = None
 
 
@@ -566,6 +566,7 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
         use_count: Current number of times the invitation has been redeemed.
         enabled: Whether the invitation is currently active.
         created_at: When the invitation was created.
+        is_active: Computed field: enabled AND not expired AND use_count < max_uses.
         target_servers: List of media servers this invitation grants access to.
         allowed_libraries: List of specific libraries this invitation grants access to.
         expires_at: Optional expiration timestamp.
@@ -573,7 +574,6 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
         duration_days: Optional duration in days for user access after redemption.
         created_by: Optional identifier of who created the invitation.
         updated_at: When the invitation was last modified.
-        is_active: Computed field: enabled AND not expired AND use_count < max_uses.
         remaining_uses: Computed field: max_uses - use_count if max_uses set.
         pre_wizard: Optional wizard to run before account creation.
         post_wizard: Optional wizard to run after account creation.
@@ -584,6 +584,7 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
     use_count: int
     enabled: bool
     created_at: datetime
+    is_active: bool
     target_servers: list[MediaServerResponse]
     allowed_libraries: list[LibraryResponse]
     expires_at: datetime | None = None
@@ -591,7 +592,6 @@ class InvitationDetailResponse(msgspec.Struct, omit_defaults=True):
     duration_days: int | None = None
     created_by: str | None = None
     updated_at: datetime | None = None
-    is_active: bool = True
     remaining_uses: int | None = None
     pre_wizard: WizardResponse | None = None
     post_wizard: WizardResponse | None = None
