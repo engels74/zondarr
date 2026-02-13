@@ -8,6 +8,7 @@ Provides:
 - IdentityCreate/Response: Identity CRUD schemas
 - UserResponse: User response schema
 - HealthCheckResponse: Health endpoint response schema
+- OAuthPinResponse/OAuthCheckResponse: OAuth flow schemas
 
 Uses msgspec.Struct for high-performance serialization (10-80x faster than Pydantic).
 Validation constraints are defined via Meta annotations.
@@ -25,6 +26,8 @@ from typing import Annotated
 from uuid import UUID
 
 import msgspec
+
+from zondarr.media.provider import AuthFlowType
 
 # =============================================================================
 # Reusable Constrained Types
@@ -125,15 +128,19 @@ class ValidationErrorResponse(msgspec.Struct, kw_only=True):
 class MediaServerCreate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """Request to create a media server.
 
+    Note: server_type is validated as a non-empty string at the schema level.
+    Valid provider type checking is deferred to the service layer's registry
+    lookup, allowing new providers to be added without schema changes.
+
     Attributes:
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         api_key: Authentication token for the media server.
     """
 
     name: NonEmptyStr
-    server_type: Annotated[str, msgspec.Meta(pattern=r"^(jellyfin|plex)$")]
+    server_type: NonEmptyStr
     url: UrlStr
     api_key: ApiKeyStr
 
@@ -162,7 +169,7 @@ class MediaServerResponse(msgspec.Struct, omit_defaults=True):
     Attributes:
         id: Unique identifier for the server.
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         enabled: Whether the server is active for user management.
         created_at: When the server was added.
@@ -210,7 +217,7 @@ class MediaServerWithLibrariesResponse(msgspec.Struct, omit_defaults=True):
     Attributes:
         id: Unique identifier for the server.
         name: Human-readable name for the server.
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         enabled: Whether the server is active for user management.
         created_at: When the server was added.
@@ -970,12 +977,12 @@ class ConnectionTestRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=
     """Request to test a media server connection.
 
     Attributes:
-        server_type: Type of media server ("jellyfin" or "plex").
+        server_type: Type of media server (e.g., "plex", "jellyfin").
         url: Base URL for the media server API.
         api_key: Authentication token for the media server.
     """
 
-    server_type: Annotated[str, msgspec.Meta(pattern=r"^(jellyfin|plex)$")]
+    server_type: NonEmptyStr
     url: UrlStr
     api_key: ApiKeyStr
 
@@ -1009,16 +1016,54 @@ AdminUsername = Annotated[
 AdminPassword = Annotated[str, msgspec.Meta(min_length=15, max_length=128)]
 
 
+class AuthFieldInfo(msgspec.Struct, kw_only=True):
+    """Auth field descriptor for frontend form rendering.
+
+    Attributes:
+        name: Field key (e.g., "server_url").
+        label: Display label (e.g., "Server URL").
+        field_type: HTML input type ("text", "password", "url").
+        placeholder: Placeholder text for the input.
+        required: Whether the field is required.
+    """
+
+    name: str
+    label: str
+    field_type: str
+    placeholder: str = ""
+    required: bool = True
+
+
+class ProviderAuthInfo(msgspec.Struct, kw_only=True):
+    """Auth method metadata for a provider.
+
+    Mirrors ``AdminAuthDescriptor`` from ``media.provider`` for the HTTP layer.
+
+    Attributes:
+        method_name: Auth method identifier (e.g., "plex").
+        display_name: Human-readable name (e.g., "Plex").
+        flow_type: Auth flow type ("oauth" or "credentials").
+        fields: Field descriptors for credential-based flows.
+    """
+
+    method_name: str
+    display_name: str
+    flow_type: AuthFlowType
+    fields: list[AuthFieldInfo] = []
+
+
 class AuthMethodsResponse(msgspec.Struct, kw_only=True):
     """Response listing available authentication methods.
 
     Attributes:
-        methods: List of available auth methods (local, plex, jellyfin).
+        methods: List of available auth method names ("local" plus any configured external providers).
         setup_required: True if no admin accounts exist yet.
+        provider_auth: Metadata for each external auth provider.
     """
 
     methods: list[str]
     setup_required: bool
+    provider_auth: list[ProviderAuthInfo] = []
 
 
 class AdminSetupRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -1047,28 +1092,17 @@ class LoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     password: str
 
 
-class PlexLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Plex OAuth token login request.
+class ExternalLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """External provider login request.
+
+    Accepts arbitrary credential fields as a dict. The provider's
+    AdminAuthProvider validates the required fields.
 
     Attributes:
-        auth_token: Plex auth token from OAuth flow.
+        credentials: Provider-specific credential key-value pairs.
     """
 
-    auth_token: str
-
-
-class JellyfinLoginRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Jellyfin credential login request.
-
-    Attributes:
-        server_url: Jellyfin server URL.
-        username: Jellyfin username.
-        password: Jellyfin password.
-    """
-
-    server_url: UrlStr
-    username: str
-    password: str
+    credentials: dict[str, str]
 
 
 class RefreshRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -1149,19 +1183,46 @@ class SyncResult(msgspec.Struct, kw_only=True):
 
 
 # =============================================================================
-# Plex OAuth Schemas
+# Provider Metadata Schemas
 # =============================================================================
 
 
-class PlexOAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from Plex OAuth PIN creation.
+class ProviderMetadataResponse(msgspec.Struct, kw_only=True, omit_defaults=True):
+    """Provider metadata for frontend rendering.
 
-    Implements Requirements 13.2: PIN creation returns valid response.
+    Attributes:
+        server_type: Provider identifier string.
+        display_name: Human-readable name.
+        color: Brand hex color.
+        icon_svg: SVG path data for the provider icon.
+        api_key_help_text: Help text for the "add server" form.
+        capabilities: List of supported capability strings.
+        supported_permissions: List of supported permission keys.
+        join_flow_type: Join flow type ("oauth_link" or "credential_create").
+    """
+
+    server_type: str
+    display_name: str
+    color: str
+    icon_svg: str
+    api_key_help_text: str = ""
+    capabilities: list[str] = []
+    supported_permissions: list[str] = []
+    join_flow_type: str | None = None
+
+
+# =============================================================================
+# OAuth Schemas
+# =============================================================================
+
+
+class OAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from OAuth PIN creation.
 
     Attributes:
         pin_id: The PIN identifier for status checking.
         code: The PIN code to display to the user.
-        auth_url: URL where user authenticates (plex.tv/link).
+        auth_url: URL where user authenticates.
         expires_at: When the PIN expires.
     """
 
@@ -1171,14 +1232,18 @@ class PlexOAuthPinResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
     expires_at: datetime
 
 
-class PlexOAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
-    """Response from Plex OAuth PIN status check.
+class OAuthCheckResponse(msgspec.Struct, omit_defaults=True, kw_only=True):
+    """Response from OAuth PIN status check.
 
-    Implements Requirements 14.2, 14.3: PIN verification returns status and email.
+    Security note: ``auth_token`` is intentionally included in this public
+    endpoint response.  The join flow requires the token so the frontend can
+    pass it back as a credential when completing invitation redemption (the
+    token proves the user authenticated with the provider).
 
     Attributes:
         authenticated: Whether the PIN has been authenticated.
-        email: User's Plex email (only if authenticated).
+        auth_token: Auth token (only if authenticated).
+        email: User's email (only if authenticated).
         error: Error message (only if failed).
     """
 

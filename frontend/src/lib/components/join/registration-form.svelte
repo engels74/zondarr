@@ -1,8 +1,8 @@
 <script lang="ts">
 /**
- * Jellyfin registration form component.
+ * Registration form component.
  *
- * Provides a form for creating a Jellyfin user account with:
+ * Provides a form for creating a user account with:
  * - Username validation (3-32 chars, lowercase, starts with letter)
  * - Password validation (minimum 8 characters)
  * - Optional email field
@@ -10,19 +10,17 @@
  *
  * Uses direct state binding for SPA usage.
  *
- * Requirements: 11.1, 11.5, 11.6
- *
- * @module $lib/components/join/jellyfin-registration-form
+ * @module $lib/components/join/registration-form
  */
 
 import { Eye, EyeOff, Lock, Mail, User } from "@lucide/svelte";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
-import type { JellyfinRegistrationInput } from "$lib/schemas/join";
+import type { RegistrationInput } from "$lib/schemas/join";
 
 interface Props {
-	formData: JellyfinRegistrationInput;
+	formData: RegistrationInput;
 	errors: Record<string, string[]>;
 	submitting?: boolean;
 	onSubmit: () => void;
@@ -61,7 +59,7 @@ function togglePasswordVisibility() {
 }
 </script>
 
-<form onsubmit={handleSubmit} class="space-y-6" data-jellyfin-registration-form>
+<form onsubmit={handleSubmit} class="space-y-6" data-registration-form>
 	<!-- Username (Required) -->
 	<div class="space-y-2">
 		<Label class="text-cr-text flex items-center gap-2">

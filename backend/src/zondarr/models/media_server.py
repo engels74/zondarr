@@ -1,7 +1,6 @@
 """MediaServer and Library models for media server management.
 
 Provides:
-- ServerType: StrEnum for supported media server types (Jellyfin, Plex)
 - MediaServer: Model representing a media server instance
 - Library: Model representing a content library within a media server
 
@@ -10,7 +9,6 @@ Relationships use selectinload for collections and joined for single relations
 to avoid N+1 query issues in async contexts.
 """
 
-from enum import StrEnum
 from uuid import UUID
 
 from sqlalchemy import Boolean, ForeignKey, String
@@ -19,19 +17,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from zondarr.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 
-class ServerType(StrEnum):
-    """Supported media server types.
-
-    Uses StrEnum for type-safe server type values that serialize
-    naturally to JSON strings.
-    """
-
-    JELLYFIN = "jellyfin"
-    PLEX = "plex"
-
-
 class MediaServer(Base, UUIDPrimaryKeyMixin, TimestampMixin):
-    """A media server instance (Plex or Jellyfin).
+    """A media server instance.
 
     Represents a configured media server that Zondarr manages user access for.
     The api_key field stores the authentication token for the media server API.
@@ -51,7 +38,7 @@ class MediaServer(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__: str = "media_servers"
 
     name: Mapped[str] = mapped_column(String(255))
-    server_type: Mapped[ServerType] = mapped_column()
+    server_type: Mapped[str] = mapped_column(String(50))
     url: Mapped[str] = mapped_column(String(2048))
     api_key: Mapped[str] = mapped_column(String(512))  # Encrypted at rest
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)

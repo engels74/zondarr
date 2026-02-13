@@ -4,6 +4,125 @@
  */
 
 export interface paths {
+	'/api/auth/methods': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get available authentication methods */
+		get: operations['ApiAuthMethodsGetMethods'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/login': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Login with username and password */
+		post: operations['ApiAuthLoginLogin'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/login/{method}': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Login with external provider */
+		post: operations['ApiAuthLoginMethodLoginExternal'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/logout': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Logout and revoke tokens */
+		post: operations['ApiAuthLogoutLogout'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/me': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get current admin info */
+		get: operations['ApiAuthMeMe'];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/refresh': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Refresh access token */
+		post: operations['ApiAuthRefreshRefresh'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/auth/setup': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Create first admin account */
+		post: operations['ApiAuthSetupSetup'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	'/api/v1/invitations': {
 		parameters: {
 			query?: never;
@@ -96,7 +215,7 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	'/api/v1/join/plex/oauth/pin/{pin_id}': {
+	'/api/v1/join/{provider}/oauth/pin/{pin_id}': {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -104,10 +223,10 @@ export interface paths {
 			cookie?: never;
 		};
 		/**
-		 * Check Plex OAuth PIN status
+		 * Check OAuth PIN status
 		 * @description Check if a PIN has been authenticated. Returns the user's email if authentication is complete.
 		 */
-		get: operations['ApiV1JoinPlexOauthPinPinIdCheckPin'];
+		get: operations['ApiV1JoinProviderOauthPinPinIdCheckPin'];
 		put?: never;
 		post?: never;
 		delete?: never;
@@ -116,7 +235,7 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
-	'/api/v1/join/plex/oauth/pin': {
+	'/api/v1/join/{provider}/oauth/pin': {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -126,10 +245,30 @@ export interface paths {
 		get?: never;
 		put?: never;
 		/**
-		 * Create Plex OAuth PIN
-		 * @description Generate a PIN for Plex OAuth authentication. The user should be directed to the auth_url to complete authentication.
+		 * Create OAuth PIN
+		 * @description Generate a PIN for OAuth authentication. The user should be directed to the auth_url to complete authentication.
 		 */
-		post: operations['ApiV1JoinPlexOauthPinCreatePin'];
+		post: operations['ApiV1JoinProviderOauthPinCreatePin'];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	'/api/v1/providers': {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/**
+		 * List registered providers
+		 * @description Returns metadata for all registered media server providers.
+		 */
+		get: operations['ApiV1ProvidersListProviders'];
+		put?: never;
+		post?: never;
 		delete?: never;
 		options?: never;
 		head?: never;
@@ -448,6 +587,41 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
+		/** AdminMeResponse */
+		AdminMeResponse: {
+			/** Format: uuid */
+			id: string;
+			username: string;
+			email?: string | null;
+			/** @default local */
+			auth_method: string;
+		};
+		/** AdminSetupRequest */
+		AdminSetupRequest: {
+			username: string;
+			password: string;
+			email?: string | null;
+		};
+		/** AuthFieldInfo */
+		AuthFieldInfo: {
+			name: string;
+			label: string;
+			field_type: string;
+			/** @default  */
+			placeholder: string;
+			/** @default true */
+			required: boolean;
+		};
+		/** AuthMethodsResponse */
+		AuthMethodsResponse: {
+			methods: string[];
+			setup_required: boolean;
+			provider_auth?: components['schemas']['ProviderAuthInfo'][];
+		};
+		/** AuthTokenResponse */
+		AuthTokenResponse: {
+			refresh_token: string;
+		};
 		/** CreateInvitationRequest */
 		CreateInvitationRequest: {
 			server_ids: string[];
@@ -461,6 +635,12 @@ export interface components {
 			} | null;
 			pre_wizard_id?: string | null;
 			post_wizard_id?: string | null;
+		};
+		/** ExternalLoginRequest */
+		ExternalLoginRequest: {
+			credentials: {
+				[key: string]: string;
+			};
 		};
 		/** IdentityResponse */
 		IdentityResponse: {
@@ -543,6 +723,11 @@ export interface components {
 			created_at: string;
 			updated_at?: string | null;
 		};
+		/** LoginRequest */
+		LoginRequest: {
+			username: string;
+			password: string;
+		};
 		/** MediaServerCreate */
 		MediaServerCreate: {
 			name: string;
@@ -577,19 +762,39 @@ export interface components {
 			updated_at?: string | null;
 			supported_permissions?: string[] | null;
 		};
-		/** PlexOAuthCheckResponse */
-		PlexOAuthCheckResponse: {
+		/** OAuthCheckResponse */
+		OAuthCheckResponse: {
 			authenticated: boolean;
+			auth_token?: string | null;
 			email?: string | null;
 			error?: string | null;
 		};
-		/** PlexOAuthPinResponse */
-		PlexOAuthPinResponse: {
+		/** OAuthPinResponse */
+		OAuthPinResponse: {
 			pin_id: number;
 			code: string;
 			auth_url: string;
 			/** Format: date-time */
 			expires_at: string;
+		};
+		/** ProviderAuthInfo */
+		ProviderAuthInfo: {
+			method_name: string;
+			display_name: string;
+			flow_type: string;
+			fields?: components['schemas']['AuthFieldInfo'][];
+		};
+		/** ProviderMetadataResponse */
+		ProviderMetadataResponse: {
+			server_type: string;
+			display_name: string;
+			color: string;
+			icon_svg: string;
+			/** @default  */
+			api_key_help_text: string;
+			capabilities?: string[];
+			supported_permissions?: string[];
+			join_flow_type?: string | null;
 		};
 		/** RedeemInvitationRequest */
 		RedeemInvitationRequest: {
@@ -613,6 +818,10 @@ export interface components {
 			identity_id: string;
 			users_created: components['schemas']['UserResponse'][];
 			message?: string | null;
+		};
+		/** RefreshRequest */
+		RefreshRequest: {
+			refresh_token: string;
 		};
 		/** StepReorderRequest */
 		StepReorderRequest: {
@@ -791,6 +1000,260 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+	ApiAuthMethodsGetMethods: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AuthMethodsResponse'];
+				};
+			};
+		};
+	};
+	ApiAuthLoginLogin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['LoginRequest'];
+			};
+		};
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AuthTokenResponse'];
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
+	ApiAuthLoginMethodLoginExternal: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				method: string;
+			};
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['ExternalLoginRequest'];
+			};
+		};
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AuthTokenResponse'];
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
+	ApiAuthLogoutLogout: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RefreshRequest'] | null;
+			};
+		};
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						[key: string]: boolean;
+					};
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
+	ApiAuthMeMe: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AdminMeResponse'];
+				};
+			};
+		};
+	};
+	ApiAuthRefreshRefresh: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['RefreshRequest'];
+			};
+		};
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AuthTokenResponse'];
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
+	ApiAuthSetupSetup: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				'application/json': components['schemas']['AdminSetupRequest'];
+			};
+		};
+		responses: {
+			/** @description Document created, URL follows */
+			201: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['AuthTokenResponse'];
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
 	ApiV1InvitationsListInvitations: {
 		parameters: {
 			query?: {
@@ -1097,11 +1560,13 @@ export interface operations {
 			};
 		};
 	};
-	ApiV1JoinPlexOauthPinPinIdCheckPin: {
+	ApiV1JoinProviderOauthPinPinIdCheckPin: {
 		parameters: {
 			query?: never;
 			header?: never;
 			path: {
+				/** @description Provider name (e.g. 'plex') */
+				provider: string;
 				/** @description PIN ID to check */
 				pin_id: number;
 			};
@@ -1115,7 +1580,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['PlexOAuthCheckResponse'];
+					'application/json': components['schemas']['OAuthCheckResponse'];
 				};
 			};
 			/** @description Bad request syntax or unsupported method */
@@ -1138,7 +1603,48 @@ export interface operations {
 			};
 		};
 	};
-	ApiV1JoinPlexOauthPinCreatePin: {
+	ApiV1JoinProviderOauthPinCreatePin: {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				/** @description Provider name (e.g. 'plex') */
+				provider: string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Request fulfilled, document follows */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': components['schemas']['OAuthPinResponse'];
+				};
+			};
+			/** @description Bad request syntax or unsupported method */
+			400: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					'application/json': {
+						status_code: number;
+						detail: string;
+						extra?:
+							| null
+							| {
+									[key: string]: unknown;
+							  }
+							| unknown[];
+					};
+				};
+			};
+		};
+	};
+	ApiV1ProvidersListProviders: {
 		parameters: {
 			query?: never;
 			header?: never;
@@ -1153,7 +1659,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['PlexOAuthPinResponse'];
+					'application/json': components['schemas']['ProviderMetadataResponse'][];
 				};
 			};
 		};
@@ -1218,7 +1724,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					'application/json': components['schemas']['MediaServerResponse'];
+					'application/json': components['schemas']['MediaServerWithLibrariesResponse'];
 				};
 			};
 			/** @description Bad request syntax or unsupported method */

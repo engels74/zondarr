@@ -5,8 +5,16 @@ import { ModeWatcher } from "mode-watcher";
 import type { Snippet } from "svelte";
 import favicon from "$lib/assets/favicon.svg";
 import { Toaster } from "$lib/components/ui/sonner";
+import { setProviders } from "$lib/stores/providers.svelte";
+import type { LayoutData } from "./$types";
 
-const { children }: { children: Snippet } = $props();
+const { data, children }: { data: LayoutData; children: Snippet } = $props();
+
+$effect(() => {
+	if (data.providers.length > 0) {
+		setProviders(data.providers);
+	}
+});
 </script>
 
 <svelte:head>

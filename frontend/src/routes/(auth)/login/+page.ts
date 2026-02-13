@@ -1,5 +1,5 @@
 import { isRedirect, redirect } from '@sveltejs/kit';
-import { getAuthMethods } from '$lib/api/auth';
+import { getAuthMethods, type ProviderAuthInfo } from '$lib/api/auth';
 import { isNetworkError } from '$lib/api/errors';
 import type { PageLoad } from './$types';
 
@@ -12,7 +12,8 @@ export const load: PageLoad = async ({ fetch }) => {
 		}
 
 		return {
-			methods: authMethods.methods
+			methods: authMethods.methods,
+			providerAuth: authMethods.provider_auth ?? []
 		};
 	} catch (e) {
 		if (isRedirect(e)) throw e;
@@ -21,7 +22,8 @@ export const load: PageLoad = async ({ fetch }) => {
 		}
 		// Backend unreachable or broken — render login with default method
 		return {
-			methods: ['local']
+			methods: ['local'],
+			providerAuth: [] as ProviderAuthInfo[]
 		};
 	}
 };

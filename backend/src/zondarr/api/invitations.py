@@ -389,7 +389,7 @@ class InvitationController(Controller):
             MediaServerResponse(
                 id=server.id,
                 name=server.name,
-                server_type=server.server_type.value,
+                server_type=server.server_type,
                 url=server.url,
                 enabled=server.enabled,
                 created_at=server.created_at,
@@ -475,7 +475,7 @@ class InvitationController(Controller):
             MediaServerResponse(
                 id=server.id,
                 name=server.name,
-                server_type=server.server_type.value,
+                server_type=server.server_type,
                 url=server.url,
                 enabled=server.enabled,
                 created_at=server.created_at,

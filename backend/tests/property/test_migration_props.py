@@ -13,19 +13,18 @@ from hypothesis import strategies as st
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from tests.conftest import TestDB, create_test_engine
+from tests.conftest import KNOWN_SERVER_TYPES, TestDB, create_test_engine
 from zondarr.models import (
     Identity,
     Invitation,
     Library,
     MediaServer,
-    ServerType,
     User,
 )
 from zondarr.models.base import Base
 
 # Custom strategies for model fields
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(KNOWN_SERVER_TYPES)
 name_strategy = st.text(
     alphabet=st.characters(categories=("L", "N")),
     min_size=1,
@@ -85,7 +84,7 @@ class TestMigrationsPreserveData:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
         enabled: bool,
@@ -206,7 +205,7 @@ class TestMigrationsPreserveData:
             server = MediaServer()
             server.id = server_id
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://test.local"
             server.api_key = "testkey"
             server.enabled = True
@@ -255,7 +254,7 @@ class TestMigrationsPreserveData:
             server = MediaServer()
             server.id = server_id
             server.name = "Test Server"
-            server.server_type = ServerType.PLEX
+            server.server_type = "plex"
             server.url = "http://plex.local"
             server.api_key = "plexkey"
             server.enabled = True
@@ -388,7 +387,7 @@ class TestMigrationSchemaIntegrity:
                 server = MediaServer()
                 server.id = server_id
                 server.name = "Test Server"
-                server.server_type = ServerType.JELLYFIN
+                server.server_type = "jellyfin"
                 server.url = "http://test.local"
                 server.api_key = "testkey"
                 server.enabled = True

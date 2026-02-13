@@ -4,8 +4,7 @@ Provides endpoints for admin authentication:
 - GET /api/auth/methods — Available auth methods + setup_required flag
 - POST /api/auth/setup — Create first admin account
 - POST /api/auth/login — Local username/password login
-- POST /api/auth/login/plex — Plex OAuth token login
-- POST /api/auth/login/jellyfin — Jellyfin credentials login
+- POST /api/auth/login/{method} — External provider login
 - POST /api/auth/refresh — Exchange refresh token for new access token
 - POST /api/auth/logout — Revoke tokens and clear cookies
 - GET /api/auth/me — Current admin info (requires auth)
@@ -20,6 +19,7 @@ from litestar.security.jwt import Token
 from litestar.status_codes import HTTP_200_OK, HTTP_201_CREATED
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from zondarr.config import Settings
 from zondarr.core.auth import AdminUser
 from zondarr.core.exceptions import AuthenticationError
 from zondarr.repositories.admin import AdminAccountRepository, RefreshTokenRepository
@@ -28,11 +28,12 @@ from zondarr.services.auth import AuthService
 from .schemas import (
     AdminMeResponse,
     AdminSetupRequest,
+    AuthFieldInfo,
     AuthMethodsResponse,
     AuthTokenResponse,
-    JellyfinLoginRequest,
+    ExternalLoginRequest,
     LoginRequest,
-    PlexLoginRequest,
+    ProviderAuthInfo,
     RefreshRequest,
 )
 
@@ -79,12 +80,41 @@ class AuthController(Controller):
         summary="Get available authentication methods",
         exclude_from_auth=True,
     )
-    async def get_methods(self, session: AsyncSession) -> AuthMethodsResponse:
+    async def get_methods(
+        self, session: AsyncSession, settings: Settings
+    ) -> AuthMethodsResponse:
         """Return available auth methods and whether setup is required."""
         service = self._create_auth_service(session)
-        methods = await service.get_available_auth_methods()
+        methods, descriptors = await service.get_auth_methods_with_providers(
+            settings=settings
+        )
         setup = await service.setup_required()
-        return AuthMethodsResponse(methods=methods, setup_required=setup)
+
+        # Map provider descriptors to response schema
+        provider_auth = [
+            ProviderAuthInfo(
+                method_name=desc.method_name,
+                display_name=desc.display_name,
+                flow_type=desc.flow_type,
+                fields=[
+                    AuthFieldInfo(
+                        name=f.name,
+                        label=f.label,
+                        field_type=f.field_type,
+                        placeholder=f.placeholder,
+                        required=f.required,
+                    )
+                    for f in desc.fields
+                ],
+            )
+            for desc in descriptors
+        ]
+
+        return AuthMethodsResponse(
+            methods=methods,
+            setup_required=setup,
+            provider_auth=provider_auth,
+        )
 
     @post(
         "/setup",
@@ -96,7 +126,7 @@ class AuthController(Controller):
         self,
         data: AdminSetupRequest,
         session: AsyncSession,
-        state: State,
+        settings: Settings,
     ) -> Response[AuthTokenResponse]:
         """Create the first admin account (only when no admins exist)."""
         service = self._create_auth_service(session)
@@ -109,8 +139,8 @@ class AuthController(Controller):
         )
 
         # Issue tokens
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
+        secret_key = settings.secret_key
+        secure = settings.secure_cookies
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -133,14 +163,14 @@ class AuthController(Controller):
         self,
         data: LoginRequest,
         session: AsyncSession,
-        state: State,
+        settings: Settings,
     ) -> Response[AuthTokenResponse]:
         """Authenticate with local username/password credentials."""
         service = self._create_auth_service(session)
         admin = await service.authenticate_local(data.username, data.password)
 
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
+        secret_key = settings.secret_key
+        secure = settings.secure_cookies
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -153,57 +183,32 @@ class AuthController(Controller):
         )
 
     @post(
-        "/login/plex",
+        "/login/{method:str}",
         status_code=HTTP_200_OK,
-        summary="Login with Plex OAuth token",
+        summary="Login with external provider",
         exclude_from_auth=True,
     )
-    async def login_plex(
+    async def login_external(
         self,
-        data: PlexLoginRequest,
+        method: str,
+        data: ExternalLoginRequest,
         session: AsyncSession,
-        state: State,
+        settings: Settings,
     ) -> Response[AuthTokenResponse]:
-        """Authenticate with Plex OAuth token."""
+        """Authenticate with an external provider.
+
+        The credentials dict contents vary by provider; each registered
+        provider declares its own required fields.
+        """
         service = self._create_auth_service(session)
-        plex_token: str | None = state.settings.plex_token  # pyright: ignore[reportAny]
-        admin = await service.authenticate_plex(
-            data.auth_token, configured_plex_token=plex_token
+        admin = await service.authenticate_external(
+            method,
+            data.credentials,
+            settings=settings,
         )
 
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
-        _, access_cookie = self._create_access_token(
-            str(admin.id), secret_key, secure=secure
-        )
-        refresh_token = await service.create_refresh_token(admin)
-
-        return Response(
-            AuthTokenResponse(refresh_token=refresh_token),
-            status_code=HTTP_200_OK,
-            cookies=[access_cookie],
-        )
-
-    @post(
-        "/login/jellyfin",
-        status_code=HTTP_200_OK,
-        summary="Login with Jellyfin credentials",
-        exclude_from_auth=True,
-    )
-    async def login_jellyfin(
-        self,
-        data: JellyfinLoginRequest,
-        session: AsyncSession,
-        state: State,
-    ) -> Response[AuthTokenResponse]:
-        """Authenticate with Jellyfin admin credentials."""
-        service = self._create_auth_service(session)
-        admin = await service.authenticate_jellyfin(
-            data.server_url, data.username, data.password
-        )
-
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
+        secret_key = settings.secret_key
+        secure = settings.secure_cookies
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -225,7 +230,7 @@ class AuthController(Controller):
         self,
         data: RefreshRequest,
         session: AsyncSession,
-        state: State,
+        settings: Settings,
     ) -> Response[AuthTokenResponse]:
         """Exchange a refresh token for a new access token."""
         service = self._create_auth_service(session)
@@ -234,8 +239,8 @@ class AuthController(Controller):
         # Revoke old refresh token and issue new ones (token rotation)
         await service.revoke_refresh_token(data.refresh_token)
 
-        secret_key: str = state.settings.secret_key  # pyright: ignore[reportAny]
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
+        secret_key = settings.secret_key
+        secure = settings.secure_cookies
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -256,7 +261,7 @@ class AuthController(Controller):
     async def logout(
         self,
         session: AsyncSession,
-        state: State,
+        settings: Settings,
         data: RefreshRequest | None = None,
     ) -> Response[dict[str, bool]]:
         """Revoke tokens and clear cookies."""
@@ -265,7 +270,7 @@ class AuthController(Controller):
             await service.revoke_refresh_token(data.refresh_token)
 
         # Clear access token cookie
-        secure: bool = state.settings.secure_cookies  # pyright: ignore[reportAny]
+        secure = settings.secure_cookies
         clear_cookie = Cookie(
             key="zondarr_access_token",
             value="",

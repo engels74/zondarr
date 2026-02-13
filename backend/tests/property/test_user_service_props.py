@@ -28,7 +28,6 @@ from tests.conftest import TestDB
 from zondarr.core.exceptions import ValidationError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import ClientRegistry
-from zondarr.models import ServerType
 from zondarr.models.identity import Identity, User
 from zondarr.models.media_server import MediaServer
 from zondarr.repositories.identity import IdentityRepository
@@ -71,7 +70,7 @@ def create_mock_client_success(*, enabled: bool) -> AsyncMock:
     Returns:
         A mock client that returns True for set_user_enabled.
     """
-    del enabled  # Unused but documents the operation being mocked
+    del enabled
     mock_client = AsyncMock()
     mock_client.set_user_enabled = AsyncMock(return_value=True)
     mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -186,7 +185,7 @@ async def create_test_user_with_server(
         # Create media server
         server = MediaServer(
             name="TestServer",
-            server_type=ServerType.JELLYFIN,
+            server_type="jellyfin",
             url="http://jellyfin.local:8096",
             api_key="test-api-key",
             enabled=True,
@@ -924,7 +923,7 @@ async def create_multiple_users_for_identity(
         # Create media server
         server = MediaServer(
             name="TestServer",
-            server_type=ServerType.JELLYFIN,
+            server_type="jellyfin",
             url="http://jellyfin.local:8096",
             api_key="test-api-key",
             enabled=True,

@@ -83,8 +83,8 @@ export type RedeemInvitationRequest = components['schemas']['RedeemInvitationReq
 export type RedemptionResponse = components['schemas']['RedemptionResponse'];
 export type RedemptionErrorResponse = components['schemas']['RedemptionErrorResponse'];
 
-export type PlexOAuthPinResponse = components['schemas']['PlexOAuthPinResponse'];
-export type PlexOAuthCheckResponse = components['schemas']['PlexOAuthCheckResponse'];
+export type OAuthPinResponse = components['schemas']['OAuthPinResponse'];
+export type OAuthCheckResponse = components['schemas']['OAuthCheckResponse'];
 
 // ErrorResponse is manually defined because it's not used directly in endpoint responses
 export interface ErrorResponse {
@@ -388,7 +388,7 @@ export async function syncServer(serverId: string, dryRun = false, client: ApiCl
 /** Create server request */
 export interface CreateServerRequest {
 	name: string;
-	server_type: 'jellyfin' | 'plex';
+	server_type: string;
 	url: string;
 	api_key: string;
 }
@@ -450,27 +450,38 @@ export async function redeemInvitation(
 }
 
 // =============================================================================
-// Plex OAuth API Wrappers
+// OAuth API Wrappers
 // =============================================================================
 
 /**
- * Create a Plex OAuth PIN for authentication.
+ * Create an OAuth PIN for authentication with a provider.
  *
+ * @param provider - Provider type
  * @returns PIN response with auth URL
  */
-export async function createPlexPin(client: ApiClient = api) {
-	return client.POST('/api/v1/join/plex/oauth/pin');
+export async function createOAuthPin(
+	provider: string,
+	client: ApiClient = api
+): Promise<{ data?: OAuthPinResponse; error?: unknown }> {
+	return client.POST('/api/v1/join/{provider}/oauth/pin', {
+		params: { path: { provider } }
+	});
 }
 
 /**
- * Check the status of a Plex OAuth PIN.
+ * Check the status of an OAuth PIN.
  *
+ * @param provider - Provider type
  * @param pinId - PIN ID to check
  * @returns Check response with authentication status
  */
-export async function checkPlexPin(pinId: number, client: ApiClient = api) {
-	return client.GET('/api/v1/join/plex/oauth/pin/{pin_id}', {
-		params: { path: { pin_id: pinId } }
+export async function checkOAuthPin(
+	provider: string,
+	pinId: number,
+	client: ApiClient = api
+): Promise<{ data?: OAuthCheckResponse; error?: unknown }> {
+	return client.GET('/api/v1/join/{provider}/oauth/pin/{pin_id}', {
+		params: { path: { provider, pin_id: pinId } }
 	});
 }
 

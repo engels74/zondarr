@@ -1,9 +1,9 @@
 <script lang="ts">
 import { goto } from "$app/navigation";
-import { loginLocal } from "$lib/api/auth";
-import JellyfinLoginButton from "$lib/components/auth/jellyfin-login-button.svelte";
+import { getErrorDetail, loginLocal } from "$lib/api/auth";
+import CredentialLoginForm from "$lib/components/auth/credential-login-form.svelte";
 import LocalLoginForm from "$lib/components/auth/local-login-form.svelte";
-import PlexLoginButton from "$lib/components/auth/plex-login-button.svelte";
+import OAuthLoginButton from "$lib/components/auth/oauth-login-button.svelte";
 import * as Card from "$lib/components/ui/card";
 import { Separator } from "$lib/components/ui/separator";
 
@@ -11,16 +11,14 @@ const { data } = $props();
 
 let error = $state("");
 
-const hasPlex = $derived(data.methods.includes("plex"));
-const hasJellyfin = $derived(data.methods.includes("jellyfin"));
-const hasExternal = $derived(hasPlex || hasJellyfin);
+const externalMethods = $derived(data.providerAuth ?? []);
+const hasExternal = $derived(externalMethods.length > 0);
 
 async function handleLocalLogin(username: string, password: string) {
 	error = "";
 	const result = await loginLocal({ username, password });
 	if (result.error) {
-		const err = result.error as { detail?: string };
-		error = err.detail ?? "Invalid credentials";
+		error = getErrorDetail(result.error, "Invalid credentials");
 		return;
 	}
 	await goto("/dashboard");
@@ -62,18 +60,24 @@ function handleExternalError(message: string) {
 			</div>
 
 			<div class="flex flex-col gap-2">
-				{#if hasPlex}
-					<PlexLoginButton
-						onsuccess={handleExternalSuccess}
-						onerror={handleExternalError}
-					/>
-				{/if}
-				{#if hasJellyfin}
-					<JellyfinLoginButton
-						onsuccess={handleExternalSuccess}
-						onerror={handleExternalError}
-					/>
-				{/if}
+				{#each externalMethods as method (method.method_name)}
+					{#if method.flow_type === "oauth"}
+						<OAuthLoginButton
+							method={method.method_name}
+							displayName={method.display_name}
+							onsuccess={handleExternalSuccess}
+							onerror={handleExternalError}
+						/>
+					{:else}
+						<CredentialLoginForm
+							method={method.method_name}
+							displayName={method.display_name}
+							fields={method.fields}
+							onsuccess={handleExternalSuccess}
+							onerror={handleExternalError}
+						/>
+					{/if}
+				{/each}
 			</div>
 		{/if}
 	</Card.Content>

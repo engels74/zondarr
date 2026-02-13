@@ -1,29 +1,32 @@
 /**
- * Property-based tests for Plex OAuth flow component.
+ * Property-based tests for OAuth join flow component.
  *
  * Tests the following properties:
- * - Property 32: Plex OAuth Polling
+ * - Property 32: OAuth Polling
  *
  * **Validates: Requirements 12.4**
  *
- * @module $lib/components/join/plex-oauth-flow.svelte.test
+ * @module $lib/components/join/oauth-join-flow.svelte.test
  */
 
 import { cleanup, render } from '@testing-library/svelte';
 import userEvent from '@testing-library/user-event';
 import * as fc from 'fast-check';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PlexOAuthCheckResponse, PlexOAuthPinResponse } from '$lib/api/client';
+import type { OAuthCheckResponse, OAuthPinResponse } from '$lib/api/client';
 import * as apiClient from '$lib/api/client';
-import PlexOAuthFlow from './plex-oauth-flow.svelte';
+import OAuthJoinFlow from './oauth-join-flow.svelte';
+
+// Use a generic test provider to avoid coupling tests to any real provider
+const TEST_SERVER_TYPE = 'test-provider';
 
 // Mock the API client
 vi.mock('$lib/api/client', async () => {
 	const actual = await vi.importActual('$lib/api/client');
 	return {
 		...actual,
-		createPlexPin: vi.fn(),
-		checkPlexPin: vi.fn()
+		createOAuthPin: vi.fn(),
+		checkOAuthPin: vi.fn()
 	};
 });
 
@@ -42,39 +45,26 @@ afterEach(() => {
 // =============================================================================
 
 /**
- * Generate a valid PIN response.
- * Note: We use a fixed date range to avoid issues with fake timers.
- */
-const pinResponseArb = fc.record({
-	pin_id: fc.integer({ min: 1, max: 999999 }),
-	code: fc.stringMatching(/^[A-Z0-9]{4}$/),
-	auth_url: fc.webUrl(),
-	expires_at: fc
-		.integer({ min: 60000, max: 300000 })
-		.map((offset) => new Date(Date.now() + offset).toISOString())
-});
-
-/**
  * Generate an authenticated check response.
  */
 const authenticatedCheckResponseArb = fc.record({
 	authenticated: fc.constant(true),
 	email: fc.emailAddress(),
-	error: fc.constant(null)
+	error: fc.constant(undefined)
 });
 
 // =============================================================================
-// Property 32: Plex OAuth Polling
+// Property 32: OAuth Polling
 // Validates: Requirements 12.4
 // =============================================================================
 
-describe('Property 32: Plex OAuth Polling', () => {
+describe('Property 32: OAuth Polling', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL poll the PIN status endpoint
+	 * For any OAuth flow, the frontend SHALL poll the PIN status endpoint
 	 * at regular intervals until authenticated=true is returned.
 	 *
 	 * **Validates: Requirements 12.4**
@@ -86,62 +76,56 @@ describe('Property 32: Plex OAuth Polling', () => {
 		let pollCount = 0;
 		const pollsBeforeAuth = 3;
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
-			auth_url: 'https://plex.tv/auth',
+			auth_url: 'https://auth.example.com/oauth',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		const authResponse: PlexOAuthCheckResponse = {
+		const authResponse: OAuthCheckResponse = {
 			authenticated: true,
-			email: 'test@example.com',
-			error: null
+			email: 'test@example.com'
 		};
 
-		// Mock createPlexPin to return the generated PIN
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		// Mock createOAuthPin to return the generated PIN
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
-		// Mock checkPlexPin to return pending until pollsBeforeAuth, then authenticated
-		vi.mocked(apiClient.checkPlexPin).mockImplementation(async () => {
+		// Mock checkOAuthPin to return pending until pollsBeforeAuth, then authenticated
+		vi.mocked(apiClient.checkOAuthPin).mockImplementation(async () => {
 			pollCount++;
 			if (pollCount >= pollsBeforeAuth) {
 				return {
 					data: authResponse,
-					error: undefined,
-					response: new Response()
+					error: undefined
 				};
 			}
 			return {
 				data: {
-					authenticated: false,
-					email: null,
-					error: null
-				} as PlexOAuthCheckResponse,
-				error: undefined,
-				response: new Response()
+					authenticated: false
+				},
+				error: undefined
 			};
 		});
 
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: TEST_SERVER_TYPE, onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		expect(signInButton).toBeTruthy();
 		await user.click(signInButton!);
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance timers to trigger polling
@@ -151,7 +135,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Verify polling occurred
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(pollsBeforeAuth);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(pollsBeforeAuth);
 		});
 
 		// Verify onAuthenticated was called with the email
@@ -161,7 +145,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL stop polling when the PIN
+	 * For any OAuth flow, the frontend SHALL stop polling when the PIN
 	 * expires_at time is reached.
 	 *
 	 * **Validates: Requirements 12.4**
@@ -170,44 +154,40 @@ describe('Property 32: Plex OAuth Polling', () => {
 		vi.clearAllMocks();
 
 		// Create a PIN that expires in 4 seconds
-		const expiredPinResponse: PlexOAuthPinResponse = {
+		const expiredPinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
-			auth_url: 'https://plex.tv/auth',
+			auth_url: 'https://auth.example.com/oauth',
 			expires_at: new Date(Date.now() + 4000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: expiredPinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		// Always return pending
-		vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
 			data: {
-				authenticated: false,
-				email: null,
-				error: null
-			} as PlexOAuthCheckResponse,
-			error: undefined,
-			response: new Response()
+				authenticated: false
+			},
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: TEST_SERVER_TYPE, onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance time past expiration (poll at 2s, 4s would be past expiration)
@@ -216,7 +196,7 @@ describe('Property 32: Plex OAuth Polling', () => {
 
 		// Wait for component to update to expired state
 		await vi.waitFor(() => {
-			const component = container.querySelector('[data-plex-oauth-flow]');
+			const component = container.querySelector('[data-oauth-join-flow]');
 			expect(component?.getAttribute('data-step')).toBe('expired');
 		});
 
@@ -225,82 +205,78 @@ describe('Property 32: Plex OAuth Polling', () => {
 	});
 
 	/**
-	 * For any Plex OAuth flow, the frontend SHALL poll at 2 second intervals.
+	 * For any OAuth flow, the frontend SHALL poll at 2 second intervals.
 	 *
 	 * **Validates: Requirements 12.4**
 	 */
 	it('should poll at 2 second intervals', async () => {
 		vi.clearAllMocks();
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
-			auth_url: 'https://plex.tv/auth',
+			auth_url: 'https://auth.example.com/oauth',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		// Always return pending
-		vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
 			data: {
-				authenticated: false,
-				email: null,
-				error: null
-			} as PlexOAuthCheckResponse,
-			error: undefined,
-			response: new Response()
+				authenticated: false
+			},
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: TEST_SERVER_TYPE, onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for PIN creation
 		await vi.waitFor(() => {
-			expect(apiClient.createPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.createOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance 1 second - should not poll yet
 		await vi.advanceTimersByTimeAsync(1000);
-		expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(0);
+		expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(0);
 
 		// Advance another 1 second (total 2s) - should poll
 		await vi.advanceTimersByTimeAsync(1000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(1);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(1);
 		});
 
 		// Advance another 2 seconds - should poll again
 		await vi.advanceTimersByTimeAsync(2000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(2);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(2);
 		});
 
 		// Advance another 2 seconds - should poll again
 		await vi.advanceTimersByTimeAsync(2000);
 		await vi.waitFor(() => {
-			expect(apiClient.checkPlexPin).toHaveBeenCalledTimes(3);
+			expect(apiClient.checkOAuthPin).toHaveBeenCalledTimes(3);
 		});
 	});
 });
 
 // =============================================================================
-// Additional Plex OAuth Flow Tests
+// Additional OAuth Flow Tests
 // =============================================================================
 
-describe('Plex OAuth Flow Component', () => {
+describe('OAuth Flow Component', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
@@ -309,32 +285,43 @@ describe('Plex OAuth Flow Component', () => {
 	 * For any valid PIN response, the component SHALL display the PIN code.
 	 */
 	it('should display PIN code after creation', async () => {
-		fc.assert(
-			fc.property(pinResponseArb, (pinResponse) => {
-				vi.clearAllMocks();
+		vi.clearAllMocks();
 
-				vi.mocked(apiClient.createPlexPin).mockResolvedValue({
-					data: pinResponse as PlexOAuthPinResponse,
-					error: undefined,
-					response: new Response()
-				});
+		const pinResponse: OAuthPinResponse = {
+			pin_id: 42,
+			code: 'XY9Z',
+			auth_url: 'https://auth.example.com/oauth',
+			expires_at: new Date(Date.now() + 60000).toISOString()
+		};
 
-				vi.mocked(apiClient.checkPlexPin).mockResolvedValue({
-					data: {
-						authenticated: false,
-						email: null,
-						error: null
-					} as PlexOAuthCheckResponse,
-					error: undefined,
-					response: new Response()
-				});
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
+			data: pinResponse,
+			error: undefined
+		});
 
-				// Verify the PIN code format is valid
-				expect(pinResponse.code).toMatch(/^[A-Z0-9]{4}$/);
-				expect(pinResponse.pin_id).toBeGreaterThan(0);
-			}),
-			{ numRuns: 50 }
-		);
+		vi.mocked(apiClient.checkOAuthPin).mockResolvedValue({
+			data: { authenticated: false },
+			error: undefined
+		});
+
+		const onAuthenticated = vi.fn();
+		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: TEST_SERVER_TYPE, onAuthenticated }
+		});
+
+		// Click sign in button to start the flow
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
+		expect(signInButton).toBeTruthy();
+		await user.click(signInButton!);
+
+		// Wait for PIN creation and verify the code is displayed
+		await vi.waitFor(() => {
+			const pinCodeEl = container.querySelector('[data-pin-code]');
+			expect(pinCodeEl).toBeTruthy();
+			expect(pinCodeEl?.textContent?.trim()).toBe(pinResponse.code);
+		});
 	});
 
 	/**
@@ -353,33 +340,32 @@ describe('Plex OAuth Flow Component', () => {
 	});
 
 	/**
-	 * The component SHALL open Plex auth URL in a new window/tab.
+	 * The component SHALL open auth URL in a new window/tab.
 	 */
-	it('should open Plex auth URL in new window', async () => {
+	it('should open auth URL in new window', async () => {
 		vi.clearAllMocks();
 
-		const pinResponse: PlexOAuthPinResponse = {
+		const pinResponse: OAuthPinResponse = {
 			pin_id: 12345,
 			code: 'ABCD',
-			auth_url: 'https://plex.tv/auth/test',
+			auth_url: 'https://auth.example.com/oauth/test',
 			expires_at: new Date(Date.now() + 60000).toISOString()
 		};
 
-		vi.mocked(apiClient.createPlexPin).mockResolvedValue({
+		vi.mocked(apiClient.createOAuthPin).mockResolvedValue({
 			data: pinResponse,
-			error: undefined,
-			response: new Response()
+			error: undefined
 		});
 
 		const onAuthenticated = vi.fn();
 		const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-		const { container } = render(PlexOAuthFlow, {
-			props: { onAuthenticated }
+		const { container } = render(OAuthJoinFlow, {
+			props: { serverType: TEST_SERVER_TYPE, onAuthenticated }
 		});
 
 		// Click sign in button
-		const signInButton = container.querySelector('[data-plex-signin-button]');
+		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
 		// Wait for window.open to be called

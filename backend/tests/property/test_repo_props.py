@@ -15,9 +15,9 @@ from hypothesis import strategies as st
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from tests.conftest import TestDB
+from tests.conftest import KNOWN_SERVER_TYPES, TestDB
 from zondarr.core.exceptions import RepositoryError
-from zondarr.models import Identity, Invitation, MediaServer, ServerType, User
+from zondarr.models import Identity, Invitation, MediaServer, User
 from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
@@ -31,7 +31,7 @@ datetime_strategy = st.datetimes(
     timezones=st.just(UTC),
 )
 optional_datetime_strategy = st.one_of(st.none(), datetime_strategy)
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(KNOWN_SERVER_TYPES)
 name_strategy = st.text(
     alphabet=st.characters(categories=("L", "N")),
     min_size=1,
@@ -76,7 +76,7 @@ class TestRepositoryCRUDRoundTrip:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
         enabled: bool,
@@ -253,7 +253,7 @@ class TestRepositoryCRUDRoundTrip:
             # Create media server
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://test.local"
             server.api_key = "testkey"
             server.enabled = True
@@ -354,7 +354,7 @@ class TestRepositoryWrapsErrors:
 
         server = MediaServer()
         server.name = "Test"
-        server.server_type = ServerType.JELLYFIN
+        server.server_type = "jellyfin"
         server.url = "http://test.local"
         server.api_key = "key"
         server.enabled = True
@@ -377,7 +377,7 @@ class TestRepositoryWrapsErrors:
 
         server = MediaServer()
         server.name = "Test"
-        server.server_type = ServerType.JELLYFIN
+        server.server_type = "jellyfin"
         server.url = "http://test.local"
         server.api_key = "key"
         server.enabled = True

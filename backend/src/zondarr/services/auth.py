@@ -1,19 +1,26 @@
 """Authentication service for admin account management.
 
 Orchestrates admin account creation, credential verification,
-external auth (Plex/Jellyfin), and refresh token lifecycle.
+external auth (via provider registry), and refresh token lifecycle.
 """
 
 import hashlib
 import secrets
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import structlog
 
 from zondarr.core.exceptions import AuthenticationError
-from zondarr.models.admin import AdminAccount, AuthMethod, RefreshToken
+from zondarr.media.registry import registry
+from zondarr.models.admin import AdminAccount, RefreshToken
 from zondarr.repositories.admin import AdminAccountRepository, RefreshTokenRepository
 from zondarr.services.password import hash_password, needs_rehash, verify_password
+
+if TYPE_CHECKING:
+    from zondarr.config import Settings
+    from zondarr.media.provider import AdminAuthDescriptor
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)  # pyright: ignore[reportAny]
 
@@ -83,7 +90,7 @@ class AuthService:
             username=username,
             password_hash=hash_password(password),
             email=email,
-            auth_method=AuthMethod.LOCAL,
+            auth_method="local",
             enabled=True,
         )
         return await self.admin_repo.create(admin)
@@ -118,168 +125,46 @@ class AuthService:
         admin.last_login_at = datetime.now(UTC)
         return admin
 
-    async def authenticate_plex(
+    async def authenticate_external(
         self,
-        auth_token: str,
+        method: str,
+        credentials: Mapping[str, str],
         *,
-        configured_plex_token: str | None = None,
+        settings: Settings,
     ) -> AdminAccount:
-        """Authenticate via Plex OAuth token.
+        """Authenticate via an external provider.
 
-        Verifies the token is valid and the account matches the configured
-        Plex server owner. Auto-creates an AdminAccount for verified owners.
+        Delegates to the registered AdminAuthProvider for the given method.
 
         Args:
-            auth_token: Plex auth token from OAuth flow.
-            configured_plex_token: The configured Plex server token (PLEX_TOKEN).
-                Required to verify server ownership.
+            method: The auth method name (e.g., "plex", "jellyfin").
+            credentials: Provider-specific credential dict.
+            settings: Application settings.
 
         Returns:
-            The authenticated AdminAccount.
+            The authenticated or auto-created AdminAccount.
 
         Raises:
-            AuthenticationError: If Plex is not configured, verification fails,
-                or the account is not the server owner.
+            AuthenticationError: If the method is unknown or authentication fails.
         """
-        from plexapi.myplex import MyPlexAccount
-
-        if not configured_plex_token:
+        provider = registry.get_admin_auth_provider(method)
+        if provider is None:
             raise AuthenticationError(
-                "Plex authentication is not configured", "PLEX_NOT_CONFIGURED"
+                f"Unknown authentication method: {method}",
+                "UNKNOWN_AUTH_METHOD",
             )
 
-        try:
-            account = MyPlexAccount(token=auth_token)
-            _raw_email: object = account.email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-            _raw_username: object = account.username  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-            plex_email = str(_raw_email)  # pyright: ignore[reportUnknownArgumentType]
-            plex_username = str(_raw_username) if _raw_username else plex_email  # pyright: ignore[reportUnknownArgumentType]
-        except Exception as exc:
+        if not provider.is_configured(settings):
             raise AuthenticationError(
-                "Failed to verify Plex account", "PLEX_AUTH_FAILED"
-            ) from exc
-
-        # Verify the authenticating user is the configured Plex server owner
-        try:
-            owner_account = MyPlexAccount(token=configured_plex_token)
-            _raw_owner_email: object = owner_account.email  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-            owner_email = str(_raw_owner_email)  # pyright: ignore[reportUnknownArgumentType]
-        except Exception as exc:
-            raise AuthenticationError(
-                "Failed to verify Plex server owner", "PLEX_AUTH_FAILED"
-            ) from exc
-
-        if plex_email.lower() != owner_email.lower():
-            raise AuthenticationError(
-                "Account is not the Plex server owner", "NOT_SERVER_OWNER"
+                f"Authentication method not configured: {method}",
+                "AUTH_METHOD_NOT_CONFIGURED",
             )
 
-        # Check for existing account with this external ID
-        admin = await self.admin_repo.get_by_external_id(plex_email, AuthMethod.PLEX)
-
-        if admin is not None:
-            if not admin.enabled:
-                raise AuthenticationError("Account is disabled", "ACCOUNT_DISABLED")
-            admin.last_login_at = datetime.now(UTC)
-            return admin
-
-        # Auto-create admin account for verified Plex server owner
-        admin = AdminAccount(
-            username=plex_username.lower().replace(" ", "_")[:32],
-            email=plex_email,
-            auth_method=AuthMethod.PLEX,
-            external_id=plex_email,
-            enabled=True,
-            last_login_at=datetime.now(UTC),
+        return await provider.authenticate(
+            credentials,
+            settings=settings,
+            admin_repo=self.admin_repo,
         )
-        return await self.admin_repo.create(admin)
-
-    async def authenticate_jellyfin(
-        self,
-        server_url: str,
-        username: str,
-        password: str,
-    ) -> AdminAccount:
-        """Authenticate via Jellyfin credentials.
-
-        Verifies the user is a Jellyfin administrator.
-        Auto-creates an AdminAccount if verified admin.
-
-        Args:
-            server_url: Jellyfin server URL.
-            username: Jellyfin username.
-            password: Jellyfin password.
-
-        Returns:
-            The authenticated AdminAccount.
-
-        Raises:
-            AuthenticationError: If verification fails.
-        """
-        import httpx
-
-        # Authenticate with Jellyfin server
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{server_url.rstrip('/')}/Users/AuthenticateByName",
-                    json={"Username": username, "Pw": password},
-                    headers={
-                        "X-Emby-Authorization": (
-                            'MediaBrowser Client="Zondarr", '
-                            'Device="Server", '
-                            'DeviceId="zondarr-auth", '
-                            'Version="1.0"'
-                        ),
-                    },
-                    timeout=10.0,
-                )
-                if response.status_code != 200:
-                    raise AuthenticationError(
-                        "Invalid Jellyfin credentials",
-                        "INVALID_CREDENTIALS",
-                    )
-
-                data = response.json()  # pyright: ignore[reportAny]
-                user_data: dict[str, object] = data.get("User", {})  # pyright: ignore[reportAny]
-                policy: dict[str, object] = user_data.get("Policy", {})  # pyright: ignore[reportAssignmentType]
-                is_admin: bool = policy.get("IsAdministrator", False)  # pyright: ignore[reportAssignmentType]
-                jellyfin_user_id: str = str(user_data.get("Id", ""))
-
-        except AuthenticationError:
-            raise
-        except Exception as exc:
-            raise AuthenticationError(
-                "Failed to connect to Jellyfin server",
-                "JELLYFIN_AUTH_FAILED",
-            ) from exc
-
-        if not is_admin:
-            raise AuthenticationError(
-                "User is not a Jellyfin administrator",
-                "NOT_ADMIN",
-            )
-
-        # Check for existing account with this external ID
-        admin = await self.admin_repo.get_by_external_id(
-            jellyfin_user_id, AuthMethod.JELLYFIN
-        )
-
-        if admin is not None:
-            if not admin.enabled:
-                raise AuthenticationError("Account is disabled", "ACCOUNT_DISABLED")
-            admin.last_login_at = datetime.now(UTC)
-            return admin
-
-        # Auto-create admin account for Jellyfin admin
-        admin = AdminAccount(
-            username=username.lower().replace(" ", "_")[:32],
-            auth_method=AuthMethod.JELLYFIN,
-            external_id=jellyfin_user_id,
-            enabled=True,
-            last_login_at=datetime.now(UTC),
-        )
-        return await self.admin_repo.create(admin)
 
     async def create_refresh_token(
         self,
@@ -363,26 +248,51 @@ class AuthService:
         """
         _ = await self.token_repo.revoke_all_for_admin(admin.id)
 
-    async def get_available_auth_methods(self) -> list[str]:
+    async def get_available_auth_methods(
+        self,
+        *,
+        settings: Settings,
+    ) -> list[str]:
         """Get available authentication methods.
 
-        Always includes 'local'. Adds 'plex'/'jellyfin' if servers
-        are configured (env vars or DB records).
+        Always includes 'local'. Adds external methods for each configured
+        provider that supports admin auth.
+
+        Args:
+            settings: Application settings for checking provider configuration.
 
         Returns:
             List of available auth method strings.
         """
         methods: list[str] = ["local"]
 
-        # Check for Plex/Jellyfin config via env vars
-        # (Media server DB records would need a separate query,
-        # but env vars are the primary config mechanism)
-        import os
-
-        if os.environ.get("PLEX_URL") or os.environ.get("PLEX_TOKEN"):
-            methods.append("plex")
-
-        if os.environ.get("JELLYFIN_URL") or os.environ.get("JELLYFIN_API_KEY"):
-            methods.append("jellyfin")
+        for desc in registry.get_admin_auth_descriptors():
+            provider = registry.get_admin_auth_provider(desc.method_name)
+            if provider is not None and provider.is_configured(settings):
+                methods.append(desc.method_name)
 
         return methods
+
+    async def get_auth_methods_with_providers(
+        self,
+        *,
+        settings: Settings,
+    ) -> tuple[list[str], list[AdminAuthDescriptor]]:
+        """Get available auth methods and their provider descriptors.
+
+        Combines method availability checking with descriptor filtering
+        so the controller doesn't need to re-query the registry.
+
+        Args:
+            settings: Application settings for checking provider configuration.
+
+        Returns:
+            A tuple of (method names, filtered admin auth descriptors).
+        """
+        methods = await self.get_available_auth_methods(settings=settings)
+        descriptors = [
+            desc
+            for desc in registry.get_admin_auth_descriptors()
+            if desc.method_name in methods
+        ]
+        return methods, descriptors

@@ -31,12 +31,5 @@ export const setupSchema = z
 		path: ['confirmPassword']
 	});
 
-export const jellyfinLoginSchema = z.object({
-	server_url: z.string().url('Must be a valid URL').min(1, 'Server URL is required'),
-	username: z.string().min(1, 'Username is required'),
-	password: z.string().min(1, 'Password is required')
-});
-
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SetupFormData = z.infer<typeof setupSchema>;
-export type JellyfinLoginFormData = z.infer<typeof jellyfinLoginSchema>;

@@ -12,12 +12,12 @@ import msgspec
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from tests.conftest import KNOWN_SERVER_TYPES
 from zondarr.models import (
     Identity,
     Invitation,
     Library,
     MediaServer,
-    ServerType,
     User,
 )
 
@@ -32,7 +32,7 @@ datetime_strategy = st.datetimes(
     timezones=st.just(UTC),
 )
 optional_datetime_strategy = st.one_of(st.none(), datetime_strategy)
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(KNOWN_SERVER_TYPES)
 name_strategy = st.text(
     alphabet=st.characters(categories=("L", "N", "P", "S")),
     min_size=1,
@@ -62,8 +62,6 @@ def model_to_dict(model: object) -> SerializedData:
                 result[key] = str(value)
             elif isinstance(value, datetime):
                 result[key] = value.isoformat()
-            elif isinstance(value, ServerType):
-                result[key] = value.value
             elif isinstance(value, list):
                 continue
             elif isinstance(value, (str, int, bool)) or value is None:
@@ -104,7 +102,7 @@ class TestModelSerializationRoundTrip:
         self,
         id: UUID,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
         enabled: bool,
@@ -127,14 +125,14 @@ class TestModelSerializationRoundTrip:
         assert isinstance(data["created_at"], str)
         assert data["created_at"] == created_at.isoformat()
         assert isinstance(data["server_type"], str)
-        assert data["server_type"] == server_type.value
+        assert data["server_type"] == server_type
 
         json_bytes = msgspec.json.encode(data)
         decoded = decode_json(json_bytes)
 
         assert decoded["id"] == str(id)
         assert decoded["name"] == name
-        assert decoded["server_type"] == server_type.value
+        assert decoded["server_type"] == server_type
         assert decoded["url"] == url
         assert decoded["api_key"] == api_key
         assert decoded["enabled"] == enabled

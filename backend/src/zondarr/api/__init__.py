@@ -1,11 +1,14 @@
 """API layer - Litestar controllers and schemas."""
 
 from zondarr.api.health import HealthController
-from zondarr.api.plex_oauth import PlexOAuthController, provide_plex_oauth_service
+from zondarr.api.providers import ProviderController
 from zondarr.api.schemas import (
+    AuthFieldInfo,
+    AuthMethodsResponse,
     ConnectionTestRequest,
     ConnectionTestResponse,
     ErrorResponse,
+    ExternalLoginRequest,
     FieldError,
     HealthCheckResponse,
     IdentityCreate,
@@ -22,8 +25,8 @@ from zondarr.api.schemas import (
     MediaServerResponse,
     MediaServerUpdate,
     MediaServerWithLibrariesResponse,
-    PlexOAuthCheckResponse,
-    PlexOAuthPinResponse,
+    ProviderAuthInfo,
+    ProviderMetadataResponse,
     ReadinessResponse,
     SyncRequest,
     SyncResult,
@@ -32,9 +35,12 @@ from zondarr.api.schemas import (
 )
 
 __all__ = [
+    "AuthFieldInfo",
+    "AuthMethodsResponse",
     "ConnectionTestRequest",
     "ConnectionTestResponse",
     "ErrorResponse",
+    "ExternalLoginRequest",
     "FieldError",
     "HealthCheckResponse",
     "HealthController",
@@ -52,13 +58,12 @@ __all__ = [
     "MediaServerResponse",
     "MediaServerUpdate",
     "MediaServerWithLibrariesResponse",
-    "PlexOAuthCheckResponse",
-    "PlexOAuthController",
-    "PlexOAuthPinResponse",
+    "ProviderAuthInfo",
+    "ProviderController",
+    "ProviderMetadataResponse",
     "ReadinessResponse",
     "SyncRequest",
     "SyncResult",
     "UserResponse",
     "ValidationErrorResponse",
-    "provide_plex_oauth_service",
 ]

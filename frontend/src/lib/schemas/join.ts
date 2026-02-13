@@ -2,7 +2,7 @@
  * Zod validation schemas for join/registration forms.
  *
  * Provides client-side validation matching backend constraints for:
- * - Jellyfin user registration (username, password, email)
+ * - User registration (credential-based join flow)
  *
  * @module $lib/schemas/join
  */
@@ -10,7 +10,7 @@
 import { z } from 'zod';
 
 /**
- * Schema for Jellyfin user registration.
+ * Schema for user registration (credential-based join flow).
  *
  * Validates:
  * - username: 3-32 chars, lowercase, starts with letter, alphanumeric + underscores
@@ -19,7 +19,7 @@ import { z } from 'zod';
  *
  * Requirements: 11.2, 11.3, 11.4, 11.5
  */
-export const jellyfinRegistrationSchema = z.object({
+export const registrationSchema = z.object({
 	username: z
 		.string()
 		.min(3, 'Username must be at least 3 characters')
@@ -35,14 +35,14 @@ export const jellyfinRegistrationSchema = z.object({
 	email: z.string().email('Invalid email address').optional().or(z.literal(''))
 });
 
-export type JellyfinRegistrationInput = z.infer<typeof jellyfinRegistrationSchema>;
+export type RegistrationInput = z.infer<typeof registrationSchema>;
 
 /**
  * Transform registration form data to API request format.
  *
  * Converts empty email string to undefined for the API.
  */
-export function transformRegistrationFormData(data: JellyfinRegistrationInput) {
+export function transformRegistrationFormData(data: RegistrationInput) {
 	return {
 		username: data.username,
 		password: data.password,

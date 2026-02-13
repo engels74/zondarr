@@ -1,19 +1,34 @@
 /**
  * Auth API wrappers for /api/auth/* endpoints.
  *
- * Uses raw fetch since these endpoints are not in the OpenAPI spec.
+ * Uses raw fetch for auth endpoints that use cookie-based auth.
+ * Types are imported from the auto-generated OpenAPI types.
  */
+
+import type { components } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // =============================================================================
-// Types
+// Types — re-export from generated OpenAPI types
 // =============================================================================
 
-export interface AuthMethodsResponse {
-	methods: string[];
-	setup_required: boolean;
-}
+export type AuthFieldInfo = components['schemas']['AuthFieldInfo'];
+export type ProviderAuthInfo = Omit<
+	components['schemas']['ProviderAuthInfo'],
+	'flow_type' | 'fields'
+> & {
+	/** Narrowed from the generated `string` to known flow types. */
+	flow_type: 'oauth' | 'credentials';
+	/** Always present (defaults to [] on backend). */
+	fields: AuthFieldInfo[];
+};
+export type AuthMethodsResponse = Omit<
+	components['schemas']['AuthMethodsResponse'],
+	'provider_auth'
+> & {
+	provider_auth: ProviderAuthInfo[];
+};
 
 export interface AdminMeResponse {
 	id: string;
@@ -24,6 +39,24 @@ export interface AdminMeResponse {
 
 export interface AuthTokenResponse {
 	refresh_token: string;
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Extract `detail` string from an unknown error response body.
+ *
+ * Backend error responses are `{ detail: string }`, but the raw-fetch
+ * wrappers type errors as `unknown`. This helper narrows safely.
+ */
+export function getErrorDetail(error: unknown, fallback: string = 'Unknown error'): string {
+	if (error != null && typeof error === 'object' && 'detail' in error) {
+		const detail = (error as Record<string, unknown>).detail;
+		if (typeof detail === 'string') return detail;
+	}
+	return fallback;
 }
 
 // =============================================================================
@@ -75,32 +108,21 @@ export async function loginLocal(
 	return { data: result };
 }
 
-export async function loginPlex(
-	authToken: string,
+/**
+ * Authenticate via an external provider.
+ *
+ * @param method - Provider method name (e.g., "plex", "jellyfin")
+ * @param credentials - Provider-specific credentials
+ */
+export async function loginExternal(
+	method: string,
+	credentials: Record<string, string>,
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: AuthTokenResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/plex`, {
+	const response = await customFetch(`${API_BASE_URL}/api/auth/login/${method}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify({ auth_token: authToken }),
-		credentials: 'include'
-	});
-	if (!response.ok) {
-		const error = await response.json();
-		return { error };
-	}
-	const result = (await response.json()) as AuthTokenResponse;
-	return { data: result };
-}
-
-export async function loginJellyfin(
-	data: { server_url: string; username: string; password: string },
-	customFetch: typeof globalThis.fetch = fetch
-): Promise<{ data?: AuthTokenResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/jellyfin`, {
-		method: 'POST',
-		headers: { 'Content-Type': 'application/json' },
-		body: JSON.stringify(data),
+		body: JSON.stringify({ credentials }),
 		credentials: 'include'
 	});
 	if (!response.ok) {

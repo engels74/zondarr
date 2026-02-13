@@ -4,7 +4,7 @@
  *
  * Provides a modal dialog for adding new media servers with:
  * - Form validation via Zod
- * - Server type toggle (Jellyfin/Plex)
+ * - Server type toggle (dynamically populated from provider registry)
  * - API submission with connection validation
  * - Success/error toast notifications
  * - Auto-close on successful creation
@@ -23,6 +23,7 @@ import {
 	createServerSchema,
 	transformCreateServerData,
 } from "$lib/schemas/server";
+import { getAllProviders, getProviderActiveToggleStyle } from "$lib/stores/providers.svelte";
 import { showError, showSuccess } from "$lib/utils/toast";
 
 interface Props {
@@ -30,6 +31,8 @@ interface Props {
 }
 
 const { onSuccess }: Props = $props();
+
+const providerList = $derived(getAllProviders());
 
 // Dialog open state
 let open = $state(false);
@@ -43,7 +46,7 @@ let showApiKey = $state(false);
 // Form data state
 let formData = $state<CreateServerInput>({
 	name: "",
-	server_type: "jellyfin",
+	server_type: "",
 	url: "",
 	api_key: "",
 });
@@ -57,7 +60,7 @@ let errors = $state<Record<string, string[]>>({});
 function resetForm() {
 	formData = {
 		name: "",
-		server_type: "jellyfin",
+		server_type: "",
 		url: "",
 		api_key: "",
 	};
@@ -180,7 +183,7 @@ function handleCancel() {
 				Add Media Server
 			</Dialog.Title>
 			<Dialog.Description class="text-cr-text-muted">
-				Connect a Jellyfin or Plex media server to manage user access.
+				Connect a media server to manage user access.
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -209,28 +212,20 @@ function handleCancel() {
 			<div class="space-y-2">
 				<Label class="text-cr-text">Server Type</Label>
 				<div class="flex rounded-lg border border-cr-border overflow-hidden" role="group">
-					<button
-						type="button"
-						disabled={submitting}
-						onclick={() => (formData.server_type = 'jellyfin')}
-						class="flex-1 px-4 py-2.5 text-sm font-medium transition-colors {formData.server_type === 'jellyfin'
-							? 'bg-purple-500/20 text-purple-400 border-r border-purple-500/30'
-							: 'bg-cr-bg text-cr-text-muted hover:bg-cr-border border-r border-cr-border'}"
-						data-server-type="jellyfin"
-					>
-						Jellyfin
-					</button>
-					<button
-						type="button"
-						disabled={submitting}
-						onclick={() => (formData.server_type = 'plex')}
-						class="flex-1 px-4 py-2.5 text-sm font-medium transition-colors {formData.server_type === 'plex'
-							? 'bg-amber-500/20 text-amber-400'
-							: 'bg-cr-bg text-cr-text-muted hover:bg-cr-border'}"
-						data-server-type="plex"
-					>
-						Plex
-					</button>
+					{#each providerList as provider, i (provider.server_type)}
+						<button
+							type="button"
+							disabled={submitting}
+							onclick={() => (formData.server_type = provider.server_type)}
+							class="flex-1 px-4 py-2.5 text-sm font-medium transition-colors {i < providerList.length - 1 ? 'border-r' : ''} {formData.server_type === provider.server_type
+								? ''
+								: 'bg-cr-bg text-cr-text-muted hover:bg-cr-border border-cr-border'}"
+							style={formData.server_type === provider.server_type ? getProviderActiveToggleStyle(provider.server_type) : ''}
+							data-server-type={provider.server_type}
+						>
+							{provider.display_name}
+						</button>
+					{/each}
 				</div>
 				{#if getFieldErrors('server_type').length > 0}
 					<div class="text-rose-400 text-sm" data-field-error="server_type">
@@ -248,7 +243,7 @@ function handleCancel() {
 					id="url"
 					type="url"
 					bind:value={formData.url}
-					placeholder="https://jellyfin.example.com"
+					placeholder="https://media.example.com"
 					disabled={submitting}
 					class="border-cr-border bg-cr-bg text-cr-text placeholder:text-cr-text-muted/50 focus:border-cr-accent font-mono text-sm"
 					data-field="url"
@@ -289,13 +284,11 @@ function handleCancel() {
 						{/if}
 					</button>
 				</div>
-				<p class="text-cr-text-muted text-xs">
-					{#if formData.server_type === 'jellyfin'}
-						Create an API key in Jellyfin: Dashboard > API Keys
-					{:else}
-						Find your Plex token in account settings or use a Plex Pass API token
+				{#each providerList as provider (provider.server_type)}
+					{#if formData.server_type === provider.server_type && provider.api_key_help_text}
+						<p class="text-cr-text-muted text-xs">{provider.api_key_help_text}</p>
 					{/if}
-				</p>
+				{/each}
 				{#if getFieldErrors('api_key').length > 0}
 					<div class="text-rose-400 text-sm" data-field-error="api_key">
 						{#each getFieldErrors('api_key') as error}

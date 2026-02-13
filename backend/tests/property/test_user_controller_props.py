@@ -19,7 +19,6 @@ from hypothesis import strategies as st
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from tests.conftest import TestDB
-from zondarr.models import ServerType
 from zondarr.models.identity import Identity, User
 from zondarr.models.media_server import MediaServer
 from zondarr.repositories.identity import IdentityRepository
@@ -76,7 +75,7 @@ async def create_test_users(
         server = MediaServer(
             id=server_id,
             name="TestServer",
-            server_type=ServerType.JELLYFIN,
+            server_type="jellyfin",
             url="http://jellyfin.local:8096",
             api_key="test-api-key",
             enabled=True,

@@ -48,11 +48,10 @@ class Settings(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
         ),
     ] = False
 
-    # Media server credentials (optional, override database values)
-    plex_url: str | None = None
-    plex_token: str | None = None
-    jellyfin_url: str | None = None
-    jellyfin_api_key: str | None = None
+    # Dynamic provider credentials populated from env vars
+    # Keyed by server_type (e.g., "plex", "jellyfin")
+    # Each value is a dict with "url" and "api_key" keys
+    provider_credentials: dict[str, dict[str, str]] = {}
 
     # Background task intervals (in seconds)
     expiration_check_interval_seconds: Annotated[
@@ -107,11 +106,9 @@ def load_settings() -> Settings:
             os.environ.get("EXPIRATION_CHECK_INTERVAL_SECONDS", "3600")
         ),
         "sync_interval_seconds": int(os.environ.get("SYNC_INTERVAL_SECONDS", "900")),
-        "plex_url": os.environ.get("PLEX_URL") or None,
-        "plex_token": os.environ.get("PLEX_TOKEN") or None,
-        "jellyfin_url": os.environ.get("JELLYFIN_URL") or None,
-        "jellyfin_api_key": os.environ.get("JELLYFIN_API_KEY") or None,
     }
 
     # msgspec.convert validates constraints
-    return msgspec.convert(settings_dict, Settings)
+    settings = msgspec.convert(settings_dict, Settings)
+
+    return settings

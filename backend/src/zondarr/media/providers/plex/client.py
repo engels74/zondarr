@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 from zondarr.core.exceptions import ExternalServiceError
 from zondarr.media.exceptions import MediaClientError
-from zondarr.media.types import Capability, ExternalUser, LibraryInfo, PlexUserType
+from zondarr.media.types import Capability, ExternalUser, LibraryInfo
 
 log: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore[reportAny]
 
@@ -345,9 +345,9 @@ class PlexClient:
         available on the server via python-plexapi's library.sections().
 
         Maps Plex section attributes to LibraryInfo:
-        - key → external_id
-        - title → name
-        - type → library_type (movie, show, artist, photo, etc.)
+        - key -> external_id
+        - title -> name
+        - type -> library_type (movie, show, artist, photo, etc.)
 
         Returns:
             A sequence of LibraryInfo objects describing each library.
@@ -611,13 +611,12 @@ class PlexClient:
         /,
         *,
         email: str | None = None,
-        plex_user_type: PlexUserType = PlexUserType.FRIEND,
     ) -> ExternalUser:
         """Create a new user on the Plex server.
 
-        Creates a user account via Plex.tv. For Friends, sends an invitation
-        to an existing Plex.tv account. For Home Users, creates a managed
-        user within the Plex Home.
+        Uses email presence to determine the user type:
+        - If email is provided, creates a Friend invitation via Plex.tv.
+        - If no email, creates a managed Home User within the Plex Home.
 
         Note: The password parameter is ignored for Plex since authentication
         is handled through Plex.tv accounts or managed Home Users.
@@ -625,38 +624,23 @@ class PlexClient:
         Args:
             username: The username for the new account (positional-only).
             password: Ignored for Plex (positional-only).
-            email: Email address for Friend invitations (keyword-only).
-            plex_user_type: Type of user to create - FRIEND or HOME (keyword-only).
+            email: Email address (keyword-only). If provided, creates a Friend
+                invitation; otherwise creates a Home User.
 
         Returns:
             An ExternalUser object with the created user's details.
 
         Raises:
             MediaClientError: If the client is not initialized.
-            MediaClientError: If user_type is FRIEND but no email is provided.
             MediaClientError: If the user already exists.
             MediaClientError: If user creation fails for other reasons.
         """
         _ = password  # Explicitly ignore password parameter
 
-        if plex_user_type == PlexUserType.FRIEND:
-            if email is None:
-                log.warning(
-                    "plex_create_user_email_required",
-                    url=self.url,
-                    username=username,
-                    plex_user_type=plex_user_type.value,
-                )
-                raise _create_media_client_error(
-                    "Email is required for Friend invitations",
-                    operation="create_user",
-                    server_url=self.url,
-                    cause="plex_user_type is FRIEND but email was not provided",
-                    error_code=PlexErrorCode.EMAIL_REQUIRED,
-                )
+        if email is not None:
             return await self._create_friend(email)
 
-        # plex_user_type == PlexUserType.HOME
+        # No email provided - create as Home User
         return await self._create_home_user(username)
 
     async def delete_user(self, external_user_id: str, /) -> bool:
@@ -954,7 +938,7 @@ class PlexClient:
         """Update user permissions on the Plex server.
 
         Maps universal permissions to Plex-specific settings where applicable.
-        Currently supports can_download → allowSync mapping.
+        Currently supports can_download -> allowSync mapping.
 
         Args:
             external_user_id: The user's unique identifier on the server
@@ -1001,7 +985,7 @@ class PlexClient:
                     return False
 
                 # Map universal permissions to Plex-specific settings
-                # can_download → allowSync
+                # can_download -> allowSync
                 allow_sync: bool | None = permissions.get("can_download")
 
                 # Update the user's permissions via updateFriend

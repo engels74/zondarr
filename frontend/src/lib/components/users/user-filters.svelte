@@ -23,6 +23,7 @@ import type {
 } from "$lib/api/client";
 import { Button } from "$lib/components/ui/button";
 import * as Select from "$lib/components/ui/select";
+import { getProviderBadgeStyle } from "$lib/stores/providers.svelte";
 
 interface Props {
 	serverId?: string;
@@ -164,9 +165,8 @@ const sortByOptions = [
 				<Select.Item value={server.id} class="text-cr-text hover:bg-cr-border">
 					<span class="flex items-center gap-2">
 						<span
-							class="inline-flex items-center rounded border px-1 py-0.5 text-xs font-medium {server.server_type === 'plex'
-								? 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-								: 'bg-purple-500/15 text-purple-400 border-purple-500/30'}"
+							class="inline-flex items-center rounded border px-1 py-0.5 text-xs font-medium"
+							style={getProviderBadgeStyle(server.server_type)}
 						>
 							{server.server_type}
 						</span>

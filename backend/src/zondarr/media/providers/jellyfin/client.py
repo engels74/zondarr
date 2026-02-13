@@ -681,10 +681,10 @@ class JellyfinClient:
         and updates the policy.
 
         Permission mapping (per Requirements 7.3-7.6):
-        - can_download → EnableContentDownloading
-        - can_stream → EnableMediaPlayback
-        - can_sync → EnableSyncTranscoding
-        - can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
+        - can_download -> EnableContentDownloading
+        - can_stream -> EnableMediaPlayback
+        - can_sync -> EnableSyncTranscoding
+        - can_transcode -> EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding
 
         Args:
             external_user_id: The user's unique identifier on the server
@@ -736,7 +736,7 @@ class JellyfinClient:
             # Step 3: Map universal permissions to Jellyfin policy fields
             # Only update fields that are provided in the permissions dict
 
-            # can_download → EnableContentDownloading (Requirement 7.3)
+            # can_download -> EnableContentDownloading (Requirement 7.3)
             if "can_download" in permissions:
                 value = permissions["can_download"]
                 if hasattr(policy, "EnableContentDownloading"):  # pyright: ignore[reportAny]
@@ -744,7 +744,7 @@ class JellyfinClient:
                 elif hasattr(policy, "enable_content_downloading"):  # pyright: ignore[reportAny]
                     policy.enable_content_downloading = value
 
-            # can_stream → EnableMediaPlayback (Requirement 7.4)
+            # can_stream -> EnableMediaPlayback (Requirement 7.4)
             if "can_stream" in permissions:
                 value = permissions["can_stream"]
                 if hasattr(policy, "EnableMediaPlayback"):  # pyright: ignore[reportAny]
@@ -752,7 +752,7 @@ class JellyfinClient:
                 elif hasattr(policy, "enable_media_playback"):  # pyright: ignore[reportAny]
                     policy.enable_media_playback = value
 
-            # can_sync → EnableSyncTranscoding (Requirement 7.5)
+            # can_sync -> EnableSyncTranscoding (Requirement 7.5)
             if "can_sync" in permissions:
                 value = permissions["can_sync"]
                 if hasattr(policy, "EnableSyncTranscoding"):  # pyright: ignore[reportAny]
@@ -760,7 +760,7 @@ class JellyfinClient:
                 elif hasattr(policy, "enable_sync_transcoding"):  # pyright: ignore[reportAny]
                     policy.enable_sync_transcoding = value
 
-            # can_transcode → EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding (Requirement 7.6)
+            # can_transcode -> EnableAudioPlaybackTranscoding, EnableVideoPlaybackTranscoding (Requirement 7.6)
             if "can_transcode" in permissions:
                 value = permissions["can_transcode"]
                 # Set EnableAudioPlaybackTranscoding

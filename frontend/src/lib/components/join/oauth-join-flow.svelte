@@ -1,19 +1,17 @@
 <script lang="ts">
 /**
- * Plex OAuth flow component.
+ * OAuth join flow component.
  *
- * Provides OAuth authentication flow for Plex servers:
- * - "Sign in with Plex" button
+ * Provides OAuth authentication flow for media servers:
+ * - "Sign in" button with provider branding
  * - PIN creation via API
  * - PIN code display
- * - Opens Plex auth URL in new window/tab
+ * - Opens auth URL in new window/tab
  * - Polls PIN status until authenticated or expired
- * - Displays user's Plex email when authenticated
+ * - Displays user's email when authenticated
  * - Error handling with retry option
  *
- * Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6
- *
- * @module $lib/components/join/plex-oauth-flow
+ * @module $lib/components/join/oauth-join-flow
  */
 
 import {
@@ -26,10 +24,9 @@ import {
 import { onDestroy } from "svelte";
 import { toast } from "svelte-sonner";
 import {
-	checkPlexPin,
-	createPlexPin,
-	type PlexOAuthCheckResponse,
-	type PlexOAuthPinResponse,
+	checkOAuthPin,
+	createOAuthPin,
+	type OAuthPinResponse,
 } from "$lib/api/client";
 import { getErrorMessage } from "$lib/api/errors";
 import { Button } from "$lib/components/ui/button";
@@ -40,15 +37,22 @@ import {
 	CardHeader,
 	CardTitle,
 } from "$lib/components/ui/card";
+import { getProviderColor, getProviderIconSvg, getProviderLabel } from "$lib/stores/providers.svelte";
 
 interface Props {
+	/** The server type for branding (e.g., "plex") */
+	serverType: string;
 	/** Callback when authentication is successful */
 	onAuthenticated: (email: string) => void;
 	/** Callback when user cancels the flow */
 	onCancel?: () => void;
 }
 
-const { onAuthenticated, onCancel }: Props = $props();
+const { serverType, onAuthenticated, onCancel }: Props = $props();
+
+const providerLabel = $derived(getProviderLabel(serverType));
+const providerColor = $derived(getProviderColor(serverType));
+const providerIconSvg = $derived(getProviderIconSvg(serverType));
 
 // Flow state
 type FlowStep =
@@ -61,7 +65,7 @@ type FlowStep =
 let currentStep = $state<FlowStep>("idle");
 
 // PIN data
-let pinData = $state<PlexOAuthPinResponse | null>(null);
+let pinData = $state<OAuthPinResponse | null>(null);
 let authenticatedEmail = $state<string | null>(null);
 let errorMessage = $state<string | null>(null);
 
@@ -92,14 +96,14 @@ function isPinExpired(expiresAt: string): boolean {
 }
 
 /**
- * Start the Plex OAuth flow.
+ * Start the OAuth flow.
  */
 async function startOAuthFlow() {
 	currentStep = "creating_pin";
 	errorMessage = null;
 
 	try {
-		const { data, error } = await createPlexPin();
+		const { data, error } = await createOAuthPin(serverType);
 
 		if (error) {
 			throw new Error(getErrorMessage(error));
@@ -112,7 +116,7 @@ async function startOAuthFlow() {
 		pinData = data;
 		currentStep = "waiting";
 
-		// Open Plex auth URL in new window/tab
+		// Open auth URL in new window/tab
 		window.open(pinData.auth_url, "_blank", "noopener,noreferrer");
 
 		// Start polling for PIN status
@@ -120,7 +124,7 @@ async function startOAuthFlow() {
 	} catch (err) {
 		errorMessage = getErrorMessage(err);
 		currentStep = "error";
-		toast.error("Failed to start Plex authentication");
+		toast.error(`Failed to start ${providerLabel} authentication`);
 	}
 }
 
@@ -144,7 +148,7 @@ function startPolling() {
 		}
 
 		try {
-			const { data, error } = await checkPlexPin(pinData.pin_id);
+			const { data, error } = await checkOAuthPin(serverType, pinData.pin_id);
 
 			if (error) {
 				// Don't stop polling on transient errors
@@ -154,16 +158,14 @@ function startPolling() {
 
 			if (!data) return;
 
-			const checkResponse = data as PlexOAuthCheckResponse;
-
-			if (checkResponse.authenticated && checkResponse.email) {
+			if (data.authenticated && data.email) {
 				stopPolling();
-				authenticatedEmail = checkResponse.email;
+				authenticatedEmail = data.email;
 				currentStep = "authenticated";
-				onAuthenticated(checkResponse.email);
-			} else if (checkResponse.error) {
+				onAuthenticated(data.email);
+			} else if (data.error) {
 				stopPolling();
-				errorMessage = checkResponse.error;
+				errorMessage = data.error;
 				currentStep = "error";
 			}
 		} catch (err) {
@@ -195,7 +197,7 @@ function handleCancel() {
 }
 
 /**
- * Open the Plex auth URL again.
+ * Open the auth URL again.
  */
 function openAuthUrl() {
 	if (pinData?.auth_url) {
@@ -204,22 +206,25 @@ function openAuthUrl() {
 }
 </script>
 
-<div class="space-y-6" data-plex-oauth-flow data-step={currentStep}>
+<div class="space-y-6" data-oauth-join-flow data-step={currentStep}>
 	<!-- Idle state: Sign in button -->
 	{#if currentStep === 'idle'}
 		<div class="text-center space-y-4">
 			<p class="text-cr-text-muted">
-				Sign in with your Plex account to get access to the media server.
+				Sign in with your {providerLabel} account to get access to the media server.
 			</p>
 			<Button
 				onclick={startOAuthFlow}
-				class="w-full bg-[#e5a00d] text-black hover:bg-[#cc8f0c] font-semibold"
-				data-plex-signin-button
+				class="w-full font-semibold"
+				style="background: {providerColor}; color: #000"
+				data-oauth-signin-button
 			>
-				<svg class="size-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
-					<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-				</svg>
-				Sign in with Plex
+				{#if providerIconSvg}
+					<svg class="size-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+						<path d={providerIconSvg}/>
+					</svg>
+				{/if}
+				Sign in with {providerLabel}
 			</Button>
 		</div>
 
@@ -229,7 +234,7 @@ function openAuthUrl() {
 			<div class="flex justify-center">
 				<Loader2 class="size-8 animate-spin text-cr-accent" />
 			</div>
-			<p class="text-cr-text-muted">Preparing Plex authentication...</p>
+			<p class="text-cr-text-muted">Preparing {providerLabel} authentication...</p>
 		</div>
 
 	<!-- Waiting for authentication -->
@@ -238,7 +243,7 @@ function openAuthUrl() {
 			<CardHeader>
 				<CardTitle class="text-cr-text">Complete Authentication</CardTitle>
 				<CardDescription class="text-cr-text-muted">
-					A new window has opened for Plex sign-in. Complete the authentication there.
+					A new window has opened for {providerLabel} sign-in. Complete the authentication there.
 				</CardDescription>
 			</CardHeader>
 			<CardContent class="space-y-4">
@@ -264,7 +269,7 @@ function openAuthUrl() {
 						class="flex-1 border-cr-border bg-cr-surface hover:bg-cr-border text-cr-text"
 					>
 						<ExternalLink class="size-4 mr-2" />
-						Open Plex Again
+						Open {providerLabel} Again
 					</Button>
 					<Button
 						variant="ghost"
@@ -286,9 +291,9 @@ function openAuthUrl() {
 						<CheckCircle class="size-5" />
 					</div>
 					<div>
-						<CardTitle class="text-cr-text">Plex Authentication Successful</CardTitle>
+						<CardTitle class="text-cr-text">{providerLabel} Authentication Successful</CardTitle>
 						<CardDescription class="text-cr-text-muted">
-							Signed in as <span class="font-medium text-cr-text" data-plex-email>{authenticatedEmail}</span>
+							Signed in as <span class="font-medium text-cr-text" data-oauth-email>{authenticatedEmail}</span>
 						</CardDescription>
 					</div>
 				</div>

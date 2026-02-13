@@ -8,21 +8,23 @@
  */
 
 import { z } from 'zod';
+import { getAllProviders } from '$lib/stores/providers.svelte';
 
 /**
  * Schema for creating a new media server.
  *
  * Required fields:
  * - name: Human-readable name for the server
- * - server_type: Type of media server (jellyfin or plex)
+ * - server_type: Type of media server (as registered by a provider)
  * - url: Base URL for the media server API
  * - api_key: Authentication token for the server
  */
 export const createServerSchema = z.object({
 	name: z.string().min(1, 'Name is required').max(255, 'Name must be at most 255 characters'),
-	server_type: z.enum(['jellyfin', 'plex'], {
-		message: 'Invalid server type'
-	}),
+	server_type: z
+		.string()
+		.min(1, 'Server type is required')
+		.refine((val) => getAllProviders().some((p) => p.server_type === val), 'Invalid server type'),
 	url: z
 		.string()
 		.min(1, 'URL is required')

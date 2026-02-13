@@ -40,7 +40,8 @@ from zondarr.api.errors import (
 from zondarr.api.health import HealthController
 from zondarr.api.invitations import InvitationController
 from zondarr.api.join import JoinController
-from zondarr.api.plex_oauth import PlexOAuthController
+from zondarr.api.oauth import OAuthController
+from zondarr.api.providers import ProviderController
 from zondarr.api.servers import ServerController
 from zondarr.api.users import UserController
 from zondarr.api.wizards import WizardController
@@ -54,54 +55,42 @@ from zondarr.core.exceptions import (
     ValidationError,
 )
 from zondarr.core.tasks import background_tasks_lifespan
+from zondarr.media.providers import register_all_providers
 from zondarr.media.registry import registry
-from zondarr.models.media_server import ServerType
 
 
-def _register_media_clients() -> None:
-    """Register all media client implementations in the registry.
-
-    Called during application startup to ensure all supported server types
-    have their client implementations available.
-    """
-    # Suppress Pydantic v1 compatibility warning on Python 3.14+.
-    # Pydantic is a transitive dep of jellyfin-sdk, not used by Zondarr.
-    import warnings
-
-    warnings.filterwarnings(
-        "ignore",
-        message="Core Pydantic V1 functionality isn't compatible with Python 3.14",
-        category=UserWarning,
-    )
-
-    from zondarr.media.clients.jellyfin import JellyfinClient
-    from zondarr.media.clients.plex import PlexClient
-
-    registry.register(ServerType.JELLYFIN, JellyfinClient)
-    registry.register(ServerType.PLEX, PlexClient)
+def provide_settings(state: State) -> Settings:
+    """Extract Settings from app state for DI injection."""
+    return state.settings  # pyright: ignore[reportAny]
 
 
 def _create_openapi_config() -> OpenAPIConfig:
     """Create OpenAPI configuration for the application.
 
+    Generates tags dynamically from registered providers.
+
     Returns:
         Configured OpenAPIConfig instance.
     """
+    # Base tags
+    tags = [
+        Tag(name="Authentication", description="Admin authentication"),
+        Tag(name="Health", description="Health check endpoints"),
+        Tag(name="Media Servers", description="Media server management"),
+        Tag(name="Invitations", description="Invitation management"),
+        Tag(name="Join", description="Public invitation redemption"),
+        Tag(name="OAuth", description="OAuth authentication flows"),
+        Tag(name="Providers", description="Provider metadata"),
+        Tag(name="Users", description="User and identity management"),
+        Tag(name="Wizards", description="Wizard management for onboarding flows"),
+    ]
+
     return OpenAPIConfig(
         title="Zondarr API",
         version="0.1.0",
         description="Unified invitation and user management for media servers",
         path="/docs",
-        tags=[
-            Tag(name="Authentication", description="Admin authentication"),
-            Tag(name="Health", description="Health check endpoints"),
-            Tag(name="Media Servers", description="Media server management"),
-            Tag(name="Invitations", description="Invitation management"),
-            Tag(name="Join", description="Public invitation redemption"),
-            Tag(name="Plex OAuth", description="Plex OAuth authentication flow"),
-            Tag(name="Users", description="User and identity management"),
-            Tag(name="Wizards", description="Wizard management for onboarding flows"),
-        ],
+        tags=tags,
         security=[{"BearerToken": []}],
         components=Components(
             security_schemes={
@@ -175,31 +164,42 @@ def create_app(settings: Settings | None = None) -> Litestar:
         )
         app = create_app(settings=test_settings)
     """
+    # Register all providers before loading settings
+    # (settings loading reads env vars from provider metadata)
+    register_all_providers()
+
     if settings is None:
         settings = load_settings()
 
-    # Register media clients in the global registry
-    _register_media_clients()
     registry.set_settings(settings)
+
+    # Collect route handlers dynamically from providers
+    route_handlers: list[type] = [
+        AuthController,
+        HealthController,
+        InvitationController,
+        JoinController,
+        OAuthController,
+        ProviderController,
+        ServerController,
+        UserController,
+        WizardController,
+    ]
+
+    for desc in registry.get_all_descriptors():
+        if desc.route_handlers:
+            route_handlers.extend(desc.route_handlers)
 
     # Create JWT cookie auth
     jwt_auth = create_jwt_auth(settings)
 
     return Litestar(
-        route_handlers=[
-            AuthController,
-            HealthController,
-            InvitationController,
-            JoinController,
-            PlexOAuthController,
-            ServerController,
-            UserController,
-            WizardController,
-        ],
+        route_handlers=route_handlers,
         lifespan=[db_lifespan, background_tasks_lifespan],
         state=State({"settings": settings}),
         dependencies={
             "session": Provide(provide_db_session),
+            "settings": Provide(provide_settings, sync_to_thread=False),
         },
         on_app_init=[jwt_auth.on_app_init],
         cors_config=_create_cors_config(settings),

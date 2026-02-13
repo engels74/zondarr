@@ -212,12 +212,10 @@ describe('Property 34: Accessibility Compliance', () => {
 		 */
 		it('should have data-field-error attributes for validation errors', async () => {
 			// Test the Jellyfin registration form
-			const { default: JellyfinRegistrationForm } = await import(
-				'./join/jellyfin-registration-form.svelte'
-			);
+			const { default: RegistrationForm } = await import('./join/registration-form.svelte');
 
 			const mockSubmit = vi.fn();
-			const { container } = render(JellyfinRegistrationForm, {
+			const { container } = render(RegistrationForm, {
 				props: {
 					formData: { username: '', password: '', email: '' },
 					errors: {
@@ -250,12 +248,10 @@ describe('Property 34: Accessibility Compliance', () => {
 		 * **Validates: Requirements 13.8**
 		 */
 		it('should have autocomplete attributes on form inputs', async () => {
-			const { default: JellyfinRegistrationForm } = await import(
-				'./join/jellyfin-registration-form.svelte'
-			);
+			const { default: RegistrationForm } = await import('./join/registration-form.svelte');
 
 			const mockSubmit = vi.fn();
-			const { container } = render(JellyfinRegistrationForm, {
+			const { container } = render(RegistrationForm, {
 				props: {
 					formData: { username: '', password: '', email: '' },
 					errors: {},
@@ -288,12 +284,10 @@ describe('Property 34: Accessibility Compliance', () => {
 		 * **Validates: Requirements 13.8**
 		 */
 		it('should have aria-label on password visibility toggle', async () => {
-			const { default: JellyfinRegistrationForm } = await import(
-				'./join/jellyfin-registration-form.svelte'
-			);
+			const { default: RegistrationForm } = await import('./join/registration-form.svelte');
 
 			const mockSubmit = vi.fn();
-			const { container } = render(JellyfinRegistrationForm, {
+			const { container } = render(RegistrationForm, {
 				props: {
 					formData: { username: '', password: '', email: '' },
 					errors: {},

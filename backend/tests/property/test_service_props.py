@@ -13,10 +13,10 @@ from hypothesis import given
 from hypothesis import strategies as st
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
-from tests.conftest import TestDB, create_test_engine
+from tests.conftest import KNOWN_SERVER_TYPES, TestDB, create_test_engine
 from zondarr.core.exceptions import NotFoundError, ValidationError
 from zondarr.media.registry import ClientRegistry
-from zondarr.models import Invitation, ServerType
+from zondarr.models import Invitation
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.services.invitation import (
@@ -32,7 +32,7 @@ name_strategy = st.text(
     max_size=50,
 ).filter(lambda x: x.strip())
 url_strategy = st.from_regex(r"https?://[a-z0-9]+\.[a-z]{2,}", fullmatch=True)
-server_type_strategy = st.sampled_from([ServerType.JELLYFIN, ServerType.PLEX])
+server_type_strategy = st.sampled_from(KNOWN_SERVER_TYPES)
 # Use UUIDs for codes to ensure uniqueness across Hypothesis examples
 code_strategy = st.uuids().map(lambda u: str(u).replace("-", "")[:12].upper())
 
@@ -51,7 +51,7 @@ class TestServiceValidatesBeforePersisting:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> None:
@@ -61,6 +61,9 @@ class TestServiceValidatesBeforePersisting:
             repo = MediaServerRepository(session)
 
             mock_registry = MagicMock(spec=ClientRegistry)
+            mock_registry.registered_types = MagicMock(
+                return_value=frozenset({"plex", "jellyfin"})
+            )
             mock_client = AsyncMock()
             mock_client.test_connection = AsyncMock(return_value=False)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)
@@ -95,7 +98,7 @@ class TestServiceValidatesBeforePersisting:
         self,
         db: TestDB,
         name: str,
-        server_type: ServerType,
+        server_type: str,
         url: str,
         api_key: str,
     ) -> None:
@@ -105,6 +108,9 @@ class TestServiceValidatesBeforePersisting:
             repo = MediaServerRepository(session)
 
             mock_registry = MagicMock(spec=ClientRegistry)
+            mock_registry.registered_types = MagicMock(
+                return_value=frozenset({"plex", "jellyfin"})
+            )
             mock_client = AsyncMock()
             mock_client.test_connection = AsyncMock(return_value=True)
             mock_client.__aenter__ = AsyncMock(return_value=mock_client)

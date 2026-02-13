@@ -14,7 +14,7 @@ from hypothesis import strategies as st
 from tests.conftest import TestDB
 from zondarr.media.registry import ClientRegistry
 from zondarr.media.types import ExternalUser
-from zondarr.models import MediaServer, ServerType
+from zondarr.models import MediaServer
 from zondarr.models.identity import Identity, User
 from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.media_server import MediaServerRepository
@@ -132,7 +132,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -200,7 +200,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -268,7 +268,7 @@ class TestSyncIdentifiesDiscrepanciesCorrectly:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -353,7 +353,7 @@ class TestSyncIsIdempotent:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -450,7 +450,7 @@ class TestSyncDoesNotModifyUsers:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -533,7 +533,7 @@ class TestSyncDoesNotModifyUsers:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -631,7 +631,7 @@ class TestSyncTaskErrorResilience:
             for i in range(num_servers):
                 server = MediaServer()
                 server.name = f"Test Server {i}"
-                server.server_type = ServerType.JELLYFIN
+                server.server_type = "jellyfin"
                 server.url = f"http://server{i}:8096"
                 server.api_key = f"api-key-{i}"
                 server.enabled = True
@@ -716,7 +716,7 @@ class TestSyncTaskErrorResilience:
             for i in range(num_servers):
                 server = MediaServer()
                 server.name = f"Disabled Server {i}"
-                server.server_type = ServerType.JELLYFIN
+                server.server_type = "jellyfin"
                 server.url = f"http://disabled{i}:8096"
                 server.api_key = f"api-key-{i}"
                 server.enabled = False  # All disabled
@@ -772,7 +772,7 @@ class TestSyncImportsOrphanedUsers:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -848,7 +848,7 @@ class TestSyncImportsOrphanedUsers:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
@@ -923,7 +923,7 @@ class TestSyncImportsOrphanedUsers:
             server_repo = MediaServerRepository(session)
             server = MediaServer()
             server.name = "Test Server"
-            server.server_type = ServerType.JELLYFIN
+            server.server_type = "jellyfin"
             server.url = "http://localhost:8096"
             server.api_key = "test-api-key"
             server.enabled = True
