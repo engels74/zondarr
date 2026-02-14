@@ -504,7 +504,9 @@ class WizardService:
     ) -> tuple[bool, str | None, str | None]:
         """Validate step completion with all interactions.
 
-        Empty interactions list = informational step, always valid.
+        Fetches the step's interactions from the DB and enforces that the
+        client-submitted set matches exactly (no omissions, no extras).
+        Steps with zero DB interactions are informational and always valid.
         All interactions must pass (AND logic).
 
         Args:
@@ -516,22 +518,47 @@ class WizardService:
 
         Raises:
             NotFoundError: If the step or an interaction does not exist.
+            ValidationError: If submitted interaction IDs don't match the step's interactions.
             RepositoryError: If the database operation fails.
         """
         step = await self.step_repo.get_by_id(step_id)
         if step is None:
             raise NotFoundError("WizardStep", str(step_id))
 
-        # Empty interactions = informational step, always valid
-        if not interactions:
+        # Fetch authoritative interaction set from DB
+        db_interactions = await self.interaction_repo.get_by_step_id(step_id)
+        expected_ids = {i.id for i in db_interactions}
+        submitted_ids = {iid for iid, _, _ in interactions}
+
+        # Informational step: only valid when DB truly has zero interactions
+        if not expected_ids:
             token = secrets.token_urlsafe(32)
             return True, None, token
 
+        # Enforce exact match between submitted and expected interaction IDs
+        missing = expected_ids - submitted_ids
+        extra = submitted_ids - expected_ids
+        if missing or extra:
+            errors: list[str] = []
+            if missing:
+                errors.append(
+                    f"Missing interactions: {', '.join(str(i) for i in missing)}"
+                )
+            if extra:
+                errors.append(
+                    f"Unknown interactions: {', '.join(str(i) for i in extra)}"
+                )
+            raise ValidationError(
+                "Submitted interactions do not match step requirements",
+                field_errors={"interactions": errors},
+            )
+
+        # Build lookup from DB interactions for validation
+        db_lookup = {i.id: i for i in db_interactions}
+
         # Validate all interactions (AND logic)
         for interaction_id, response, started_at in interactions:
-            interaction = await self.interaction_repo.get_by_id(interaction_id)
-            if interaction is None or interaction.step_id != step_id:
-                raise NotFoundError("StepInteraction", str(interaction_id))
+            interaction = db_lookup[interaction_id]
 
             source = InteractionSourceData(
                 interaction_type=interaction.interaction_type,

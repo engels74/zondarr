@@ -9,6 +9,7 @@ Revises: 47df78392c60
 Create Date: 2026-02-14
 """
 
+import json
 from collections.abc import Sequence
 from uuid import uuid4
 
@@ -71,7 +72,11 @@ def upgrade() -> None:
                     "id": new_id,
                     "step_id": step_id,
                     "interaction_type": interaction_type,
-                    "config": config if isinstance(config, str) else "{}",
+                    "config": config
+                    if isinstance(config, str)
+                    else json.dumps(config)
+                    if isinstance(config, (dict, list))
+                    else "{}",
                     "created_at": created_at,
                 },
             )
