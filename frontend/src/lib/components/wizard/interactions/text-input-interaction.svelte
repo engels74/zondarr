@@ -21,6 +21,9 @@ const isRequired = $derived(config?.required ?? true);
 const minLength = $derived(config?.min_length);
 const maxLength = $derived(config?.max_length);
 
+// Unique ID for label/input association (supports multiple instances per step)
+const inputId = $derived(`wizard-text-input-${interactionId}`);
+
 // Input state
 let inputValue = $state("");
 let touched = $state(false);
@@ -88,12 +91,12 @@ function handleKeydown(event: KeyboardEvent) {
 
 <div class="text-input-interaction">
 	<!-- Label -->
-	<label for="wizard-text-input" class="input-label">{label}</label>
+	<label for={inputId} class="input-label">{label}</label>
 
 	<!-- Input container -->
 	<div class="input-container">
 		<input
-			id="wizard-text-input"
+			id={inputId}
 			type="text"
 			class="text-input"
 			class:error={validationError}
@@ -166,7 +169,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 	.text-input:focus {
 		border-color: var(--wizard-accent);
-		box-shadow: 0 0 0 3px hsl(45 90% 55% / 0.15);
+		box-shadow: 0 0 0 3px var(--wizard-accent-glow-sm);
 	}
 
 	.text-input.error {
@@ -174,7 +177,7 @@ function handleKeydown(event: KeyboardEvent) {
 	}
 
 	.text-input.error:focus {
-		box-shadow: 0 0 0 3px hsl(0 70% 55% / 0.15);
+		box-shadow: 0 0 0 3px var(--wizard-error-glow-sm);
 	}
 
 	.text-input:disabled {

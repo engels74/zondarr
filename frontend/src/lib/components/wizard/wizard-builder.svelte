@@ -30,6 +30,7 @@ import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { Switch } from "$lib/components/ui/switch";
 import { wizardSchema } from "$lib/schemas/wizard";
 import { getInteractionType } from "./interactions";
 import StepEditor from "./step-editor.svelte";
@@ -388,11 +389,10 @@ function handleDragEnd() {
 
 				<!-- Enabled toggle -->
 				<div class="flex items-center gap-3">
-					<input
-						type="checkbox"
+					<Switch
 						id="wizard-enabled"
-						bind:checked={enabled}
-						class="size-4 rounded border-cr-border bg-cr-bg text-cr-accent focus:ring-cr-accent"
+						checked={enabled}
+						onCheckedChange={(checked: boolean) => (enabled = checked)}
 					/>
 					<Label for="wizard-enabled" class="text-cr-text cursor-pointer">
 						Wizard is enabled

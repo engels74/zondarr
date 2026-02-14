@@ -170,8 +170,8 @@ function handleComplete() {
 	/* Glow on completion */
 	.timer-ring.complete::before {
 		box-shadow:
-			0 0 20px hsl(150 60% 45% / 0.4),
-			0 0 40px hsl(150 60% 45% / 0.2);
+			0 0 20px var(--wizard-success-glow-lg),
+			0 0 40px var(--wizard-success-glow-sm);
 	}
 
 	.timer-ring.complete .progress {
@@ -219,13 +219,13 @@ function handleComplete() {
 		0%,
 		100% {
 			box-shadow:
-				0 0 12px hsl(45 90% 55% / 0.3),
-				0 0 24px hsl(45 90% 55% / 0.15);
+				0 0 12px var(--wizard-accent-glow-xl),
+				0 0 24px var(--wizard-accent-glow-sm);
 		}
 		50% {
 			box-shadow:
-				0 0 20px hsl(45 90% 55% / 0.5),
-				0 0 40px hsl(45 90% 55% / 0.25);
+				0 0 20px var(--wizard-accent-glow-active),
+				0 0 40px var(--wizard-accent-glow-lg);
 		}
 	}
 
@@ -244,8 +244,8 @@ function handleComplete() {
 <svg width="0" height="0" style="position: absolute;">
 	<defs>
 		<linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-			<stop offset="0%" style="stop-color: hsl(45 90% 45%)" />
-			<stop offset="100%" style="stop-color: hsl(45 90% 60%)" />
+			<stop offset="0%" style="stop-color: var(--wizard-accent-gradient-start)" />
+			<stop offset="100%" style="stop-color: var(--wizard-accent-gradient-end)" />
 		</linearGradient>
 	</defs>
 </svg>

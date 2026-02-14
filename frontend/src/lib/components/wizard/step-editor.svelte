@@ -10,6 +10,7 @@
  * @module $lib/components/wizard/step-editor
  */
 
+import { onDestroy } from "svelte";
 import { slide } from "svelte/transition";
 import { toast } from "svelte-sonner";
 import type { StepInteractionResponse, WizardStepResponse } from "$lib/api/client";
@@ -51,6 +52,12 @@ let loadingTypes = $state<Set<string>>(new Set());
 
 // Config errors per interaction type
 let configErrors = $state<Record<string, Record<string, string[]>>>({});
+
+// Debounce timers for config persist (keyed by interaction type)
+const persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+onDestroy(() => {
+	for (const timer of persistTimers.values()) clearTimeout(timer);
+});
 
 // All registered interaction types
 const registeredTypes = $derived(getAllInteractionTypes());
@@ -115,9 +122,35 @@ async function handleToggle(registration: InteractionTypeRegistration, checked: 
 }
 
 /**
- * Handle config change for an interaction type.
+ * Persist config to backend (called after debounce).
  */
-async function handleConfigChange(type: string, newConfig: Record<string, unknown>) {
+async function persistConfig(interactionId: string, newConfig: Record<string, unknown>) {
+	try {
+		const result = await updateStepInteraction(wizardId, step.id, interactionId, {
+			config: newConfig as Record<string, string | number | boolean | string[] | null>,
+		});
+
+		if (result.error) {
+			throw new Error(result.error.detail ?? "Failed to update interaction config");
+		}
+
+		if (result.data) {
+			const updated = result.data;
+			activeInteractions = activeInteractions.map((i) =>
+				i.id === interactionId ? updated : i,
+			);
+			onInteractionsChange(activeInteractions);
+		}
+	} catch (error) {
+		toast.error(error instanceof Error ? error.message : "Failed to save config");
+	}
+}
+
+/**
+ * Handle config change for an interaction type.
+ * Updates local state immediately, debounces the backend persist.
+ */
+function handleConfigChange(type: string, newConfig: Record<string, unknown>) {
 	const existing = getActiveInteraction(type);
 	if (!existing) return;
 
@@ -152,26 +185,18 @@ async function handleConfigChange(type: string, newConfig: Record<string, unknow
 		i.id === existing.id ? { ...i, config: newConfig as typeof i.config } : i,
 	);
 
-	// Persist to backend
-	try {
-		const result = await updateStepInteraction(wizardId, step.id, existing.id, {
-			config: newConfig as Record<string, string | number | boolean | string[] | null>,
-		});
+	// Debounce backend persist (300ms)
+	const existingTimer = persistTimers.get(type);
+	if (existingTimer) clearTimeout(existingTimer);
 
-		if (result.error) {
-			throw new Error(result.error.detail ?? "Failed to update interaction config");
-		}
-
-		if (result.data) {
-			const updated = result.data;
-			activeInteractions = activeInteractions.map((i) =>
-				i.id === existing.id ? updated : i,
-			);
-			onInteractionsChange(activeInteractions);
-		}
-	} catch (error) {
-		toast.error(error instanceof Error ? error.message : "Failed to save config");
-	}
+	const interactionId = existing.id;
+	persistTimers.set(
+		type,
+		setTimeout(() => {
+			persistTimers.delete(type);
+			persistConfig(interactionId, newConfig);
+		}, 300),
+	);
 }
 
 /**

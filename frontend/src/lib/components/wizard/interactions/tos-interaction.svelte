@@ -117,7 +117,7 @@ function toggleAccepted() {
 		outline: none;
 		box-shadow:
 			0 0 0 2px var(--wizard-bg),
-			0 0 0 4px hsl(45 90% 55% / 0.5);
+			0 0 0 4px var(--wizard-focus-ring);
 	}
 
 	.checkbox.checked {

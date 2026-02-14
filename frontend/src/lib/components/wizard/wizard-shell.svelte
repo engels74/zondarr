@@ -296,10 +296,15 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 </div>
 
 <style>
-	/* Wizard-specific CSS variables */
+	/*
+	 * Wizard shell CSS variables — intentionally a fixed dark-mode-only design.
+	 * The wizard is a standalone cinematic experience that doesn't follow the
+	 * admin theme. Colors are hardcoded here rather than in app.css :root.
+	 */
 	.wizard-shell {
 		--wizard-bg: hsl(220 20% 4%);
 		--wizard-surface: hsl(220 15% 8%);
+		--wizard-surface-elevated: hsl(220 20% 8%);
 		--wizard-border: hsl(220 10% 18%);
 		--wizard-text: hsl(220 10% 92%);
 		--wizard-text-muted: hsl(220 10% 60%);
@@ -314,6 +319,29 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 		--wizard-track-bg: hsl(220 10% 16%);
 		--wizard-divider: hsl(220 10% 20%);
 		--wizard-ring-border: hsl(220 10% 30%);
+
+		/* Glow/shadow colors (used by interaction components for box-shadow) */
+		--wizard-accent-glow-sm: hsl(45 90% 55% / 0.15);
+		--wizard-accent-glow-md: hsl(45 90% 55% / 0.2);
+		--wizard-accent-glow-lg: hsl(45 90% 55% / 0.25);
+		--wizard-accent-glow-xl: hsl(45 90% 55% / 0.3);
+		--wizard-accent-glow-2xl: hsl(45 90% 55% / 0.35);
+		--wizard-accent-glow-hover: hsl(45 90% 55% / 0.4);
+		--wizard-accent-glow-active: hsl(45 90% 55% / 0.5);
+		--wizard-accent-border-hover: hsl(45 90% 55% / 0.5);
+		--wizard-accent-bg-subtle: hsl(45 90% 55% / 0.08);
+		--wizard-shadow-sm: hsl(0 0% 0% / 0.2);
+		--wizard-shadow-md: hsl(0 0% 0% / 0.25);
+		--wizard-shadow-lg: hsl(0 0% 0% / 0.3);
+		--wizard-success-glow-lg: hsl(150 60% 45% / 0.4);
+		--wizard-success-glow-sm: hsl(150 60% 45% / 0.2);
+		--wizard-error-glow-sm: hsl(0 70% 55% / 0.15);
+		--wizard-card-inset: hsl(0 0% 100% / 0.05);
+		--wizard-focus-ring: hsl(45 90% 55% / 0.5);
+
+		/* SVG gradient stop colors */
+		--wizard-accent-gradient-start: hsl(45 90% 45%);
+		--wizard-accent-gradient-end: hsl(45 90% 60%);
 
 		/* Form element colors (used by interaction components) */
 		--wizard-text-secondary: hsl(220 10% 80%);
@@ -341,7 +369,7 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 	.wizard-bg {
 		position: absolute;
 		inset: 0;
-		background: radial-gradient(ellipse at center, hsl(220 20% 8%) 0%, var(--wizard-bg) 70%);
+		background: radial-gradient(ellipse at center, var(--wizard-surface-elevated) 0%, var(--wizard-bg) 70%);
 		pointer-events: none;
 	}
 
@@ -362,8 +390,8 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 		padding: 2rem;
 		backdrop-filter: blur(8px);
 		box-shadow:
-			0 4px 24px hsl(0 0% 0% / 0.3),
-			0 0 0 1px hsl(0 0% 100% / 0.05) inset;
+			0 4px 24px var(--wizard-shadow-lg),
+			0 0 0 1px var(--wizard-card-inset) inset;
 		animation: wizard-reveal 0.6s ease-out 0.1s both;
 	}
 

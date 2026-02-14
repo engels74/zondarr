@@ -127,21 +127,21 @@ function handleKeydown(event: KeyboardEvent, index: number) {
 	}
 
 	.option:hover:not(:disabled):not(.selected) {
-		border-color: hsl(45 90% 55% / 0.5);
-		box-shadow: 0 0 12px hsl(45 90% 55% / 0.15);
+		border-color: var(--wizard-accent-border-hover);
+		box-shadow: 0 0 12px var(--wizard-accent-glow-sm);
 		background: var(--wizard-input-hover-bg);
 	}
 
 	.option:focus-visible {
 		outline: none;
 		border-color: var(--wizard-accent);
-		box-shadow: 0 0 0 3px hsl(45 90% 55% / 0.2);
+		box-shadow: 0 0 0 3px var(--wizard-accent-glow-md);
 	}
 
 	.option.selected {
 		border-color: var(--wizard-accent);
-		background: hsl(45 90% 55% / 0.08);
-		box-shadow: 0 0 16px hsl(45 90% 55% / 0.2);
+		background: var(--wizard-accent-bg-subtle);
+		box-shadow: 0 0 16px var(--wizard-accent-glow-md);
 	}
 
 	.option:disabled {

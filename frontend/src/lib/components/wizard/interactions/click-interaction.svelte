@@ -46,13 +46,13 @@ function handleClick() {
 		font-size: 1rem;
 		border-radius: 0.5rem;
 		box-shadow:
-			0 0 20px hsl(45 90% 55% / 0.25),
-			0 4px 12px hsl(0 0% 0% / 0.2);
+			0 0 20px var(--wizard-accent-glow-lg),
+			0 4px 12px var(--wizard-shadow-sm);
 	}
 
 	.confirm-btn:hover:not(:disabled) {
 		box-shadow:
-			0 0 28px hsl(45 90% 55% / 0.35),
-			0 6px 16px hsl(0 0% 0% / 0.25);
+			0 0 28px var(--wizard-accent-glow-2xl),
+			0 6px 16px var(--wizard-shadow-md);
 	}
 </style>
