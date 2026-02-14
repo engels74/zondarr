@@ -9,9 +9,12 @@
 
 import {
 	createScopedClient,
+	type ErrorResponse,
 	getInvitations,
+	getServers,
 	type InvitationListResponse,
-	type ListInvitationsParams
+	type ListInvitationsParams,
+	type MediaServerWithLibrariesResponse
 } from '$lib/api/client';
 import { ApiError } from '$lib/api/errors';
 import type { PageLoad } from './$types';
@@ -51,12 +54,21 @@ export const load: PageLoad = async ({ fetch, url }) => {
 	}
 
 	try {
-		const result = await getInvitations(params, client);
+		// Fetch invitations and servers in parallel (servers needed for create dialog)
+		// Servers errors are isolated so the invitations list still renders
+		const [result, servers] = await Promise.all([
+			getInvitations(params, client),
+			getServers(true, client).then(
+				(r) => r.data ?? ([] as MediaServerWithLibrariesResponse[]),
+				() => [] as MediaServerWithLibrariesResponse[]
+			)
+		]);
 
 		// Check for successful response with data
 		if (result.data) {
 			return {
 				invitations: result.data,
+				servers,
 				error: null as Error | null,
 				params
 			};
@@ -64,9 +76,10 @@ export const load: PageLoad = async ({ fetch, url }) => {
 
 		// Handle error response
 		const status = result.response?.status ?? 500;
-		const errorBody = result.error as { error_code?: string; detail?: string } | undefined;
+		const errorBody = result.error as unknown as ErrorResponse | undefined;
 		return {
 			invitations: null as InvitationListResponse | null,
+			servers,
 			error: new ApiError(
 				status,
 				errorBody?.error_code ?? 'UNKNOWN_ERROR',
@@ -78,6 +91,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		// Handle network errors
 		return {
 			invitations: null as InvitationListResponse | null,
+			servers: [] as MediaServerWithLibrariesResponse[],
 			error: err instanceof Error ? err : new Error('Failed to load invitations'),
 			params
 		};
