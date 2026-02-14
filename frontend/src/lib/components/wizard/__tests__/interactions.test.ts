@@ -32,7 +32,6 @@ function createInteractionProps(
 	overrides: Partial<InteractionComponentProps> = {}
 ): InteractionComponentProps {
 	return {
-		stepId: 'test-step-id',
 		interactionId: 'test-interaction-id',
 		config,
 		onComplete: vi.fn(),

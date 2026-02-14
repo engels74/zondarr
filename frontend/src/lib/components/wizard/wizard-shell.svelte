@@ -265,7 +265,6 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 								{/if}
 
 								<InteractionComponent
-									stepId={currentStep?.id ?? ''}
 									interactionId={interaction.id}
 									config={interaction.config}
 									onComplete={handleInteractionComplete}

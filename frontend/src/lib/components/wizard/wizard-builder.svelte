@@ -577,12 +577,12 @@ function handleDragEnd() {
 
 	.step-item.drag-over {
 		border-color: var(--cr-accent);
-		background: hsl(45 90% 55% / 0.05);
+		background: var(--cr-accent-highlight);
 	}
 
 	.step-item.editing {
 		border-color: var(--cr-accent);
-		background: hsl(45 90% 55% / 0.05);
+		background: var(--cr-accent-highlight);
 	}
 
 	.step-drag-handle {
@@ -624,17 +624,17 @@ function handleDragEnd() {
 		font-weight: 500;
 		padding: 0.125rem 0.5rem;
 		border-radius: 9999px;
-		color: hsl(45 80% 70%);
-		background: hsl(45 90% 55% / 0.08);
-		border: 1px solid hsl(45 90% 55% / 0.2);
+		color: var(--cr-badge-text);
+		background: var(--cr-badge-bg);
+		border: 1px solid var(--cr-badge-border);
 		white-space: nowrap;
 	}
 
 	.interaction-badge.empty {
 		font-style: italic;
-		color: hsl(220 10% 45%);
-		background: hsl(220 10% 12%);
-		border-color: hsl(220 10% 18%);
+		color: var(--cr-badge-muted-text);
+		background: var(--cr-badge-muted-bg);
+		border-color: var(--cr-badge-muted-border);
 	}
 
 	.step-title {

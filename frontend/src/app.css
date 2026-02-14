@@ -41,6 +41,15 @@
 	--cr-module-active-label: hsl(45 80% 80%);
 	--cr-module-config-border: hsl(220 10% 14%);
 
+	/* Interaction badge */
+	--cr-badge-text: hsl(45 80% 70%);
+	--cr-badge-bg: hsl(45 90% 55% / 0.08);
+	--cr-badge-border: hsl(45 90% 55% / 0.2);
+	--cr-badge-muted-text: hsl(220 10% 45%);
+	--cr-badge-muted-bg: hsl(220 10% 12%);
+	--cr-badge-muted-border: hsl(220 10% 18%);
+	--cr-accent-highlight: hsl(45 90% 55% / 0.05);
+
 	/* Typography */
 	--font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
 	--font-mono: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
@@ -85,6 +94,13 @@
 	--cr-module-active-icon-color: hsl(45 80% 35%);
 	--cr-module-active-label: hsl(45 80% 25%);
 	--cr-module-config-border: hsl(220 10% 88%);
+	--cr-badge-text: hsl(45 80% 25%);
+	--cr-badge-bg: hsl(45 90% 45% / 0.1);
+	--cr-badge-border: hsl(45 90% 45% / 0.25);
+	--cr-badge-muted-text: hsl(220 10% 55%);
+	--cr-badge-muted-bg: hsl(220 10% 92%);
+	--cr-badge-muted-border: hsl(220 10% 85%);
+	--cr-accent-highlight: hsl(45 90% 45% / 0.08);
 }
 
 /* Base styles */

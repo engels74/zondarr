@@ -29,7 +29,6 @@ export interface InteractionCompletionData {
 
 /** Props for interaction components (user-facing side) */
 export interface InteractionComponentProps {
-	stepId: string;
 	interactionId: string;
 	config: Record<string, unknown>;
 	onComplete: (data: InteractionCompletionData) => void;

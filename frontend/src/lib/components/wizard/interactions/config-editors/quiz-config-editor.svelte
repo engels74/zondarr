@@ -8,6 +8,7 @@ import type { QuizConfig } from "$lib/api/client";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import * as RadioGroup from "$lib/components/ui/radio-group";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
@@ -40,8 +41,8 @@ function updateOption(index: number, value: string) {
 }
 </script>
 
-<div class="fields">
-	<div class="field">
+<div class="flex flex-col gap-4">
+	<div class="flex flex-col gap-2">
 		<Label for="question" class="text-cr-text">Question</Label>
 		<Input
 			id="question"
@@ -51,12 +52,12 @@ function updateOption(index: number, value: string) {
 			class="border-cr-border bg-cr-bg text-cr-text"
 		/>
 		{#if errors.question}
-			<p class="error-text">{errors.question[0]}</p>
+			<p class="text-xs text-destructive">{errors.question[0]}</p>
 		{/if}
 	</div>
 
-	<div class="field">
-		<div class="options-header">
+	<div class="flex flex-col gap-2">
+		<div class="flex items-center justify-between">
 			<Label class="text-cr-text">Answer Options</Label>
 			<Button
 				variant="outline"
@@ -69,18 +70,16 @@ function updateOption(index: number, value: string) {
 			</Button>
 		</div>
 
-		<div class="options-list">
+		<RadioGroup.Root
+			value={String(config?.correct_answer_index ?? 0)}
+			onValueChange={(val) => updateField('correct_answer_index', parseInt(val))}
+			class="flex flex-col gap-2"
+		>
 			{#each config?.options ?? [] as option, index}
-				<div class="option-row">
-					<label class="radio-label">
-						<input
-							type="radio"
-							name="correct-answer"
-							checked={(config?.correct_answer_index ?? 0) === index}
-							onchange={() => updateField('correct_answer_index', index)}
-							class="radio"
-						/>
-					</label>
+				<div class="flex items-center gap-2">
+					<div class="flex items-center justify-center w-8 shrink-0">
+						<RadioGroup.Item value={String(index)} />
+					</div>
 					<Input
 						value={option}
 						oninput={(e) => updateOption(index, e.currentTarget.value)}
@@ -98,64 +97,14 @@ function updateOption(index: number, value: string) {
 					</Button>
 				</div>
 			{/each}
-		</div>
+		</RadioGroup.Root>
 
-		<p class="help-text">Select the radio button next to the correct answer.</p>
+		<p class="text-xs text-cr-text-muted">Select the radio button next to the correct answer.</p>
 		{#if errors.options}
-			<p class="error-text">{errors.options[0]}</p>
+			<p class="text-xs text-destructive">{errors.options[0]}</p>
 		{/if}
 		{#if errors.correct_answer_index}
-			<p class="error-text">{errors.correct_answer_index[0]}</p>
+			<p class="text-xs text-destructive">{errors.correct_answer_index[0]}</p>
 		{/if}
 	</div>
 </div>
-
-<style>
-	.fields {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.options-header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.options-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.option-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-	.radio-label {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 2rem;
-		cursor: pointer;
-	}
-	.radio {
-		width: 1rem;
-		height: 1rem;
-		accent-color: var(--cr-accent);
-	}
-	.help-text {
-		font-size: 0.75rem;
-		color: var(--cr-text-muted);
-		margin: 0;
-	}
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--cr-error);
-		margin: 0;
-	}
-</style>

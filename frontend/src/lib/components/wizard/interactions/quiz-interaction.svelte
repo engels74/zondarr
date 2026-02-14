@@ -12,7 +12,7 @@ import { Check } from "@lucide/svelte";
 import type { QuizConfig } from "$lib/api/client";
 import type { InteractionComponentProps } from "./registry";
 
-const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
 // Extract config
 const config = $derived(rawConfig as unknown as QuizConfig);

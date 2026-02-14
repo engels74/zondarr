@@ -10,7 +10,7 @@
 import type { ClickConfig } from "$lib/api/client";
 import type { InteractionCompletionData, InteractionComponentProps } from "./registry";
 
-const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
 // Extract button text from config with default
 const config = $derived(rawConfig as unknown as ClickConfig);

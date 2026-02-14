@@ -7,6 +7,7 @@
 import type { TextInputConfig } from "$lib/api/client";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { Switch } from "$lib/components/ui/switch";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
@@ -18,8 +19,8 @@ function updateField(field: string, value: string | number | boolean | null) {
 }
 </script>
 
-<div class="fields">
-	<div class="field">
+<div class="flex flex-col gap-4">
+	<div class="flex flex-col gap-2">
 		<Label for="input-label" class="text-cr-text">Input Label</Label>
 		<Input
 			id="input-label"
@@ -29,11 +30,11 @@ function updateField(field: string, value: string | number | boolean | null) {
 			class="border-cr-border bg-cr-bg text-cr-text"
 		/>
 		{#if errors.label}
-			<p class="error-text">{errors.label[0]}</p>
+			<p class="text-xs text-destructive">{errors.label[0]}</p>
 		{/if}
 	</div>
 
-	<div class="field">
+	<div class="flex flex-col gap-2">
 		<Label for="input-placeholder" class="text-cr-text">Placeholder</Label>
 		<Input
 			id="input-placeholder"
@@ -44,8 +45,8 @@ function updateField(field: string, value: string | number | boolean | null) {
 		/>
 	</div>
 
-	<div class="field-row">
-		<div class="field">
+	<div class="grid grid-cols-2 gap-4">
+		<div class="flex flex-col gap-2">
 			<Label for="min-length" class="text-cr-text">Min Length</Label>
 			<Input
 				id="min-length"
@@ -58,11 +59,11 @@ function updateField(field: string, value: string | number | boolean | null) {
 				class="border-cr-border bg-cr-bg text-cr-text"
 			/>
 			{#if errors.min_length}
-				<p class="error-text">{errors.min_length[0]}</p>
+				<p class="text-xs text-destructive">{errors.min_length[0]}</p>
 			{/if}
 		</div>
 
-		<div class="field">
+		<div class="flex flex-col gap-2">
 			<Label for="max-length" class="text-cr-text">Max Length</Label>
 			<Input
 				id="max-length"
@@ -75,57 +76,16 @@ function updateField(field: string, value: string | number | boolean | null) {
 				class="border-cr-border bg-cr-bg text-cr-text"
 			/>
 			{#if errors.max_length}
-				<p class="error-text">{errors.max_length[0]}</p>
+				<p class="text-xs text-destructive">{errors.max_length[0]}</p>
 			{/if}
 		</div>
 	</div>
 
-	<div class="field">
-		<label class="checkbox-label">
-			<input
-				type="checkbox"
-				checked={config?.required ?? true}
-				onchange={(e) => updateField('required', e.currentTarget.checked)}
-				class="checkbox"
-			/>
-			<span class="text-cr-text">Required field</span>
-		</label>
+	<div class="flex items-center gap-2">
+		<Switch
+			checked={config?.required ?? true}
+			onCheckedChange={(checked) => updateField('required', checked)}
+		/>
+		<Label class="text-cr-text cursor-pointer">Required field</Label>
 	</div>
 </div>
-
-<style>
-	.fields {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.field-row {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1rem;
-	}
-	.checkbox-label {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		cursor: pointer;
-	}
-	.checkbox {
-		width: 1rem;
-		height: 1rem;
-		border-radius: 0.25rem;
-		border: 1px solid var(--cr-border);
-		background: var(--cr-bg);
-		accent-color: var(--cr-accent);
-	}
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--cr-error);
-		margin: 0;
-	}
-</style>

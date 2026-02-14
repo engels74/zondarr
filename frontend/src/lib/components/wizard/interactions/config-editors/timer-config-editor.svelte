@@ -18,7 +18,7 @@ function updateDuration(value: string) {
 }
 </script>
 
-<div class="field">
+<div class="flex flex-col gap-2">
 	<Label for="duration" class="text-cr-text">Duration (seconds)</Label>
 	<Input
 		id="duration"
@@ -29,26 +29,8 @@ function updateDuration(value: string) {
 		oninput={(e) => updateDuration(e.currentTarget.value)}
 		class="border-cr-border bg-cr-bg text-cr-text"
 	/>
-	<p class="help-text">Minimum 1 second, maximum 300 seconds (5 minutes)</p>
+	<p class="text-xs text-cr-text-muted">Minimum 1 second, maximum 300 seconds (5 minutes)</p>
 	{#if errors.duration_seconds}
-		<p class="error-text">{errors.duration_seconds[0]}</p>
+		<p class="text-xs text-destructive">{errors.duration_seconds[0]}</p>
 	{/if}
 </div>
-
-<style>
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.help-text {
-		font-size: 0.75rem;
-		color: var(--cr-text-muted);
-		margin: 0;
-	}
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--cr-error);
-		margin: 0;
-	}
-</style>

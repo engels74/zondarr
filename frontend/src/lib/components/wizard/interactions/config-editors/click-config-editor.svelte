@@ -18,7 +18,7 @@ function updateField(value: string) {
 }
 </script>
 
-<div class="field">
+<div class="flex flex-col gap-2">
 	<Label for="button-text" class="text-cr-text">Button Text</Label>
 	<Input
 		id="button-text"
@@ -28,19 +28,6 @@ function updateField(value: string) {
 		class="border-cr-border bg-cr-bg text-cr-text"
 	/>
 	{#if errors.button_text}
-		<p class="error-text">{errors.button_text[0]}</p>
+		<p class="text-xs text-destructive">{errors.button_text[0]}</p>
 	{/if}
 </div>
-
-<style>
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--cr-error);
-		margin: 0;
-	}
-</style>

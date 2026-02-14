@@ -18,7 +18,7 @@ function updateField(value: string) {
 }
 </script>
 
-<div class="field">
+<div class="flex flex-col gap-2">
 	<Label for="checkbox-label" class="text-cr-text">Checkbox Label</Label>
 	<Input
 		id="checkbox-label"
@@ -28,19 +28,6 @@ function updateField(value: string) {
 		class="border-cr-border bg-cr-bg text-cr-text"
 	/>
 	{#if errors.checkbox_label}
-		<p class="error-text">{errors.checkbox_label[0]}</p>
+		<p class="text-xs text-destructive">{errors.checkbox_label[0]}</p>
 	{/if}
 </div>
-
-<style>
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-	.error-text {
-		font-size: 0.75rem;
-		color: var(--cr-error);
-		margin: 0;
-	}
-</style>
