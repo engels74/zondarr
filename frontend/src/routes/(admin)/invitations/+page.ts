@@ -55,16 +55,20 @@ export const load: PageLoad = async ({ fetch, url }) => {
 
 	try {
 		// Fetch invitations and servers in parallel (servers needed for create dialog)
-		const [result, serversResult] = await Promise.all([
+		// Servers errors are isolated so the invitations list still renders
+		const [result, servers] = await Promise.all([
 			getInvitations(params, client),
-			getServers(true, client)
+			getServers(true, client).then(
+				(r) => r.data ?? ([] as MediaServerWithLibrariesResponse[]),
+				() => [] as MediaServerWithLibrariesResponse[]
+			)
 		]);
 
 		// Check for successful response with data
 		if (result.data) {
 			return {
 				invitations: result.data,
-				servers: serversResult.data ?? [],
+				servers,
 				error: null as Error | null,
 				params
 			};
@@ -75,7 +79,7 @@ export const load: PageLoad = async ({ fetch, url }) => {
 		const errorBody = result.error as unknown as ErrorResponse | undefined;
 		return {
 			invitations: null as InvitationListResponse | null,
-			servers: serversResult.data ?? ([] as MediaServerWithLibrariesResponse[]),
+			servers,
 			error: new ApiError(
 				status,
 				errorBody?.error_code ?? 'UNKNOWN_ERROR',
