@@ -3,18 +3,30 @@
 Defines the InteractionHandler Protocol that all interaction type
 implementations must satisfy. Uses structural subtyping — implementations
 do not need to inherit from this class.
+
+Also defines InteractionSource Protocol that both WizardStep and
+StepInteraction satisfy, allowing handlers to work with either.
 """
 
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Protocol
 
-from zondarr.models.wizard import WizardStep
-
 # Type aliases matching WizardService conventions
 ConfigValue = str | int | bool | list[str] | None
 StepConfig = dict[str, ConfigValue]
 InputConfig = Mapping[str, object]
+
+
+class InteractionSource(Protocol):
+    """Protocol for objects that provide interaction config.
+
+    Both WizardStep (legacy) and StepInteraction satisfy this protocol
+    structurally — they both have config and interaction_type attributes.
+    """
+
+    config: dict[str, ConfigValue]
+    interaction_type: str
 
 
 class InteractionHandler(Protocol):
@@ -41,7 +53,7 @@ class InteractionHandler(Protocol):
 
     def validate_response(
         self,
-        step: WizardStep,
+        source: InteractionSource,
         response: InputConfig,
         started_at: datetime | None,
         /,
@@ -49,7 +61,7 @@ class InteractionHandler(Protocol):
         """Validate a user's step completion response.
 
         Args:
-            step: The wizard step being validated (positional-only).
+            source: The interaction source with config and type (positional-only).
             response: The user's response data (positional-only).
             started_at: When the step was started, for timer validation (positional-only).
 

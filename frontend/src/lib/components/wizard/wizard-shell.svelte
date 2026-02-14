@@ -1,58 +1,67 @@
 <script lang="ts">
-import DOMPurify from "dompurify";
-import { marked } from "marked";
-import type { Snippet } from "svelte";
 /**
  * Wizard Shell Component
  *
  * Main orchestrator for wizard flows. Manages step sequencing, progress tracking,
  * and session persistence. Renders markdown content with XSS sanitization.
+ * Interactions are rendered internally via the interaction type registry.
  *
  * Requirements: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 14.6, 15.1, 15.3
  */
+import DOMPurify from "dompurify";
+import { marked } from "marked";
 import { browser } from "$app/environment";
-import type { WizardDetailResponse, WizardStepResponse } from "$lib/api/client";
+import type { WizardDetailResponse } from "$lib/api/client";
 import { validateStep } from "$lib/api/client";
+import type { InteractionCompletionData } from "./interactions/registry";
+import { getInteractionType } from "./interactions/registry";
+import "$lib/components/wizard/interactions/register-defaults";
 import WizardNavigation from "./wizard-navigation.svelte";
 import WizardProgress from "./wizard-progress.svelte";
-
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
 
 interface Props {
 	wizard: WizardDetailResponse;
 	onComplete: () => void;
 	onCancel?: () => void;
-	interaction?: Snippet<
-		[
-			{
-				step: WizardStepResponse;
-				onStepComplete: (response: StepResponse) => void;
-				disabled: boolean;
-			},
-		]
-	>;
 }
 
-const { wizard, onComplete, onCancel, interaction }: Props = $props();
+const { wizard, onComplete, onCancel }: Props = $props();
 
-// Reactive state with $state
+// Reactive state
 let currentStepIndex = $state(0);
-let stepResponses = $state<Map<string, StepResponse>>(new Map());
+let interactionCompletions = $state<
+	Map<string, Map<string, InteractionCompletionData>>
+>(new Map());
 let isValidating = $state(false);
 let validationError = $state<string | null>(null);
 
-// Derived values with $derived
+// Derived values
 const currentStep = $derived(wizard.steps[currentStepIndex]);
 const isFirstStep = $derived(currentStepIndex === 0);
 const isLastStep = $derived(currentStepIndex === wizard.steps.length - 1);
-const progress = $derived(((currentStepIndex + 1) / wizard.steps.length) * 100);
-const canProceed = $derived(stepResponses.has(currentStep?.id ?? ""));
+const progress = $derived(
+	((currentStepIndex + 1) / wizard.steps.length) * 100,
+);
+
+// Current step's interactions
+const currentInteractions = $derived(currentStep?.interactions ?? []);
+const hasInteractions = $derived(currentInteractions.length > 0);
+const isMultiInteraction = $derived(currentInteractions.length > 1);
+
+// Current step's completions
+const currentCompletions = $derived(
+	interactionCompletions.get(currentStep?.id ?? "") ?? new Map(),
+);
+
+// Can proceed: zero interactions = true; otherwise all must be completed
+const canProceed = $derived(
+	!hasInteractions ||
+		currentInteractions.every((i) => currentCompletions.has(i.id)),
+);
+
+// Count completions for progress display
+const completedCount = $derived(currentCompletions.size);
+const totalCount = $derived(currentInteractions.length);
 
 // Render markdown content with sanitization
 const renderedMarkdown = $derived.by(() => {
@@ -93,7 +102,17 @@ $effect(() => {
 			try {
 				const parsed = JSON.parse(saved);
 				currentStepIndex = parsed.stepIndex ?? 0;
-				stepResponses = new Map(parsed.responses ?? []);
+				// Restore nested map structure
+				if (parsed.completions) {
+					interactionCompletions = new Map(
+						(
+							parsed.completions as [
+								string,
+								[string, InteractionCompletionData][],
+							][]
+						).map(([stepId, entries]) => [stepId, new Map(entries)]),
+					);
+				}
 			} catch {
 				// Invalid saved state, start fresh
 			}
@@ -104,11 +123,18 @@ $effect(() => {
 // Persist progress to sessionStorage
 $effect(() => {
 	if (browser && wizard.id) {
+		// Serialize nested map
+		const completions = Array.from(interactionCompletions.entries()).map(
+			([stepId, completionMap]) => [
+				stepId,
+				Array.from(completionMap.entries()),
+			],
+		);
 		sessionStorage.setItem(
 			`wizard-${wizard.id}-progress`,
 			JSON.stringify({
 				stepIndex: currentStepIndex,
-				responses: Array.from(stepResponses.entries()),
+				completions,
 			}),
 		);
 	}
@@ -118,17 +144,23 @@ async function handleNext() {
 	const step = currentStep;
 	if (!step || !canProceed || isValidating) return;
 
-	const response = stepResponses.get(step.id);
-	if (!response) return;
-
 	isValidating = true;
 	validationError = null;
 
 	try {
+		// Build interaction responses array
+		const interactions = currentInteractions.map((interaction) => {
+			const completion = currentCompletions.get(interaction.id);
+			return {
+				interaction_id: interaction.id,
+				response: completion?.data ?? {},
+				started_at: completion?.startedAt ?? null,
+			};
+		});
+
 		const result = await validateStep({
 			step_id: step.id,
-			response: response.data,
-			started_at: response.startedAt ?? null,
+			interactions: interactions.length > 0 ? interactions : [],
 		});
 
 		if (!result.data?.valid) {
@@ -137,7 +169,6 @@ async function handleNext() {
 		}
 
 		if (isLastStep) {
-			// Clear session storage on completion
 			if (browser) {
 				sessionStorage.removeItem(`wizard-${wizard.id}-progress`);
 			}
@@ -157,12 +188,18 @@ function handleBack() {
 	}
 }
 
-function handleStepComplete(response: StepResponse) {
-	const step = currentStep;
-	if (!step) return;
-	stepResponses.set(step.id, response);
-	// Trigger reactivity by reassigning
-	stepResponses = new Map(stepResponses);
+function handleInteractionComplete(data: InteractionCompletionData) {
+	const stepId = currentStep?.id;
+	if (!stepId) return;
+
+	const stepCompletions = new Map(
+		interactionCompletions.get(stepId) ?? new Map(),
+	);
+	stepCompletions.set(data.interactionId, data);
+
+	const newMap = new Map(interactionCompletions);
+	newMap.set(stepId, stepCompletions);
+	interactionCompletions = newMap;
 }
 </script>
 
@@ -186,14 +223,59 @@ function handleStepComplete(response: StepResponse) {
 				{@html renderedMarkdown}
 			</div>
 
-			<!-- Interaction slot - to be filled by parent -->
+			<!-- Interactions area -->
 			<div class="wizard-interaction">
-				{#if interaction && currentStep}
-					{@render interaction({
-						step: currentStep,
-						onStepComplete: handleStepComplete,
-						disabled: isValidating
-					})}
+				{#if hasInteractions}
+					{#if isMultiInteraction}
+						<div class="interaction-progress">
+							<span class="progress-text">{completedCount}/{totalCount} completed</span>
+							<div class="progress-track">
+								<div
+									class="progress-fill"
+									style="width: {totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%"
+								></div>
+							</div>
+						</div>
+					{/if}
+
+					{#each currentInteractions as interaction, idx (interaction.id)}
+						{@const registration = getInteractionType(interaction.interaction_type)}
+						{@const isCompleted = currentCompletions.has(interaction.id)}
+
+						{#if isMultiInteraction && idx > 0}
+							<div class="interaction-divider"></div>
+						{/if}
+
+						{#if registration}
+							{@const InteractionComponent = registration.interactionComponent}
+							<div
+								class="interaction-block"
+								class:completed={isCompleted && isMultiInteraction}
+								style="animation-delay: {0.3 + idx * 0.1}s"
+							>
+								{#if isMultiInteraction}
+									<div class="interaction-header">
+										<div class="completion-ring" class:done={isCompleted}>
+											{#if isCompleted}
+												<svg viewBox="0 0 20 20" class="check-icon">
+													<path d="M6 10l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+												</svg>
+											{/if}
+										</div>
+										<span class="interaction-label">{registration.label}</span>
+									</div>
+								{/if}
+
+								<InteractionComponent
+									stepId={currentStep?.id ?? ''}
+									interactionId={interaction.id}
+									config={interaction.config}
+									onComplete={handleInteractionComplete}
+									disabled={isValidating || isCompleted}
+								/>
+							</div>
+						{/if}
+					{/each}
 				{/if}
 			</div>
 
@@ -319,6 +401,93 @@ function handleStepComplete(response: StepResponse) {
 		animation: wizard-reveal 0.6s ease-out 0.3s both;
 	}
 
+	/* Multi-interaction progress bar */
+	.interaction-progress {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1.25rem;
+	}
+
+	.progress-text {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--wizard-text-muted);
+	}
+
+	.progress-track {
+		height: 2px;
+		background: hsl(220 10% 16%);
+		border-radius: 1px;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: linear-gradient(to right, var(--wizard-accent), hsl(45 80% 45%));
+		border-radius: 1px;
+		transition: width 0.4s ease;
+	}
+
+	/* Gradient divider between interactions */
+	.interaction-divider {
+		height: 1px;
+		margin: 1.25rem 0;
+		background: linear-gradient(to right, transparent, hsl(220 10% 20%), transparent);
+	}
+
+	/* Interaction block */
+	.interaction-block {
+		animation: wizard-reveal 0.5s ease-out both;
+	}
+
+	.interaction-block.completed {
+		opacity: 0.7;
+		transition: opacity 0.3s ease;
+	}
+
+	/* Interaction header (multi-interaction only) */
+	.interaction-header {
+		display: flex;
+		align-items: center;
+		gap: 0.625rem;
+		margin-bottom: 0.75rem;
+	}
+
+	.completion-ring {
+		width: 1.25rem;
+		height: 1.25rem;
+		border-radius: 50%;
+		border: 1.5px solid hsl(220 10% 30%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.3s ease;
+		flex-shrink: 0;
+	}
+
+	.completion-ring.done {
+		border-color: var(--wizard-accent);
+		background: var(--wizard-accent);
+		animation: check-pop 0.3s ease;
+	}
+
+	.check-icon {
+		width: 0.75rem;
+		height: 0.75rem;
+		color: hsl(220 20% 4%);
+	}
+
+	.interaction-label {
+		font-size: 0.6875rem;
+		font-weight: 500;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--wizard-text-muted);
+	}
+
 	/* Error message */
 	.wizard-error {
 		color: var(--wizard-error);
@@ -339,6 +508,18 @@ function handleStepComplete(response: StepResponse) {
 		to {
 			opacity: 1;
 			transform: translateY(0);
+		}
+	}
+
+	@keyframes check-pop {
+		0% {
+			transform: scale(0.8);
+		}
+		50% {
+			transform: scale(1.15);
+		}
+		100% {
+			transform: scale(1);
 		}
 	}
 </style>

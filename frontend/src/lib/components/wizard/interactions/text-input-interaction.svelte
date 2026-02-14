@@ -8,26 +8,15 @@
  *
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 12.4
  */
-import type { TextInputConfig, WizardStepResponse } from "$lib/api/client";
+import type { TextInputConfig } from "$lib/api/client";
+import type { InteractionComponentProps } from "./registry";
 
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
+interface Props extends InteractionComponentProps {}
 
-interface Props {
-	step: WizardStepResponse;
-	onComplete: (response: StepResponse) => void;
-	disabled?: boolean;
-}
-
-const { step, onComplete, disabled = false }: Props = $props();
+const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: Props = $props();
 
 // Extract config with defaults
-const config = $derived(step.config as unknown as TextInputConfig);
+const config = $derived(rawConfig as unknown as TextInputConfig);
 const label = $derived(config?.label ?? "Your response");
 const placeholder = $derived(config?.placeholder ?? "");
 const isRequired = $derived(config?.required ?? true);
@@ -84,7 +73,7 @@ function handleSubmit() {
 	if (!isValid) return;
 
 	onComplete({
-		stepId: step.id,
+		interactionId,
 		interactionType: "text_input",
 		data: { text: inputValue.trim() },
 		completedAt: new Date().toISOString(),

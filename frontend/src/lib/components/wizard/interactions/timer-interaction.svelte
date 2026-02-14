@@ -10,26 +10,15 @@
  * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 12.2
  */
 import { onMount } from "svelte";
-import type { TimerConfig, WizardStepResponse } from "$lib/api/client";
+import type { TimerConfig } from "$lib/api/client";
+import type { InteractionComponentProps } from "./registry";
 
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
+interface Props extends InteractionComponentProps {}
 
-interface Props {
-	step: WizardStepResponse;
-	onComplete: (response: StepResponse) => void;
-	disabled?: boolean;
-}
-
-const { step, onComplete, disabled = false }: Props = $props();
+const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: Props = $props();
 
 // Extract duration from config
-const config = $derived(step.config as unknown as TimerConfig);
+const config = $derived(rawConfig as unknown as TimerConfig);
 const durationSeconds = $derived(config?.duration_seconds ?? 10);
 
 // Timer state
@@ -85,7 +74,7 @@ onMount(() => {
 
 function handleComplete() {
 	onComplete({
-		stepId: step.id,
+		interactionId,
 		interactionType: "timer",
 		data: { waited: true },
 		startedAt: startedAt ?? undefined,

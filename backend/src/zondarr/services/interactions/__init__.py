@@ -23,7 +23,7 @@ from zondarr.services.interactions.handlers import (
     TimerHandler,
     TosHandler,
 )
-from zondarr.services.interactions.protocol import InteractionHandler
+from zondarr.services.interactions.protocol import InteractionHandler, InteractionSource
 from zondarr.services.interactions.registry import InteractionRegistry
 
 # Global registry instance with all built-in handlers registered
@@ -33,6 +33,7 @@ __all__ = [
     "ClickHandler",
     "InteractionHandler",
     "InteractionRegistry",
+    "InteractionSource",
     "QuizHandler",
     "TextInputHandler",
     "TimerHandler",

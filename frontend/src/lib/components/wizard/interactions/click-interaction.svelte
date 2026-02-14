@@ -7,31 +7,20 @@
  *
  * Requirements: 4.1, 4.2, 4.3, 12.1
  */
-import type { ClickConfig, WizardStepResponse } from "$lib/api/client";
+import type { ClickConfig } from "$lib/api/client";
+import type { InteractionCompletionData, InteractionComponentProps } from "./registry";
 
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
+interface Props extends InteractionComponentProps {}
 
-interface Props {
-	step: WizardStepResponse;
-	onComplete: (response: StepResponse) => void;
-	disabled?: boolean;
-}
-
-const { step, onComplete, disabled = false }: Props = $props();
+const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: Props = $props();
 
 // Extract button text from config with default
-const config = $derived(step.config as unknown as ClickConfig);
+const config = $derived(rawConfig as unknown as ClickConfig);
 const buttonText = $derived(config?.button_text ?? "I Understand");
 
 function handleClick() {
 	onComplete({
-		stepId: step.id,
+		interactionId,
 		interactionType: "click",
 		data: { acknowledged: true },
 		completedAt: new Date().toISOString(),

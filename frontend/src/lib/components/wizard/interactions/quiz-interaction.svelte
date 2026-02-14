@@ -9,26 +9,15 @@
  * Requirements: 8.1, 8.2, 8.3, 12.5
  */
 import { Check } from "@lucide/svelte";
-import type { QuizConfig, WizardStepResponse } from "$lib/api/client";
+import type { QuizConfig } from "$lib/api/client";
+import type { InteractionComponentProps } from "./registry";
 
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
+interface Props extends InteractionComponentProps {}
 
-interface Props {
-	step: WizardStepResponse;
-	onComplete: (response: StepResponse) => void;
-	disabled?: boolean;
-}
-
-const { step, onComplete, disabled = false }: Props = $props();
+const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: Props = $props();
 
 // Extract config
-const config = $derived(step.config as unknown as QuizConfig);
+const config = $derived(rawConfig as unknown as QuizConfig);
 const question = $derived(config?.question ?? "");
 const options = $derived(config?.options ?? []);
 
@@ -47,7 +36,7 @@ function handleSubmit() {
 	if (selectedIndex === null) return;
 
 	onComplete({
-		stepId: step.id,
+		interactionId,
 		interactionType: "quiz",
 		data: { answer_index: selectedIndex },
 		completedAt: new Date().toISOString(),

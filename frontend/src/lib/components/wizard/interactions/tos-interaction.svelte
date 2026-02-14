@@ -9,26 +9,15 @@
  * Requirements: 6.1, 6.2, 6.3, 6.4, 12.3
  */
 import { Check } from "@lucide/svelte";
-import type { TosConfig, WizardStepResponse } from "$lib/api/client";
+import type { TosConfig } from "$lib/api/client";
+import type { InteractionComponentProps } from "./registry";
 
-export interface StepResponse {
-	stepId: string;
-	interactionType: string;
-	data: { [key: string]: string | number | boolean | null };
-	startedAt?: string;
-	completedAt: string;
-}
+interface Props extends InteractionComponentProps {}
 
-interface Props {
-	step: WizardStepResponse;
-	onComplete: (response: StepResponse) => void;
-	disabled?: boolean;
-}
-
-const { step, onComplete, disabled = false }: Props = $props();
+const { stepId, interactionId, config: rawConfig, onComplete, disabled = false }: Props = $props();
 
 // Extract checkbox label from config with default
-const config = $derived(step.config as unknown as TosConfig);
+const config = $derived(rawConfig as unknown as TosConfig);
 const checkboxLabel = $derived(
 	config?.checkbox_label ?? "I accept the terms of service",
 );
@@ -43,7 +32,7 @@ function handleAccept() {
 	if (!accepted) return;
 
 	onComplete({
-		stepId: step.id,
+		interactionId,
 		interactionType: "tos",
 		data: {
 			accepted: true,

@@ -4,7 +4,7 @@
  *
  * Admin interface for creating and editing wizards.
  * Provides wizard metadata form, step list with reorder capability,
- * and step creation with type selection.
+ * and simplified step creation (no type selection).
  *
  * Requirements: 13.1, 13.2, 13.3
  *
@@ -14,7 +14,7 @@
 import { GripVertical, Plus, Trash2, Wand2 } from "@lucide/svelte";
 import { toast } from "svelte-sonner";
 import type {
-	CreateWizardStepRequest,
+	StepInteractionResponse,
 	WizardDetailResponse,
 	WizardStepResponse,
 } from "$lib/api/client";
@@ -30,12 +30,9 @@ import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
-import {
-	getDefaultConfig,
-	type InteractionType,
-	interactionTypes,
-	wizardSchema,
-} from "$lib/schemas/wizard";
+import { wizardSchema } from "$lib/schemas/wizard";
+import { getInteractionType } from "./interactions/registry";
+import "$lib/components/wizard/interactions/register-defaults";
 import StepEditor from "./step-editor.svelte";
 
 interface Props {
@@ -61,8 +58,6 @@ let errors = $state<Record<string, string[]>>({});
 
 // Step editing state
 let editingStepId = $state<string | null>(null);
-let isAddingStep = $state(false);
-let newStepType = $state<InteractionType>("click");
 
 // Drag state for reordering
 let draggedStepId = $state<string | null>(null);
@@ -76,15 +71,6 @@ const hasChanges = $derived(
 		description !== (wizard?.description ?? "") ||
 		enabled !== (wizard?.enabled ?? true),
 );
-
-// Interaction type labels for display
-const interactionTypeLabels: Record<InteractionType, string> = {
-	click: "Click Confirmation",
-	timer: "Timed Wait",
-	tos: "Terms of Service",
-	text_input: "Text Input",
-	quiz: "Quiz Question",
-};
 
 /**
  * Validate wizard form data.
@@ -160,7 +146,7 @@ async function handleSave() {
 }
 
 /**
- * Add a new step to the wizard.
+ * Add a new step to the wizard — bare step with default title + content.
  */
 async function handleAddStep() {
 	if (!wizard?.id) {
@@ -168,15 +154,11 @@ async function handleAddStep() {
 		return;
 	}
 
-	const stepData: CreateWizardStepRequest = {
-		interaction_type: newStepType,
-		title: `New ${interactionTypeLabels[newStepType]} Step`,
-		content_markdown: "Enter your content here...",
-		config: getDefaultConfig(newStepType),
-	};
-
 	try {
-		const result = await createStep(wizard.id, stepData);
+		const result = await createStep(wizard.id, {
+			title: "New Step",
+			content_markdown: "Enter your content here...",
+		});
 
 		if (result.error) {
 			throw new Error(result.error.detail ?? "Failed to create step");
@@ -185,7 +167,6 @@ async function handleAddStep() {
 		if (result.data) {
 			steps = [...steps, result.data];
 			editingStepId = result.data.id;
-			isAddingStep = false;
 			toast.success("Step added successfully");
 		}
 	} catch (error) {
@@ -219,7 +200,7 @@ async function handleDeleteStep(stepId: string) {
 }
 
 /**
- * Update a step.
+ * Update a step (title + content only).
  */
 async function handleUpdateStep(
 	stepId: string,
@@ -231,7 +212,6 @@ async function handleUpdateStep(
 		const result = await updateStep(wizard.id, stepId, {
 			title: updates.title ?? null,
 			content_markdown: updates.content_markdown ?? null,
-			config: updates.config ?? null,
 		});
 
 		if (result.error) {
@@ -247,6 +227,15 @@ async function handleUpdateStep(
 			error instanceof Error ? error.message : "Failed to update step",
 		);
 	}
+}
+
+/**
+ * Handle interaction changes from step editor.
+ */
+function handleInteractionsChange(stepId: string, interactions: StepInteractionResponse[]) {
+	steps = steps.map((s) =>
+		s.id === stepId ? { ...s, interactions } : s,
+	);
 }
 
 /**
@@ -427,7 +416,7 @@ function handleDragEnd() {
 						<Button
 							variant="outline"
 							size="sm"
-							onclick={() => (isAddingStep = !isAddingStep)}
+							onclick={handleAddStep}
 							class="border-cr-border text-cr-text-muted hover:text-cr-accent"
 						>
 							<Plus class="size-4" />
@@ -436,38 +425,6 @@ function handleDragEnd() {
 					</div>
 				</Card.Header>
 				<Card.Content>
-					<!-- Add step form -->
-					{#if isAddingStep}
-						<div class="mb-4 rounded-lg border border-cr-border bg-cr-bg p-4">
-							<div class="flex items-end gap-4">
-								<div class="flex-1 space-y-2">
-									<Label class="text-cr-text">Step Type</Label>
-									<select
-										bind:value={newStepType}
-										class="w-full rounded-md border border-cr-border bg-cr-bg px-3 py-2 text-sm text-cr-text focus:border-cr-accent focus:outline-none focus:ring-1 focus:ring-cr-accent"
-									>
-										{#each interactionTypes as type}
-											<option value={type}>{interactionTypeLabels[type]}</option>
-										{/each}
-									</select>
-								</div>
-								<Button
-									onclick={handleAddStep}
-									class="bg-cr-accent text-cr-bg hover:bg-cr-accent-hover"
-								>
-									Add
-								</Button>
-								<Button
-									variant="ghost"
-									onclick={() => (isAddingStep = false)}
-									class="text-cr-text-muted"
-								>
-									Cancel
-								</Button>
-							</div>
-						</div>
-					{/if}
-
 					<!-- Step list -->
 					{#if steps.length === 0}
 						<div class="py-8 text-center text-cr-text-muted">
@@ -494,7 +451,18 @@ function handleDragEnd() {
 									</div>
 									<div class="step-info">
 										<span class="step-order">{index + 1}</span>
-										<span class="step-type">{interactionTypeLabels[step.interaction_type as InteractionType]}</span>
+										<div class="step-badges">
+											{#if step.interactions.length > 0}
+												{#each step.interactions as interaction}
+													{@const reg = getInteractionType(interaction.interaction_type)}
+													{#if reg}
+														<span class="interaction-badge">{reg.label}</span>
+													{/if}
+												{/each}
+											{:else}
+												<span class="interaction-badge empty">Content only</span>
+											{/if}
+										</div>
 										<span class="step-title">{step.title}</span>
 									</div>
 									<div class="step-actions">
@@ -519,12 +487,15 @@ function handleDragEnd() {
 								</div>
 
 								<!-- Step editor (expanded) -->
-								{#if editingStepId === step.id}
+								{#if editingStepId === step.id && wizard}
 									<div class="step-editor-container">
 										<StepEditor
 											{step}
+											wizardId={wizard.id}
 											onSave={(updates) => handleUpdateStep(step.id, updates)}
 											onCancel={() => (editingStepId = null)}
+											onInteractionsChange={(interactions) =>
+												handleInteractionsChange(step.id, interactions)}
 										/>
 									</div>
 								{/if}
@@ -642,14 +613,29 @@ function handleDragEnd() {
 		border-radius: 50%;
 	}
 
-	.step-type {
+	.step-badges {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem;
 		flex-shrink: 0;
-		font-size: 0.75rem;
+	}
+
+	.interaction-badge {
+		font-size: 0.6875rem;
 		font-weight: 500;
-		color: var(--cr-text-muted);
-		padding: 0.25rem 0.5rem;
-		background: var(--cr-surface);
-		border-radius: 0.25rem;
+		padding: 0.125rem 0.5rem;
+		border-radius: 9999px;
+		color: hsl(45 80% 70%);
+		background: hsl(45 90% 55% / 0.08);
+		border: 1px solid hsl(45 90% 55% / 0.2);
+		white-space: nowrap;
+	}
+
+	.interaction-badge.empty {
+		font-style: italic;
+		color: hsl(220 10% 45%);
+		background: hsl(220 10% 12%);
+		border-color: hsl(220 10% 18%);
 	}
 
 	.step-title {

@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from zondarr.media.registry import registry
 from zondarr.models.invitation import Invitation
-from zondarr.models.wizard import Wizard, WizardStep
+from zondarr.models.wizard import StepInteraction, Wizard, WizardStep
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
 from zondarr.services.invitation import InvitationService, InvitationValidationFailure
@@ -38,6 +38,7 @@ from .schemas import (
     InvitationValidationResponse,
     LibraryResponse,
     MediaServerResponse,
+    StepInteractionResponse,
     UpdateInvitationRequest,
     WizardDetailResponse,
     WizardResponse,
@@ -576,21 +577,45 @@ class InvitationController(Controller):
             step: The WizardStep entity.
 
         Returns:
-            WizardStepResponse.
+            WizardStepResponse with interactions.
         """
-        interaction_type = step.interaction_type
-        if hasattr(interaction_type, "value"):
-            interaction_type = interaction_type.value
+        interactions = [
+            self._to_interaction_response(i)
+            for i in (step.interactions if step.interactions else [])
+        ]
         return WizardStepResponse(
             id=step.id,
             wizard_id=step.wizard_id,
             step_order=step.step_order,
-            interaction_type=interaction_type,
             title=step.title,
             content_markdown=step.content_markdown,
-            config=step.config,
+            interactions=interactions,
             created_at=step.created_at,
             updated_at=step.updated_at,
+        )
+
+    def _to_interaction_response(
+        self, interaction: StepInteraction, /
+    ) -> StepInteractionResponse:
+        """Convert a StepInteraction entity to StepInteractionResponse.
+
+        Args:
+            interaction: The StepInteraction entity.
+
+        Returns:
+            StepInteractionResponse.
+        """
+        interaction_type = interaction.interaction_type
+        if hasattr(interaction_type, "value"):
+            interaction_type = interaction_type.value
+        return StepInteractionResponse(
+            id=interaction.id,
+            step_id=interaction.step_id,
+            interaction_type=interaction_type,
+            config=interaction.config,
+            display_order=interaction.display_order,
+            created_at=interaction.created_at,
+            updated_at=interaction.updated_at,
         )
 
     def _failure_reason_to_string(
