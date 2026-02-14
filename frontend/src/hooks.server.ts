@@ -16,14 +16,21 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const accessToken = event.cookies.get('zondarr_access_token');
 	const skipAuth = ['true', '1', 'yes'].includes((env.DEV_SKIP_AUTH ?? '').toLowerCase());
 
-	if (accessToken || skipAuth) {
+	if (skipAuth && !accessToken) {
+		// Dev mode: skip the API call entirely and use a synthetic admin user
+		event.locals.user = {
+			id: '00000000-0000-0000-0000-000000000000',
+			username: 'dev-admin',
+			email: null,
+			auth_method: 'dev-skip'
+		};
+	} else if (accessToken) {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 2000);
 		try {
-			const headers: Record<string, string> = {};
-			if (accessToken) {
-				headers['Cookie'] = `zondarr_access_token=${accessToken}`;
-			}
 			const response = await event.fetch(`${API_BASE_URL}/api/auth/me`, {
-				headers
+				headers: { Cookie: `zondarr_access_token=${accessToken}` },
+				signal: controller.signal
 			});
 			if (response.ok) {
 				const user: App.Locals['user'] = await response.json();
@@ -33,6 +40,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 			}
 		} catch {
 			event.locals.user = null;
+		} finally {
+			clearTimeout(timeout);
 		}
 	} else {
 		event.locals.user = null;
