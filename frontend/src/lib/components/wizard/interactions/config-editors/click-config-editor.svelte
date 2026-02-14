@@ -4,14 +4,14 @@
  *
  * Provides admin UI for configuring click interaction settings.
  */
-import type { ClickConfig } from "$lib/api/client";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { clickConfigSchema } from "$lib/schemas/wizard";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
 
-const config = $derived(rawConfig as unknown as ClickConfig);
+const config = $derived(clickConfigSchema.safeParse(rawConfig).data);
 
 function updateField(value: string) {
 	onConfigChange({ ...rawConfig, button_text: value });

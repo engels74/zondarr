@@ -4,14 +4,14 @@
  *
  * Provides admin UI for configuring timer interaction settings.
  */
-import type { TimerConfig } from "$lib/api/client";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { timerConfigSchema } from "$lib/schemas/wizard";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
 
-const config = $derived(rawConfig as unknown as TimerConfig);
+const config = $derived(timerConfigSchema.safeParse(rawConfig).data);
 
 function updateDuration(value: string) {
 	onConfigChange({ ...rawConfig, duration_seconds: parseInt(value, 10) || 10 });

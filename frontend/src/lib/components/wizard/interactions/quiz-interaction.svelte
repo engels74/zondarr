@@ -9,13 +9,13 @@
  * Requirements: 8.1, 8.2, 8.3, 12.5
  */
 import { Check } from "@lucide/svelte";
-import type { QuizConfig } from "$lib/api/client";
+import { quizConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
 const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
-// Extract config
-const config = $derived(rawConfig as unknown as QuizConfig);
+// Validate config with Zod schema, falling back gracefully for partial configs
+const config = $derived(quizConfigSchema.safeParse(rawConfig).data);
 const question = $derived(config?.question ?? "");
 const options = $derived(config?.options ?? []);
 

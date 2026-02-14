@@ -4,16 +4,16 @@
  *
  * Provides admin UI for configuring quiz interaction settings.
  */
-import type { QuizConfig } from "$lib/api/client";
 import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
 import * as RadioGroup from "$lib/components/ui/radio-group";
+import { quizConfigSchema } from "$lib/schemas/wizard";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
 
-const config = $derived(rawConfig as unknown as QuizConfig);
+const config = $derived(quizConfigSchema.safeParse(rawConfig).data);
 
 function updateField(field: string, value: unknown) {
 	onConfigChange({ ...rawConfig, [field]: value });

@@ -28,7 +28,7 @@ import MarkdownEditor from "./markdown-editor.svelte";
 interface Props {
 	step: WizardStepResponse;
 	wizardId: string;
-	onSave: (updates: Partial<WizardStepResponse>) => void;
+	onSave: (updates: Partial<WizardStepResponse>) => void | Promise<void>;
 	onCancel: () => void;
 	onInteractionsChange: (interactions: StepInteractionResponse[]) => void;
 }
@@ -177,13 +177,16 @@ async function handleConfigChange(type: string, newConfig: Record<string, unknow
 /**
  * Handle save (title + content only).
  */
-function handleSave() {
+async function handleSave() {
 	isSaving = true;
-	onSave({
-		title,
-		content_markdown: contentMarkdown,
-	});
-	isSaving = false;
+	try {
+		await onSave({
+			title,
+			content_markdown: contentMarkdown,
+		});
+	} finally {
+		isSaving = false;
+	}
 }
 </script>
 

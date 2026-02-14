@@ -4,14 +4,14 @@
  *
  * Provides admin UI for configuring Terms of Service interaction settings.
  */
-import type { TosConfig } from "$lib/api/client";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
+import { tosConfigSchema } from "$lib/schemas/wizard";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
 
-const config = $derived(rawConfig as unknown as TosConfig);
+const config = $derived(tosConfigSchema.safeParse(rawConfig).data);
 
 function updateField(value: string) {
 	onConfigChange({ ...rawConfig, checkbox_label: value });

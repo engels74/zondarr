@@ -9,13 +9,13 @@
  * Requirements: 6.1, 6.2, 6.3, 6.4, 12.3
  */
 import { Check } from "@lucide/svelte";
-import type { TosConfig } from "$lib/api/client";
+import { tosConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
 const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
-// Extract checkbox label from config with default
-const config = $derived(rawConfig as unknown as TosConfig);
+// Validate config with Zod schema, falling back gracefully for partial configs
+const config = $derived(tosConfigSchema.safeParse(rawConfig).data);
 const checkboxLabel = $derived(
 	config?.checkbox_label ?? "I accept the terms of service",
 );

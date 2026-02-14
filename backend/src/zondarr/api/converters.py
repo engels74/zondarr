@@ -41,10 +41,7 @@ def wizard_step_to_response(step: WizardStep, /) -> WizardStepResponse:
     Returns:
         WizardStepResponse with interactions.
     """
-    interactions = [
-        step_interaction_to_response(i)
-        for i in (step.interactions if step.interactions else [])
-    ]
+    interactions = [step_interaction_to_response(i) for i in step.interactions]
     return WizardStepResponse(
         id=step.id,
         wizard_id=step.wizard_id,

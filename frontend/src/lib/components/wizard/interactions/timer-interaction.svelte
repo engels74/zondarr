@@ -10,13 +10,13 @@
  * Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 12.2
  */
 import { onMount } from "svelte";
-import type { TimerConfig } from "$lib/api/client";
+import { timerConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
 const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
-// Extract duration from config
-const config = $derived(rawConfig as unknown as TimerConfig);
+// Validate config with Zod schema, falling back gracefully for partial configs
+const config = $derived(timerConfigSchema.safeParse(rawConfig).data);
 const durationSeconds = $derived(config?.duration_seconds ?? 10);
 
 // Timer state

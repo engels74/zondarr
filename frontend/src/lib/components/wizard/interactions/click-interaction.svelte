@@ -7,13 +7,13 @@
  *
  * Requirements: 4.1, 4.2, 4.3, 12.1
  */
-import type { ClickConfig } from "$lib/api/client";
+import { clickConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionCompletionData, InteractionComponentProps } from "./registry";
 
 const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
-// Extract button text from config with default
-const config = $derived(rawConfig as unknown as ClickConfig);
+// Validate config with Zod schema, falling back gracefully for partial configs
+const config = $derived(clickConfigSchema.safeParse(rawConfig).data);
 const buttonText = $derived(config?.button_text ?? "I Understand");
 
 function handleClick() {

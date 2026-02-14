@@ -8,13 +8,13 @@
  *
  * Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 12.4
  */
-import type { TextInputConfig } from "$lib/api/client";
+import { textInputConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
 const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
 
-// Extract config with defaults
-const config = $derived(rawConfig as unknown as TextInputConfig);
+// Validate config with Zod schema, falling back gracefully for partial configs
+const config = $derived(textInputConfigSchema.safeParse(rawConfig).data);
 const label = $derived(config?.label ?? "Your response");
 const placeholder = $derived(config?.placeholder ?? "");
 const isRequired = $derived(config?.required ?? true);

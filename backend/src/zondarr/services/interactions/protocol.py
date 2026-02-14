@@ -9,9 +9,10 @@ StepInteraction satisfy, allowing handlers to work with either.
 """
 
 from collections.abc import Mapping
-from dataclasses import dataclass
 from datetime import datetime
 from typing import Protocol
+
+import msgspec
 
 from zondarr.models.wizard import InteractionType
 
@@ -35,8 +36,7 @@ class InteractionSource(Protocol):
     interaction_type: InteractionType | str
 
 
-@dataclass(slots=True)
-class InteractionSourceData:
+class InteractionSourceData(msgspec.Struct, kw_only=True):
     """Concrete adapter that satisfies InteractionSource protocol.
 
     Use this to wrap ORM model data (e.g., StepInteraction) before
