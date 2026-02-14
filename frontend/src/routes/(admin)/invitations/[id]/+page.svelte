@@ -197,15 +197,6 @@ function formatDate(dateString: string | null | undefined): string {
 	}
 }
 
-// Sync local datetime to form data
-$effect(() => {
-	if (expiresAtLocal) {
-		formData.expires_at = toISOString(expiresAtLocal);
-	} else {
-		formData.expires_at = "";
-	}
-});
-
 /**
  * Toggle server selection.
  */
@@ -592,6 +583,11 @@ function getFieldErrors(field: string): string[] {
 								<Input
 									type="datetime-local"
 									bind:value={expiresAtLocal}
+									oninput={() => {
+										formData.expires_at = expiresAtLocal
+											? toISOString(expiresAtLocal)
+											: "";
+									}}
 									class="border-cr-border bg-cr-bg text-cr-text"
 									data-field-expires-at
 								/>
