@@ -175,7 +175,7 @@ async function handleTestConnection() {
 async function handleSubmit(event: Event) {
 	event.preventDefault();
 
-	if (!validateForm()) {
+	if (!connectionVerified || !validateForm()) {
 		return;
 	}
 
