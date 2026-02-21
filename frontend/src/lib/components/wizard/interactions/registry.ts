@@ -33,6 +33,7 @@ export interface InteractionComponentProps {
 	config: Record<string, unknown>;
 	onComplete: (data: InteractionCompletionData) => void;
 	disabled: boolean;
+	completionData?: InteractionCompletionData;
 }
 
 /** Registration for a single interaction type */

@@ -13,15 +13,18 @@ import { onMount } from "svelte";
 import { timerConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
-const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false, completionData }: InteractionComponentProps = $props();
 
 // Validate config with Zod schema, falling back gracefully for partial configs
 const config = $derived(timerConfigSchema.safeParse(rawConfig).data);
 const durationSeconds = $derived(config?.duration_seconds ?? 10);
 
+// If already completed (navigating back), start at 0
+const alreadyCompleted = (() => completionData?.data?.waited === true)();
+
 // Timer state
 let remainingSeconds = $state(0);
-let startedAt = $state<string | null>(null);
+let startedAt = $state<string | null>((() => completionData?.startedAt ?? null)());
 let intervalId: ReturnType<typeof setInterval> | null = null;
 
 // Derived values
@@ -50,6 +53,12 @@ const strokeDashoffset = $derived(
 );
 
 onMount(() => {
+	// Skip countdown if already completed (navigating back)
+	if (alreadyCompleted) {
+		remainingSeconds = 0;
+		return;
+	}
+
 	// Initialize timer
 	remainingSeconds = durationSeconds;
 	startedAt = new Date().toISOString();

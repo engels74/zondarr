@@ -11,7 +11,7 @@
 import { textInputConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
-const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false, completionData }: InteractionComponentProps = $props();
 
 // Validate config with Zod schema, falling back gracefully for partial configs
 const config = $derived(textInputConfigSchema.safeParse(rawConfig).data);
@@ -24,8 +24,10 @@ const maxLength = $derived(config?.max_length);
 // Unique ID for label/input association (supports multiple instances per step)
 const inputId = $derived(`wizard-text-input-${interactionId}`);
 
-// Input state
-let inputValue = $state("");
+// Input state — restore from completion data if navigating back
+let inputValue = $state(
+	(() => (typeof completionData?.data?.text === "string" ? completionData.data.text : ""))(),
+);
 let touched = $state(false);
 
 // Validation
@@ -38,11 +40,11 @@ const validationError = $derived.by(() => {
 		return "This field is required";
 	}
 
-	if (minLength !== undefined && value.length < minLength) {
+	if (minLength != null && value.length < minLength) {
 		return `Must be at least ${minLength} characters`;
 	}
 
-	if (maxLength !== undefined && value.length > maxLength) {
+	if (maxLength != null && value.length > maxLength) {
 		return `Must be at most ${maxLength} characters`;
 	}
 
@@ -53,8 +55,8 @@ const isValid = $derived.by(() => {
 	const value = inputValue.trim();
 
 	if (isRequired && value.length === 0) return false;
-	if (minLength !== undefined && value.length < minLength) return false;
-	if (maxLength !== undefined && value.length > maxLength) return false;
+	if (minLength != null && value.length < minLength) return false;
+	if (maxLength != null && value.length > maxLength) return false;
 
 	return true;
 });
@@ -62,7 +64,7 @@ const isValid = $derived.by(() => {
 // Character count display
 const charCount = $derived(inputValue.length);
 const showCharCount = $derived(
-	minLength !== undefined || maxLength !== undefined,
+	minLength != null || maxLength != null,
 );
 
 function handleBlur() {
@@ -111,8 +113,8 @@ function handleKeydown(event: KeyboardEvent) {
 
 		<!-- Character count -->
 		{#if showCharCount}
-			<div class="char-count" class:warning={maxLength !== undefined && charCount > maxLength}>
-				{charCount}{#if maxLength !== undefined}/{maxLength}{/if}
+			<div class="char-count" class:warning={maxLength != null && charCount > maxLength}>
+				{charCount}{#if maxLength != null}/{maxLength}{/if}
 			</div>
 		{/if}
 	</div>

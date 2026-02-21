@@ -135,6 +135,10 @@ class BackgroundTaskManager:
         """
         interval = self.settings.sync_interval_seconds
 
+        # Delay initial sync to avoid blocking web requests at startup,
+        # especially important for SQLite's single-writer limitation
+        await asyncio.sleep(15)
+
         while self._running:
             try:
                 await self._sync_all_servers(state)
@@ -209,7 +213,8 @@ class BackgroundTaskManager:
     async def _sync_all_servers(self, state: State, /) -> None:
         """Sync users with all enabled media servers.
 
-        Iterates through all enabled servers and performs sync.
+        Uses short-lived sessions per operation to avoid holding SQLite's
+        write lock during external API calls (which can take several seconds).
         Individual server failures are logged but don't stop processing
         of remaining servers.
 
@@ -221,57 +226,60 @@ class BackgroundTaskManager:
             state.session_factory,
         )
 
+        # Fetch enabled servers with a short-lived session
         async with session_factory() as session:
             server_repo = MediaServerRepository(session)
-            user_repo = UserRepository(session)
-
             servers = await server_repo.get_enabled()
+            # Detach server data before closing session
+            server_ids_and_names = [(s.id, s.name) for s in servers]
 
-            # Sync libraries for each server
-            media_server_service = MediaServerService(server_repo)
-            for server in servers:
-                try:
-                    _ = await media_server_service.sync_libraries(server.id)
-                    logger.info(
-                        "Library sync completed",
-                        server_id=str(server.id),
-                        server_name=server.name,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Library sync failed",
-                        server_id=str(server.id),
-                        server_name=server.name,
-                        error=str(exc),
-                    )
+        # Sync libraries per server, each with its own session
+        for server_id, server_name in server_ids_and_names:
+            try:
+                async with session_factory() as session:
+                    server_repo = MediaServerRepository(session)
+                    media_server_service = MediaServerService(server_repo)
+                    _ = await media_server_service.sync_libraries(server_id)
+                    await session.commit()
+                logger.info(
+                    "Library sync completed",
+                    server_id=str(server_id),
+                    server_name=server_name,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Library sync failed",
+                    server_id=str(server_id),
+                    server_name=server_name,
+                    error=str(exc),
+                )
 
-            await session.commit()
-
-            # Sync users for each server (import orphaned users)
-            identity_repo = IdentityRepository(session)
-            sync_service = SyncService(server_repo, user_repo, identity_repo)
-
-            for server in servers:
-                try:
-                    result = await sync_service.sync_server(server.id, dry_run=False)
-                    logger.info(
-                        "Server sync completed",
-                        server_id=str(server.id),
-                        server_name=server.name,
-                        orphaned=len(result.orphaned_users),
-                        stale=len(result.stale_users),
-                        matched=result.matched_users,
-                        imported=result.imported_users,
-                    )
-                except Exception as exc:
-                    logger.warning(
-                        "Server sync failed",
-                        server_id=str(server.id),
-                        server_name=server.name,
-                        error=str(exc),
-                    )
-
-            await session.commit()
+        # Sync users per server, each with its own session
+        for server_id, server_name in server_ids_and_names:
+            try:
+                async with session_factory() as session:
+                    server_repo = MediaServerRepository(session)
+                    user_repo = UserRepository(session)
+                    identity_repo = IdentityRepository(session)
+                    sync_service = SyncService(server_repo, user_repo, identity_repo)
+                    result = await sync_service.sync_server(server_id, dry_run=False)
+                    await session.commit()
+                logger.info(
+                    "Server sync completed",
+                    server_id=str(server_id),
+                    server_name=server_name,
+                    orphaned=len(result.orphaned_users),
+                    stale=len(result.stale_users),
+                    matched=result.matched_users,
+                    imported=result.imported_users,
+                )
+            except Exception as exc:
+                logger.warning(
+                    "Server sync failed",
+                    server_id=str(server_id),
+                    server_name=server_name,
+                    error=str(exc),
+                )
 
     async def _run_token_cleanup_task(self, state: State, /) -> None:
         """Periodically clean up expired refresh tokens.

@@ -57,7 +57,7 @@ export type WizardInput = z.infer<typeof wizardSchema>;
  * Requirements: 4.3
  */
 export const clickConfigSchema = z.object({
-	button_text: z.string().max(100, 'Button text must be at most 100 characters').optional()
+	button_text: z.string().max(100, 'Button text must be at most 100 characters').nullish()
 });
 
 export type ClickConfig = z.infer<typeof clickConfigSchema>;
@@ -89,7 +89,7 @@ export type TimerConfig = z.infer<typeof timerConfigSchema>;
  * Requirements: 6.3
  */
 export const tosConfigSchema = z.object({
-	checkbox_label: z.string().max(200, 'Checkbox label must be at most 200 characters').optional()
+	checkbox_label: z.string().max(200, 'Checkbox label must be at most 200 characters').nullish()
 });
 
 export type TosConfig = z.infer<typeof tosConfigSchema>;
@@ -109,14 +109,14 @@ export type TosConfig = z.infer<typeof tosConfigSchema>;
 export const textInputConfigSchema = z
 	.object({
 		label: z.string().min(1, 'Label is required').max(100, 'Label must be at most 100 characters'),
-		placeholder: z.string().max(200, 'Placeholder must be at most 200 characters').optional(),
+		placeholder: z.string().max(200, 'Placeholder must be at most 200 characters').nullish(),
 		required: z.boolean().default(true),
-		min_length: z.number().int().min(0, 'Minimum length must be non-negative').optional(),
-		max_length: z.number().int().min(1, 'Maximum length must be at least 1').optional()
+		min_length: z.number().int().min(0, 'Minimum length must be non-negative').nullish(),
+		max_length: z.number().int().min(1, 'Maximum length must be at least 1').nullish()
 	})
 	.refine(
 		(data) => {
-			if (data.min_length !== undefined && data.max_length !== undefined) {
+			if (data.min_length != null && data.max_length != null) {
 				return data.min_length <= data.max_length;
 			}
 			return true;

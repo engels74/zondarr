@@ -12,15 +12,17 @@ import { Check } from "@lucide/svelte";
 import { quizConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
-const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false, completionData }: InteractionComponentProps = $props();
 
 // Validate config with Zod schema, falling back gracefully for partial configs
 const config = $derived(quizConfigSchema.safeParse(rawConfig).data);
 const question = $derived(config?.question ?? "");
 const options = $derived(config?.options ?? []);
 
-// Selection state
-let selectedIndex = $state<number | null>(null);
+// Selection state — restore from completion data if navigating back
+let selectedIndex = $state<number | null>(
+	(() => (typeof completionData?.data?.answer_index === "number" ? completionData.data.answer_index : null))(),
+);
 
 // Derived - has selection
 const hasSelection = $derived(selectedIndex !== null);

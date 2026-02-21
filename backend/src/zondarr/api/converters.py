@@ -24,7 +24,7 @@ def step_interaction_to_response(
     return StepInteractionResponse(
         id=interaction.id,
         step_id=interaction.step_id,
-        interaction_type=interaction.interaction_type.value,
+        interaction_type=str(interaction.interaction_type),
         config=interaction.config,
         display_order=interaction.display_order,
         created_at=interaction.created_at,

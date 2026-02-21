@@ -11,7 +11,7 @@
  */
 
 import { goto, invalidateAll } from "$app/navigation";
-import type { WizardDetailResponse } from "$lib/api/client";
+import type { WizardDetailResponse, WizardStepResponse } from "$lib/api/client";
 import { getErrorMessage, isNetworkError } from "$lib/api/errors";
 import ErrorState from "$lib/components/error-state.svelte";
 import {
@@ -24,6 +24,7 @@ const { data }: { data: PageData } = $props();
 
 // Preview mode state
 let isPreviewMode = $state(false);
+let previewSteps = $state<WizardStepResponse[]>([]);
 
 /**
  * Handle save - refresh data and stay on page.
@@ -40,9 +41,10 @@ function handleCancel() {
 }
 
 /**
- * Toggle preview mode.
+ * Toggle preview mode with current steps from the builder.
  */
-function handlePreview() {
+function handlePreview(currentSteps: WizardStepResponse[]) {
+	previewSteps = currentSteps;
 	isPreviewMode = true;
 }
 
@@ -85,9 +87,10 @@ async function handleRetry() {
 				</button>
 			</div>
 			<WizardShell
-				wizard={data.wizard}
+				wizard={{ ...data.wizard, steps: previewSteps }}
 				onComplete={handlePreviewComplete}
 				onCancel={handleExitPreview}
+				mode="preview"
 			/>
 		</div>
 	{:else}
