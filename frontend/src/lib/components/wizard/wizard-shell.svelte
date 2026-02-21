@@ -163,6 +163,10 @@ async function handleNext() {
 
 		if (!result.data?.valid) {
 			validationError = result.data?.error ?? "Validation failed";
+			// Clear completion data for this step so interactions are re-enabled
+			const newMap = new Map(interactionCompletions);
+			newMap.delete(step.id);
+			interactionCompletions = newMap;
 			return;
 		}
 
@@ -269,6 +273,7 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 									config={interaction.config}
 									onComplete={handleInteractionComplete}
 									disabled={isValidating || isCompleted}
+									completionData={currentCompletions.get(interaction.id)}
 								/>
 							</div>
 						{/if}

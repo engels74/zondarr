@@ -10,7 +10,7 @@
 import { clickConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionCompletionData, InteractionComponentProps } from "./registry";
 
-const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false, completionData }: InteractionComponentProps = $props();
 
 // Validate config with Zod schema, falling back gracefully for partial configs
 const config = $derived(clickConfigSchema.safeParse(rawConfig).data);

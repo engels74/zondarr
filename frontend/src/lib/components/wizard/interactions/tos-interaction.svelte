@@ -12,7 +12,7 @@ import { Check } from "@lucide/svelte";
 import { tosConfigSchema } from "$lib/schemas/wizard";
 import type { InteractionComponentProps } from "./registry";
 
-const { interactionId, config: rawConfig, onComplete, disabled = false }: InteractionComponentProps = $props();
+const { interactionId, config: rawConfig, onComplete, disabled = false, completionData }: InteractionComponentProps = $props();
 
 // Validate config with Zod schema, falling back gracefully for partial configs
 const config = $derived(tosConfigSchema.safeParse(rawConfig).data);
@@ -20,8 +20,8 @@ const checkboxLabel = $derived(
 	config?.checkbox_label ?? "I accept the terms of service",
 );
 
-// Checkbox state
-let accepted = $state(false);
+// Checkbox state — restore from completion data if navigating back
+let accepted = $state(completionData?.data?.accepted === true);
 
 // Derived - can proceed only when accepted
 const canProceed = $derived(accepted);
