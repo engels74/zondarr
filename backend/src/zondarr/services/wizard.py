@@ -257,7 +257,9 @@ class WizardService:
             title=title,
             content_markdown=content_markdown,
         )
-        return await self.step_repo.create(step)
+        created_step = await self.step_repo.create(step)
+        await self.step_repo.session.refresh(created_step, ["interactions"])
+        return created_step
 
     async def update_step(
         self,
