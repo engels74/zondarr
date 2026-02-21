@@ -96,7 +96,7 @@ async def retrieve_user_handler(
     """
     try:
         admin_id = UUID(token.sub)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
 
     try:
