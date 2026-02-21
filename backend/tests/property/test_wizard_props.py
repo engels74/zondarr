@@ -955,3 +955,44 @@ class TestTimerDurationValidation:
         assert is_valid is False
         assert error is not None
         assert "start time" in error.lower()
+
+
+class TestCreateStepInteractionsLoaded:
+    """Regression test: create_step must eagerly load the interactions relationship.
+
+    wizard_step_to_response() iterates step.interactions synchronously.
+    Without the explicit refresh after create, accessing the lazy relationship
+    in an async context raises MissingGreenlet.
+    """
+
+    @pytest.mark.asyncio
+    async def test_created_step_serializes_without_missing_greenlet(
+        self,
+        db: TestDB,
+    ) -> None:
+        """A freshly created step can be serialized via wizard_step_to_response()."""
+        await db.clean()
+
+        from zondarr.api.converters import wizard_step_to_response
+        from zondarr.repositories.step_interaction import StepInteractionRepository
+        from zondarr.repositories.wizard import WizardRepository
+        from zondarr.repositories.wizard_step import WizardStepRepository
+        from zondarr.services.wizard import WizardService
+
+        async with db.session_factory() as session:
+            wizard_repo = WizardRepository(session)
+            step_repo = WizardStepRepository(session)
+            interaction_repo = StepInteractionRepository(session)
+            service = WizardService(wizard_repo, step_repo, interaction_repo)
+
+            wizard = await service.create_wizard(name="Regression Test Wizard")
+            step = await service.create_step(
+                wizard.id,
+                title="Step 1",
+                content_markdown="Content",
+            )
+
+            # This would raise MissingGreenlet if interactions weren't loaded
+            response = wizard_step_to_response(step)
+
+            assert response.interactions == []
