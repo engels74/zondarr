@@ -161,6 +161,7 @@ class ServerController(Controller):
 
     @get(
         "/env-credentials",
+        cache=False,
         summary="Get detected environment credentials",
         description="Returns media server credentials detected from environment variables.",
     )

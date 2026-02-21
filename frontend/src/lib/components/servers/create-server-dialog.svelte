@@ -106,7 +106,7 @@ async function fetchEnvCredentials() {
 		const result = await withErrorHandling(() => getEnvCredentials(), {
 			showErrorToast: false,
 		});
-		if (result.data) {
+		if (open && result.data) {
 			envCredentials = result.data.credentials;
 		}
 	} finally {
