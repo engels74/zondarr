@@ -39,14 +39,18 @@ def _make_test_settings(
 
 
 def _ensure_registry() -> None:
-    """Ensure the global registry has providers registered.
+    """Ensure the global registry has real providers registered.
 
-    Other tests may call registry.clear(), so we force re-registration
-    unconditionally to avoid flaky ordering issues in parallel test runs.
+    Other tests (e.g. test_registry_props) may replace real providers with
+    mock descriptors via an autouse fixture.  A simple emptiness check is
+    not enough — the registry may contain mocks that lack required
+    attributes (display_name, etc.), causing 500 errors in the endpoint.
+
+    Always register unconditionally; ``register()`` is idempotent (dict
+    overwrite), so this is safe and cheap.
     """
-    if not registry.registered_types():
-        registry.register(PlexProvider())
-        registry.register(JellyfinProvider())
+    registry.register(PlexProvider())
+    registry.register(JellyfinProvider())
 
 
 def _make_test_app(
