@@ -42,11 +42,16 @@ def create_engine_from_url(
     Returns:
         Configured AsyncEngine instance.
     """
-    return create_async_engine(
-        database_url,
-        echo=debug,
-        pool_pre_ping=pool_pre_ping,
-    )
+    kwargs: dict[str, object] = {
+        "echo": debug,
+        "pool_pre_ping": pool_pre_ping,
+    }
+
+    # SQLite: add busy timeout so writers wait instead of failing immediately
+    if database_url.startswith("sqlite"):
+        kwargs["connect_args"] = {"timeout": 30}
+
+    return create_async_engine(database_url, **kwargs)
 
 
 def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:

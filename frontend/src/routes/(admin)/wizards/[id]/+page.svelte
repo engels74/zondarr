@@ -88,6 +88,7 @@ async function handleRetry() {
 				wizard={data.wizard}
 				onComplete={handlePreviewComplete}
 				onCancel={handleExitPreview}
+				mode="preview"
 			/>
 		</div>
 	{:else}

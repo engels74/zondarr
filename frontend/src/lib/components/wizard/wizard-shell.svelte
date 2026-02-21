@@ -21,9 +21,10 @@ interface Props {
 	wizard: WizardDetailResponse;
 	onComplete: () => void;
 	onCancel?: () => void;
+	mode?: "preview" | "join";
 }
 
-const { wizard, onComplete, onCancel }: Props = $props();
+const { wizard, onComplete, onCancel, mode = "join" }: Props = $props();
 
 // Reactive state
 let currentStepIndex = $state(0);
@@ -92,9 +93,9 @@ const renderedMarkdown = $derived.by(() => {
 	});
 });
 
-// Restore progress from sessionStorage on mount
+// Restore progress from sessionStorage on mount (skip in preview mode)
 $effect(() => {
-	if (browser) {
+	if (browser && mode !== "preview") {
 		const saved = sessionStorage.getItem(`wizard-${wizard.id}-progress`);
 		if (saved) {
 			try {
@@ -118,9 +119,9 @@ $effect(() => {
 	}
 });
 
-// Persist progress to sessionStorage
+// Persist progress to sessionStorage (skip in preview mode)
 $effect(() => {
-	if (browser && wizard.id) {
+	if (browser && wizard.id && mode !== "preview") {
 		// Serialize nested map
 		const completions = Array.from(interactionCompletions.entries()).map(
 			([stepId, completionMap]) => [
@@ -171,7 +172,7 @@ async function handleNext() {
 		}
 
 		if (isLastStep) {
-			if (browser) {
+			if (browser && mode !== "preview") {
 				sessionStorage.removeItem(`wizard-${wizard.id}-progress`);
 			}
 			onComplete();
@@ -382,6 +383,7 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 		position: relative;
 		width: 100%;
 		max-width: 640px;
+		max-height: calc(100vh - 4rem);
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
@@ -398,6 +400,8 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 			0 4px 24px var(--wizard-shadow-lg),
 			0 0 0 1px var(--wizard-card-inset) inset;
 		animation: wizard-reveal 0.6s ease-out 0.1s both;
+		overflow-y: auto;
+		min-height: 0;
 	}
 
 	/* Cinematic title */
