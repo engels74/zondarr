@@ -39,7 +39,7 @@ interface Props {
 	wizard?: WizardDetailResponse;
 	onSave?: (wizard: WizardDetailResponse) => void;
 	onCancel?: () => void;
-	onPreview?: () => void;
+	onPreview?: (currentSteps: WizardStepResponse[]) => void;
 }
 
 const { wizard, onSave, onCancel, onPreview }: Props = $props();
@@ -331,7 +331,7 @@ function handleDragEnd() {
 		</div>
 		<div class="header-actions">
 			{#if isEditing && steps.length > 0}
-				<Button variant="outline" onclick={onPreview} class="border-cr-border text-cr-text-muted">
+				<Button variant="outline" onclick={() => onPreview?.(steps)} class="border-cr-border text-cr-text-muted">
 					Preview
 				</Button>
 			{/if}
