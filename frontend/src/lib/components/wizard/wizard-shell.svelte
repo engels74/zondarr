@@ -192,6 +192,7 @@ function handleBack() {
 }
 
 function handleInteractionComplete(data: InteractionCompletionData) {
+	validationError = null;
 	const stepId = currentStep?.id;
 	if (!stepId) return;
 
