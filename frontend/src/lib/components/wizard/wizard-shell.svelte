@@ -416,6 +416,9 @@ async function handleInteractionValidate(
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		background: var(--wizard-bg);
+		border-radius: 0.75rem;
+		padding: 1.5rem;
 		color: var(--wizard-text);
 		font-family: 'Satoshi', 'DM Sans', system-ui, sans-serif;
 	}
