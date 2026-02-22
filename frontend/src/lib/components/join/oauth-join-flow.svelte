@@ -43,7 +43,7 @@ interface Props {
 	/** The server type for branding (e.g., "plex") */
 	serverType: string;
 	/** Callback when authentication is successful */
-	onAuthenticated: (email: string) => void;
+	onAuthenticated: (email: string, authToken: string) => void;
 	/** Callback when user cancels the flow */
 	onCancel?: () => void;
 }
@@ -176,12 +176,17 @@ function startPolling() {
 
 			if (!data) return;
 
-			if (data.authenticated && data.email) {
+			if (data.authenticated && data.email && data.auth_token) {
 				stopPolling();
 				closePopup();
 				authenticatedEmail = data.email;
 				currentStep = "authenticated";
-				onAuthenticated(data.email);
+				onAuthenticated(data.email, data.auth_token);
+			} else if (data.authenticated && data.email) {
+				stopPolling();
+				closePopup();
+				errorMessage = "OAuth succeeded but no auth token was returned.";
+				currentStep = "error";
 			} else if (data.error) {
 				stopPolling();
 				closePopup();
