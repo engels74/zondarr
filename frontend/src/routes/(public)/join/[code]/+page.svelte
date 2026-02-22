@@ -56,6 +56,7 @@ import { WizardShell } from "$lib/components/wizard";
 import {
 	type RegistrationInput,
 	registrationSchema,
+	sanitizeEmailToUsername,
 	transformRegistrationFormData,
 } from "$lib/schemas/join";
 import { getProvider, getProviderLabel } from "$lib/stores/providers.svelte";
@@ -382,7 +383,7 @@ async function handleOAuthAuthenticated(email: string) {
 	// The backend will handle user creation via the provider's API
 	try {
 		const response = await redeemInvitation(data.code, {
-			username: email,
+			username: sanitizeEmailToUsername(email),
 			password: "oauth_placeholder", // Placeholder - backend handles OAuth auth differently
 			email: email,
 		});

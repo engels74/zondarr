@@ -69,9 +69,20 @@ let pinData = $state<OAuthPinResponse | null>(null);
 let authenticatedEmail = $state<string | null>(null);
 let errorMessage = $state<string | null>(null);
 
+// Popup window reference
+let popupWindow = $state<Window | null>(null);
+
 // Polling
 let pollingInterval = $state<ReturnType<typeof setInterval> | null>(null);
 const POLL_INTERVAL_MS = 2000;
+
+/**
+ * Close the popup window if it's still open.
+ */
+function closePopup() {
+	popupWindow?.close();
+	popupWindow = null;
+}
 
 /**
  * Clean up polling interval.
@@ -86,6 +97,7 @@ function stopPolling() {
 // Clean up on component destroy
 onDestroy(() => {
 	stopPolling();
+	closePopup();
 });
 
 /**
@@ -116,12 +128,13 @@ async function startOAuthFlow() {
 		pinData = data;
 		currentStep = "waiting";
 
-		// Open auth URL in new window/tab
-		window.open(pinData.auth_url, "_blank", "noopener,noreferrer");
+		// Open auth URL in popup window (named window allows control + auto-close)
+		popupWindow = window.open(pinData.auth_url, `${serverType}-auth`, "width=800,height=600");
 
 		// Start polling for PIN status
 		startPolling();
 	} catch (err) {
+		closePopup();
 		errorMessage = getErrorMessage(err);
 		currentStep = "error";
 		toast.error(`Failed to start ${providerLabel} authentication`);
@@ -143,6 +156,7 @@ function startPolling() {
 		// Check if PIN has expired
 		if (isPinExpired(pinData.expires_at)) {
 			stopPolling();
+			closePopup();
 			currentStep = "expired";
 			return;
 		}
@@ -160,11 +174,13 @@ function startPolling() {
 
 			if (data.authenticated && data.email) {
 				stopPolling();
+				closePopup();
 				authenticatedEmail = data.email;
 				currentStep = "authenticated";
 				onAuthenticated(data.email);
 			} else if (data.error) {
 				stopPolling();
+				closePopup();
 				errorMessage = data.error;
 				currentStep = "error";
 			}
@@ -180,6 +196,7 @@ function startPolling() {
  */
 function handleRetry() {
 	stopPolling();
+	closePopup();
 	pinData = null;
 	authenticatedEmail = null;
 	errorMessage = null;
@@ -191,6 +208,7 @@ function handleRetry() {
  */
 function handleCancel() {
 	stopPolling();
+	closePopup();
 	pinData = null;
 	currentStep = "idle";
 	onCancel?.();
@@ -201,7 +219,7 @@ function handleCancel() {
  */
 function openAuthUrl() {
 	if (pinData?.auth_url) {
-		window.open(pinData.auth_url, "_blank", "noopener,noreferrer");
+		popupWindow = window.open(pinData.auth_url, `${serverType}-auth`, "width=800,height=600");
 	}
 }
 </script>

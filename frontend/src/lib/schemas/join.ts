@@ -38,6 +38,52 @@ export const registrationSchema = z.object({
 export type RegistrationInput = z.infer<typeof registrationSchema>;
 
 /**
+ * Sanitize an email address into a valid username matching `^[a-z][a-z0-9_]*$`.
+ *
+ * Used during OAuth join flows where the provider returns an email but the
+ * backend expects a valid username for the display_name on the Identity record.
+ *
+ * - Extracts the local part (before `@`)
+ * - Lowercases and replaces invalid characters with `_`
+ * - Collapses consecutive underscores, strips leading non-letters
+ * - Truncates to 32 chars, strips trailing underscores
+ * - Pads short results to minimum 3 chars; falls back to `"user"` if empty
+ *
+ * @example sanitizeEmailToUsername("hans.irwin@tmail.link") // "hans_irwin"
+ */
+export function sanitizeEmailToUsername(email: string): string {
+	// Extract local part before @
+	const localPart = email.split('@')[0] ?? '';
+
+	// Lowercase and replace invalid chars with underscore
+	let result = localPart.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+
+	// Collapse consecutive underscores
+	result = result.replace(/_+/g, '_');
+
+	// Strip leading non-letters (digits, underscores)
+	result = result.replace(/^[^a-z]+/, '');
+
+	// Truncate to 32 chars
+	result = result.slice(0, 32);
+
+	// Strip trailing underscores
+	result = result.replace(/_+$/, '');
+
+	// If nothing valid remains, fallback
+	if (result.length === 0) {
+		return 'user';
+	}
+
+	// Pad to minimum 3 chars
+	while (result.length < 3) {
+		result += '_';
+	}
+
+	return result;
+}
+
+/**
  * Transform registration form data to API request format.
  *
  * Converts empty email string to undefined for the API.
