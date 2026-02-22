@@ -458,6 +458,11 @@ function handleRegistrationRetry() {
 
 </script>
 
+<svelte:head>
+	<!-- Prevent invitation code in URL from leaking via Referer header to OAuth providers -->
+	<meta name="referrer" content="no-referrer" />
+</svelte:head>
+
 <div class="space-y-4">
 	<!-- Page header -->
 	<div class="text-center">

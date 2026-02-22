@@ -128,7 +128,11 @@ async function startOAuthFlow() {
 		pinData = data;
 		currentStep = "waiting";
 
-		// Open auth URL in popup window (named window allows control + auto-close)
+		// Open auth URL in popup window (named window allows control + auto-close).
+		// Note: We intentionally omit noopener/noreferrer to retain a popup reference for
+		// auto-close. Referrer leakage is mitigated by the join page's <meta name="referrer"
+		// content="no-referrer"> tag. Reverse-tabnabbing risk is minimal since auth_url is
+		// generated server-side pointing to trusted OAuth providers (e.g. Plex.tv).
 		popupWindow = window.open(pinData.auth_url, `${serverType}-auth`, "width=800,height=600");
 
 		// Start polling for PIN status
@@ -219,6 +223,7 @@ function handleCancel() {
  */
 function openAuthUrl() {
 	if (pinData?.auth_url) {
+		// See startOAuthFlow() for security rationale on omitting noopener/noreferrer
 		popupWindow = window.open(pinData.auth_url, `${serverType}-auth`, "width=800,height=600");
 	}
 }
