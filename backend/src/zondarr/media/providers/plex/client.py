@@ -487,21 +487,31 @@ class PlexClient:
                 # Use the admin account's shared_servers API to grant access
                 # This mirrors plexapi's updateFriend() when user has no existing access:
                 # POST to shared_servers with invited_id (numeric Plex user ID)
-                headers: dict[str, str] = self._account._headers()  # pyright: ignore[reportUnknownMemberType, reportAssignmentType, reportPrivateUsage, reportUnknownVariableType]
-                sharing_url = f"https://plex.tv/api/servers/{machine_id}/shared_servers"
-                params: dict[str, str] = {
-                    "server_id": machine_id,
-                    "shared_server[library_section_ids]": "",
-                    "shared_server[invited_id]": plex_user_id,
-                    "sharing_settings[filterMovies]": "",
-                    "sharing_settings[filterTelevision]": "",
-                    "sharing_settings[filterMusic]": "",
+                base_headers: dict[str, str] = self._account._headers()  # pyright: ignore[reportUnknownMemberType, reportAssignmentType, reportPrivateUsage, reportUnknownVariableType]
+                headers: dict[str, str] = {
+                    **base_headers,
+                    "Content-Type": "application/json",
                 }
-                # Use the admin account's session to make the request
+                sharing_url = f"https://plex.tv/api/servers/{machine_id}/shared_servers"
+                # Match plexapi's JSON body structure (nested dicts, not bracket-notation)
+                # Empty library_section_ids list = share all libraries (same as plexapi default)
+                params: dict[str, object] = {
+                    "server_id": machine_id,
+                    "shared_server": {
+                        "library_section_ids": [],
+                        "invited_id": int(plex_user_id),
+                    },
+                    "sharing_settings": {
+                        "filterMovies": "",
+                        "filterTelevision": "",
+                        "filterMusic": "",
+                    },
+                }
+                # Use the admin account's session to make the request (JSON body)
                 resp = self._account._session.post(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportPrivateUsage]
                     sharing_url,
                     headers=headers,
-                    params=params,
+                    json=params,
                     timeout=30,
                 )
                 _ = resp.raise_for_status()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
