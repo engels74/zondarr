@@ -368,12 +368,12 @@ describe('OAuth Flow Component', () => {
 		const signInButton = container.querySelector('[data-oauth-signin-button]');
 		await user.click(signInButton!);
 
-		// Wait for window.open to be called
+		// Wait for window.open to be called with named window + dimensions
 		await vi.waitFor(() => {
 			expect(mockWindowOpen).toHaveBeenCalledWith(
 				pinResponse.auth_url,
-				'_blank',
-				'noopener,noreferrer'
+				`${TEST_SERVER_TYPE}-auth`,
+				'width=800,height=600'
 			);
 		});
 	});

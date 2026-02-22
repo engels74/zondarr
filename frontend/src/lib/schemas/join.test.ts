@@ -12,7 +12,7 @@
 
 import * as fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { registrationSchema } from './join';
+import { registrationSchema, sanitizeEmailToUsername } from './join';
 
 // =============================================================================
 // Property 30: Username Validation
@@ -346,5 +346,69 @@ describe('Email Validation', () => {
 			),
 			{ numRuns: 50 }
 		);
+	});
+});
+
+// =============================================================================
+// sanitizeEmailToUsername
+// =============================================================================
+
+describe('sanitizeEmailToUsername', () => {
+	/**
+	 * For any email address, the output SHALL always match the backend
+	 * username pattern `^[a-z][a-z0-9_]*$` with length 3-32.
+	 */
+	it('should always produce a valid username from any email', () => {
+		fc.assert(
+			fc.property(fc.emailAddress(), (email) => {
+				const result = sanitizeEmailToUsername(email);
+				expect(result).toMatch(/^[a-z][a-z0-9_]*$/);
+				expect(result.length).toBeGreaterThanOrEqual(3);
+				expect(result.length).toBeLessThanOrEqual(32);
+			}),
+			{ numRuns: 200 }
+		);
+	});
+
+	it('should convert dots and hyphens to underscores', () => {
+		expect(sanitizeEmailToUsername('hans.irwin@tmail.link')).toBe('hans_irwin');
+		expect(sanitizeEmailToUsername('first-last@example.com')).toBe('first_last');
+	});
+
+	it('should handle plus tags', () => {
+		expect(sanitizeEmailToUsername('user+tag@example.com')).toBe('user_tag');
+	});
+
+	it('should strip leading digits', () => {
+		expect(sanitizeEmailToUsername('123abc@example.com')).toBe('abc');
+	});
+
+	it('should fallback to "user" when no valid letters remain', () => {
+		expect(sanitizeEmailToUsername('123@example.com')).toBe('user');
+		expect(sanitizeEmailToUsername('___@example.com')).toBe('user');
+	});
+
+	it('should pad short local parts to minimum 3 chars', () => {
+		const result = sanitizeEmailToUsername('ab@example.com');
+		expect(result.length).toBeGreaterThanOrEqual(3);
+		expect(result).toBe('ab_');
+	});
+
+	it('should truncate long local parts to 32 chars', () => {
+		const longLocal = 'a'.repeat(50) + '@example.com';
+		const result = sanitizeEmailToUsername(longLocal);
+		expect(result.length).toBeLessThanOrEqual(32);
+	});
+
+	it('should collapse consecutive underscores', () => {
+		expect(sanitizeEmailToUsername('a..b@example.com')).toBe('a_b');
+		expect(sanitizeEmailToUsername('a---b@example.com')).toBe('a_b');
+	});
+
+	it('should strip trailing underscores after truncation', () => {
+		// 31 a's + dot → 31 a's + underscore → truncated to 32, trailing _ stripped
+		const email = 'a'.repeat(31) + '.@example.com';
+		const result = sanitizeEmailToUsername(email);
+		expect(result).not.toMatch(/_$/);
 	});
 });
