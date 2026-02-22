@@ -37,6 +37,21 @@ let wrongAttempts = $state(0);
 let cooldownRemaining = $state(0);
 let cooldownInterval = $state<ReturnType<typeof setInterval> | null>(null);
 
+// Reset local state when the shell clears completionData (e.g. after step-level validation failure)
+$effect(() => {
+	if (completionData == null && feedbackState === "correct") {
+		feedbackState = null;
+		selectedIndex = null;
+		wrongAttempts = 0;
+		cooldownRemaining = 0;
+		inlineError = null;
+		if (cooldownInterval) {
+			clearInterval(cooldownInterval);
+			cooldownInterval = null;
+		}
+	}
+});
+
 // Derived - interaction disabled
 const isInteractionDisabled = $derived(
 	disabled || isSubmitting || cooldownRemaining > 0 || alreadyCorrect || feedbackState === "correct",
@@ -92,8 +107,12 @@ async function handleSubmit() {
 	try {
 		const result = await onValidate(completionPayload);
 
-		if (result.valid) {
+		if (result.valid && !result.pending) {
 			feedbackState = "correct";
+			inlineError = null;
+		} else if (result.valid && result.pending) {
+			// Answer accepted but not yet validated by backend (multi-interaction step)
+			// Don't show "Correct!" — just accept silently
 			inlineError = null;
 		} else {
 			wrongAttempts++;

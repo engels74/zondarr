@@ -208,7 +208,7 @@ function handleInteractionComplete(data: InteractionCompletionData) {
 
 async function handleInteractionValidate(
 	data: InteractionCompletionData,
-): Promise<{ valid: boolean; error?: string | null }> {
+): Promise<{ valid: boolean; pending?: boolean; error?: string | null }> {
 	const step = currentStep;
 	if (!step) return { valid: false, error: "No current step" };
 
@@ -225,8 +225,9 @@ async function handleInteractionValidate(
 
 	if (!allReady) {
 		// Not all interactions ready — store completion locally, skip backend validation
+		// Return pending: true so the interaction knows this is not a backend-validated result
 		handleInteractionComplete(data);
-		return { valid: true };
+		return { valid: true, pending: true };
 	}
 
 	// All interactions ready — validate with backend
@@ -249,6 +250,10 @@ async function handleInteractionValidate(
 			handleInteractionComplete(data);
 			return { valid: true };
 		}
+		// Backend rejected — clear all completions for this step so interactions can retry
+		const newMap = new Map(interactionCompletions);
+		newMap.delete(step.id);
+		interactionCompletions = newMap;
 		return { valid: false, error: result.data?.error ?? "Incorrect answer" };
 	} catch {
 		return { valid: false, error: "Validation failed. Please try again." };

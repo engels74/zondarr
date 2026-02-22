@@ -34,7 +34,7 @@ export interface InteractionComponentProps {
 	onComplete: (data: InteractionCompletionData) => void;
 	onValidate?: (
 		data: InteractionCompletionData
-	) => Promise<{ valid: boolean; error?: string | null }>;
+	) => Promise<{ valid: boolean; pending?: boolean; error?: string | null }>;
 	disabled: boolean;
 	completionData?: InteractionCompletionData;
 }
