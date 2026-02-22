@@ -2619,3 +2619,468 @@ class TestErrorStructureContainsRequiredFields:
                 assert error.media_error_code == PlexErrorCode.USERNAME_TAKEN
                 # cause field must be present
                 assert error.cause is not None
+
+
+# --- Mocks for _share_library_direct and _cancel_pending_invites_for_user ---
+
+
+class MockResponse:
+    """Mock HTTP response for the direct share API call."""
+
+    _status_code: int
+
+    def __init__(self, *, status_code: int = 200) -> None:
+        self._status_code = status_code
+
+    def raise_for_status(self) -> None:
+        if self._status_code >= 400:
+            raise Exception(f"HTTP {self._status_code}")
+
+
+class MockSession:
+    """Mock requests session used by the admin account."""
+
+    _response: MockResponse | None
+    _post_error: Exception | None
+
+    def __init__(
+        self,
+        *,
+        response: MockResponse | None = None,
+        post_error: Exception | None = None,
+    ) -> None:
+        self._response = response or MockResponse()
+        self._post_error = post_error
+
+    def post(
+        self,
+        url: str,
+        headers: dict[str, str] | None = None,
+        json: object = None,
+        timeout: int | None = None,
+    ) -> MockResponse:
+        _ = url, headers, json, timeout
+        if self._post_error is not None:
+            raise self._post_error
+        assert self._response is not None
+        return self._response
+
+
+class MockMyPlexInviteServerShare:
+    """Mock MyPlexServerShare inside an invite."""
+
+    machineIdentifier: str
+
+    def __init__(self, *, machine_identifier: str) -> None:
+        self.machineIdentifier = machine_identifier
+
+
+class MockMyPlexInvite:
+    """Mock MyPlexInvite for pending invite tests."""
+
+    email: str
+    friend: bool
+    home: bool
+    server: bool
+    servers: list[MockMyPlexInviteServerShare]
+
+    def __init__(
+        self,
+        *,
+        email: str,
+        friend: bool = True,
+        home: bool = False,
+        server: bool = True,
+        servers: list[MockMyPlexInviteServerShare] | None = None,
+    ) -> None:
+        self.email = email
+        self.friend = friend
+        self.home = home
+        self.server = server
+        self.servers = servers or []
+
+
+class MockMyPlexAccountForDirectShare:
+    """Mock MyPlexAccount that supports direct share and invite cancellation."""
+
+    _session: MockSession
+    _pending_invites: list[MockMyPlexInvite]
+    _cancel_invite_error: Exception | None
+    cancelled_invites: list[MockMyPlexInvite]
+    pending_invites_called: bool
+
+    def __init__(
+        self,
+        *,
+        session: MockSession | None = None,
+        pending_invites: list[MockMyPlexInvite] | None = None,
+        cancel_invite_error: Exception | None = None,
+    ) -> None:
+        self._session = session or MockSession()
+        self._pending_invites = pending_invites or []
+        self._cancel_invite_error = cancel_invite_error
+        self.cancelled_invites = []
+        self.pending_invites_called = False
+
+    def _headers(self) -> dict[str, str]:
+        return {"X-Plex-Token": "admin-token"}
+
+    def pendingInvites(
+        self,
+        includeSent: bool = False,
+        includeReceived: bool = False,
+    ) -> list[MockMyPlexInvite]:
+        _ = includeSent, includeReceived
+        self.pending_invites_called = True
+        return self._pending_invites
+
+    def cancelInvite(self, invite: MockMyPlexInvite) -> None:
+        if self._cancel_invite_error is not None:
+            raise self._cancel_invite_error
+        self.cancelled_invites.append(invite)
+
+
+class MockMyPlexAccountUserForDirectShare:
+    """Mock MyPlexAccount created from user's auth token."""
+
+    id: int
+    username: str
+
+    def __init__(self, *, user_id: int, username: str) -> None:
+        self.id = user_id
+        self.username = username
+
+
+class MockPlexServerForDirectShare:
+    """Mock PlexServer for direct share tests."""
+
+    url: str
+    token: str
+    friendlyName: str
+    machineIdentifier: str
+    library: MockLibrary
+    _account: MockMyPlexAccountForDirectShare
+
+    def __init__(
+        self,
+        url: str,
+        token: str,
+        *,
+        friendly_name: str = "Test Server",
+        machine_identifier: str = "abc123machine",
+        account: MockMyPlexAccountForDirectShare | None = None,
+    ) -> None:
+        self.url = url
+        self.token = token
+        self.friendlyName = friendly_name
+        self.machineIdentifier = machine_identifier
+        self.library = MockLibrary()
+        self._account = account or MockMyPlexAccountForDirectShare()
+
+    def myPlexAccount(self) -> MockMyPlexAccountForDirectShare:
+        return self._account
+
+
+class TestDirectShareFailurePropagatesError:
+    """
+    Feature: plex-integration
+    Property: Direct Share Failure Propagation
+
+    When _share_library_direct fails, the error should propagate as
+    MediaClientError or ExternalServiceError instead of silently
+    falling back to _invite_friend.
+
+    **Validates: No silent friend relationship creation**
+    """
+
+    @settings(max_examples=25)
+    @given(
+        url=url_strategy,
+        api_key=api_key_strategy,
+        email=email_strategy,
+    )
+    @pytest.mark.asyncio
+    async def test_direct_share_api_failure_raises_external_service_error(
+        self,
+        url: str,
+        api_key: str,
+        email: str,
+    ) -> None:
+        """Direct share API failure raises ExternalServiceError, not fallback."""
+        from zondarr.core.exceptions import ExternalServiceError
+        from zondarr.media.providers.plex.client import PlexClient
+
+        # Session that raises a connection error on POST
+        mock_session = MockSession(post_error=ConnectionError("Plex API unreachable"))
+        mock_account = MockMyPlexAccountForDirectShare(session=mock_session)
+        mock_server = MockPlexServerForDirectShare(url, api_key, account=mock_account)
+
+        mock_user_account = MockMyPlexAccountUserForDirectShare(
+            user_id=12345, username="testuser"
+        )
+
+        with (
+            patch("plexapi.server.PlexServer", return_value=mock_server),
+            patch("plexapi.myplex.MyPlexAccount", return_value=mock_user_account),
+        ):
+            client = PlexClient(url=url, api_key=api_key)
+
+            async with client:
+                with pytest.raises(ExternalServiceError):
+                    _ = await client._share_library_direct(email, "fake-token")  # pyright: ignore[reportPrivateUsage]
+
+    @settings(max_examples=25)
+    @given(
+        url=url_strategy,
+        api_key=api_key_strategy,
+        email=email_strategy,
+    )
+    @pytest.mark.asyncio
+    async def test_direct_share_http_error_raises_error(
+        self,
+        url: str,
+        api_key: str,
+        email: str,
+    ) -> None:
+        """Direct share HTTP 4xx/5xx raises instead of falling back."""
+        from zondarr.core.exceptions import ExternalServiceError
+        from zondarr.media.providers.plex.client import PlexClient
+
+        # Session that returns a 500 response
+        mock_session = MockSession(response=MockResponse(status_code=500))
+        mock_account = MockMyPlexAccountForDirectShare(session=mock_session)
+        mock_server = MockPlexServerForDirectShare(url, api_key, account=mock_account)
+
+        mock_user_account = MockMyPlexAccountUserForDirectShare(
+            user_id=12345, username="testuser"
+        )
+
+        with (
+            patch("plexapi.server.PlexServer", return_value=mock_server),
+            patch("plexapi.myplex.MyPlexAccount", return_value=mock_user_account),
+        ):
+            client = PlexClient(url=url, api_key=api_key)
+
+            async with client:
+                with pytest.raises(ExternalServiceError):
+                    _ = await client._share_library_direct(email, "fake-token")  # pyright: ignore[reportPrivateUsage]
+
+    @settings(max_examples=25)
+    @given(
+        url=url_strategy,
+        api_key=api_key_strategy,
+        email=email_strategy,
+    )
+    @pytest.mark.asyncio
+    async def test_direct_share_raises_when_not_initialized(
+        self,
+        url: str,
+        api_key: str,
+        email: str,
+    ) -> None:
+        """_share_library_direct raises MediaClientError when not initialized."""
+        from zondarr.media.exceptions import MediaClientError
+        from zondarr.media.providers.plex.client import PlexClient
+
+        client = PlexClient(url=url, api_key=api_key)
+
+        with pytest.raises(MediaClientError) as exc_info:
+            _ = await client._share_library_direct(email, "fake-token")  # pyright: ignore[reportPrivateUsage]
+
+        assert exc_info.value.operation == "share_library_direct"
+        assert exc_info.value.server_url == url
+
+
+class TestCancelPendingInvitesForUser:
+    """
+    Feature: plex-integration
+    Property: Cancel Pending Invites Cleanup
+
+    _cancel_pending_invites_for_user should cancel matching pending
+    invites sent by the admin for the given email and server, and
+    should never raise exceptions (best-effort).
+
+    **Validates: Stale invite cleanup**
+    """
+
+    @pytest.mark.asyncio
+    async def test_cancels_matching_invite(self) -> None:
+        """Cancels a pending invite matching the email and server machineIdentifier."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        machine_id = "test-machine-123"
+        email = "user@example.com"
+
+        invite = MockMyPlexInvite(
+            email=email,
+            servers=[MockMyPlexInviteServerShare(machine_identifier=machine_id)],
+        )
+        mock_account = MockMyPlexAccountForDirectShare(pending_invites=[invite])
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400",
+            "token123",
+            account=mock_account,
+            machine_identifier=machine_id,
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                count = await client._cancel_pending_invites_for_user(email)  # pyright: ignore[reportPrivateUsage]
+
+                assert count == 1
+                assert len(mock_account.cancelled_invites) == 1
+                assert mock_account.cancelled_invites[0] is invite
+
+    @pytest.mark.asyncio
+    async def test_no_op_when_no_pending_invites(self) -> None:
+        """Returns 0 when there are no pending invites."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        mock_account = MockMyPlexAccountForDirectShare(pending_invites=[])
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400", "token123", account=mock_account
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                count = await client._cancel_pending_invites_for_user(  # pyright: ignore[reportPrivateUsage]
+                    "user@example.com"
+                )
+
+                assert count == 0
+                assert len(mock_account.cancelled_invites) == 0
+
+    @pytest.mark.asyncio
+    async def test_ignores_invite_for_different_email(self) -> None:
+        """Does not cancel invites for a different email address."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        machine_id = "test-machine-123"
+        invite = MockMyPlexInvite(
+            email="other@example.com",
+            servers=[MockMyPlexInviteServerShare(machine_identifier=machine_id)],
+        )
+        mock_account = MockMyPlexAccountForDirectShare(pending_invites=[invite])
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400",
+            "token123",
+            account=mock_account,
+            machine_identifier=machine_id,
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                count = await client._cancel_pending_invites_for_user(  # pyright: ignore[reportPrivateUsage]
+                    "user@example.com"
+                )
+
+                assert count == 0
+                assert len(mock_account.cancelled_invites) == 0
+
+    @pytest.mark.asyncio
+    async def test_ignores_invite_for_different_server(self) -> None:
+        """Does not cancel invites for a different server machineIdentifier."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        invite = MockMyPlexInvite(
+            email="user@example.com",
+            servers=[
+                MockMyPlexInviteServerShare(machine_identifier="other-machine-456")
+            ],
+        )
+        mock_account = MockMyPlexAccountForDirectShare(pending_invites=[invite])
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400",
+            "token123",
+            account=mock_account,
+            machine_identifier="test-machine-123",
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                count = await client._cancel_pending_invites_for_user(  # pyright: ignore[reportPrivateUsage]
+                    "user@example.com"
+                )
+
+                assert count == 0
+                assert len(mock_account.cancelled_invites) == 0
+
+    @pytest.mark.asyncio
+    async def test_swallows_exceptions(self) -> None:
+        """Failures are swallowed and return 0 (best-effort)."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        machine_id = "test-machine-123"
+        invite = MockMyPlexInvite(
+            email="user@example.com",
+            servers=[MockMyPlexInviteServerShare(machine_identifier=machine_id)],
+        )
+        mock_account = MockMyPlexAccountForDirectShare(
+            pending_invites=[invite],
+            cancel_invite_error=RuntimeError("Plex API error"),
+        )
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400",
+            "token123",
+            account=mock_account,
+            machine_identifier=machine_id,
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                # Should not raise
+                count = await client._cancel_pending_invites_for_user(  # pyright: ignore[reportPrivateUsage]
+                    "user@example.com"
+                )
+
+                assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_returns_zero_when_not_initialized(self) -> None:
+        """Returns 0 when client is not initialized (no context manager)."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        client = PlexClient(url="http://plex:32400", api_key="token123")
+
+        count = await client._cancel_pending_invites_for_user("user@example.com")  # pyright: ignore[reportPrivateUsage]
+
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_email_matching_is_case_insensitive(self) -> None:
+        """Email matching is case-insensitive."""
+        from zondarr.media.providers.plex.client import PlexClient
+
+        machine_id = "test-machine-123"
+        invite = MockMyPlexInvite(
+            email="User@Example.COM",
+            servers=[MockMyPlexInviteServerShare(machine_identifier=machine_id)],
+        )
+        mock_account = MockMyPlexAccountForDirectShare(pending_invites=[invite])
+        mock_server = MockPlexServerForDirectShare(
+            "http://plex:32400",
+            "token123",
+            account=mock_account,
+            machine_identifier=machine_id,
+        )
+
+        with patch("plexapi.server.PlexServer", return_value=mock_server):
+            client = PlexClient(url="http://plex:32400", api_key="token123")
+
+            async with client:
+                count = await client._cancel_pending_invites_for_user(  # pyright: ignore[reportPrivateUsage]
+                    "user@example.com"
+                )
+
+                assert count == 1
+                assert len(mock_account.cancelled_invites) == 1
