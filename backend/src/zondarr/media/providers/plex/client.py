@@ -448,8 +448,6 @@ class PlexClient:
         from their OAuth token) to grant library access directly. This avoids
         creating a friend relationship and requires no manual acceptance.
 
-        Falls back to inviteFriend if direct sharing fails.
-
         Args:
             email: The email address of the Plex user.
             auth_token: The user's Plex OAuth auth token.
@@ -458,7 +456,8 @@ class PlexClient:
             An ExternalUser with the numeric Plex user ID and username.
 
         Raises:
-            MediaClientError: If both direct sharing and fallback fail.
+            MediaClientError: If direct sharing fails.
+            ExternalServiceError: If the Plex API is unreachable or returns a server error.
         """
         if self._account is None or self._server is None:
             raise _create_media_client_error(
@@ -532,18 +531,108 @@ class PlexClient:
                 username=result.username,
             )
 
+            # Best-effort cleanup: cancel any stale pending invites for this user
+            _ = await self._cancel_pending_invites_for_user(email)
+
             return result
+
+        except MediaClientError:
+            raise
+        except Exception as exc:
+            error_code = _map_plex_error_to_code(exc)
+            log.error(
+                "plex_direct_share_failed",
+                url=self.url,
+                email=email,
+                error=str(exc),
+                error_type=type(exc).__name__,
+                error_code=error_code,
+            )
+            if _is_external_service_error(exc):
+                raise _create_external_service_error(
+                    f"Failed to share library directly: {exc}",
+                    server_url=self.url,
+                    original_error=exc,
+                ) from exc
+            raise _create_media_client_error(
+                f"Failed to share library directly: {exc}",
+                operation="share_library_direct",
+                server_url=self.url,
+                cause=str(exc),
+                error_code=error_code,
+            ) from exc
+
+    async def _cancel_pending_invites_for_user(self, email: str) -> int:
+        """Cancel any pending sent invites for a user on our server.
+
+        Best-effort cleanup: uses the admin's account to find and cancel
+        any pending invitations sent to the given email for this server.
+        This prevents stale pending invites from lingering after direct
+        library sharing has already granted access.
+
+        Args:
+            email: The email address to match against pending invites.
+
+        Returns:
+            The number of invites cancelled. Returns 0 on any error.
+        """
+        if self._account is None or self._server is None:
+            return 0
+
+        try:
+
+            def _cancel_invites() -> int:
+                assert self._account is not None  # noqa: S101
+                assert self._server is not None  # noqa: S101
+
+                machine_id: str = self._server.machineIdentifier  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+
+                # Get pending invites sent by the admin
+                pending = self._account.pendingInvites(  # pyright: ignore[reportUnknownVariableType]
+                    includeSent=True,
+                    includeReceived=False,
+                )
+
+                cancelled = 0
+                for invite in pending:  # pyright: ignore[reportUnknownVariableType]
+                    invite_email: str = getattr(invite, "email", "") or ""  # pyright: ignore[reportUnknownArgumentType]
+                    if invite_email.lower() != email.lower():
+                        continue
+
+                    # Check if this invite is for our server
+                    invite_servers: list[object] = getattr(invite, "servers", []) or []  # pyright: ignore[reportUnknownArgumentType]
+                    for server_share in invite_servers:
+                        share_machine_id: str = getattr(
+                            server_share, "machineIdentifier", ""
+                        )
+                        if share_machine_id == machine_id:
+                            _ = self._account.cancelInvite(invite)  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportUnknownArgumentType]
+                            cancelled += 1
+                            break
+
+                return cancelled
+
+            count = await asyncio.to_thread(_cancel_invites)
+
+            if count > 0:
+                log.info(
+                    "plex_pending_invites_cancelled",
+                    url=self.url,
+                    email=email,
+                    count=count,
+                )
+
+            return count
 
         except Exception as exc:
             log.warning(
-                "plex_direct_share_failed_falling_back",
+                "plex_cancel_pending_invites_failed",
                 url=self.url,
                 email=email,
                 error=str(exc),
                 error_type=type(exc).__name__,
             )
-            # Fall back to inviteFriend
-            return await self._invite_friend(email)
+            return 0
 
     async def _invite_friend(self, email: str) -> ExternalUser:
         """Invite a Friend user via inviteFriend (legacy fallback).
