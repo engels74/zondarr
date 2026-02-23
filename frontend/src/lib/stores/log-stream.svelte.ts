@@ -68,6 +68,7 @@ export function connect(): void {
 		_connected = true;
 		_loading = false;
 		_error = null;
+		_lastSeq = 0;
 	};
 
 	es.addEventListener('log', (event: MessageEvent<string>) => {
@@ -105,6 +106,7 @@ export function disconnect(): void {
 	_connected = false;
 	_loading = false;
 	_error = null;
+	_lastSeq = 0;
 }
 
 /**
