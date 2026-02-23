@@ -45,6 +45,31 @@ let _error = $state<string | null>(null);
 let _lastSeq = 0;
 
 let _eventSource: EventSource | null = null;
+let _pending: LogEntry[] = [];
+let _rafId: number | null = null;
+let _flushTimer: ReturnType<typeof setInterval> | null = null;
+
+// =============================================================================
+// Internal helpers
+// =============================================================================
+
+function flushPending(): void {
+	if (_rafId !== null) {
+		cancelAnimationFrame(_rafId);
+		_rafId = null;
+	}
+	if (_pending.length === 0) return;
+
+	const batch = _pending;
+	_pending = [];
+
+	const combined = _entries.concat(batch);
+	if (combined.length >= MAX_ENTRIES) {
+		_entries = combined.slice(-(MAX_ENTRIES - 100));
+	} else {
+		_entries = combined;
+	}
+}
 
 // =============================================================================
 // API
@@ -68,20 +93,38 @@ export function connect(): void {
 		_connected = true;
 		_loading = false;
 		_error = null;
-		_lastSeq = 0;
+		// Don't reset _lastSeq here — on auto-reconnect, keeping _lastSeq
+		// allows the existing dedup check to reject already-seen backfill entries.
+		// _lastSeq is reset in disconnect() for genuinely fresh connections.
 	};
+
+	// Fallback flush for when RAF is paused (backgrounded tab)
+	_flushTimer = setInterval(flushPending, 2000);
 
 	es.addEventListener('log', (event: MessageEvent<string>) => {
 		try {
 			const entry = JSON.parse(event.data) as LogEntry;
+
+			// Detect seq regression: if the backend restarts, its seq counter
+			// resets to 0 while _lastSeq stays high. A large backward jump
+			// (>50%) indicates a restart rather than normal backfill overlap.
+			if (_lastSeq > 0 && entry.seq < _lastSeq && entry.seq < _lastSeq / 2) {
+				_lastSeq = 0;
+				_entries = [];
+				_pending = [];
+			}
+
 			// Deduplicate by seq on reconnect
 			if (entry.seq <= _lastSeq) return;
 			_lastSeq = entry.seq;
 
-			if (_entries.length >= MAX_ENTRIES) {
-				_entries = [..._entries.slice(-MAX_ENTRIES + 100), entry];
-			} else {
-				_entries = [..._entries, entry];
+			_pending.push(entry);
+			// Cap pending buffer to prevent unbounded growth when tab is backgrounded
+			if (_pending.length > MAX_ENTRIES) {
+				_pending = _pending.slice(-MAX_ENTRIES);
+			}
+			if (_rafId === null) {
+				_rafId = requestAnimationFrame(flushPending);
 			}
 		} catch {
 			// Ignore malformed events
@@ -99,6 +142,15 @@ export function connect(): void {
  * Disconnect from the SSE log stream.
  */
 export function disconnect(): void {
+	if (_flushTimer !== null) {
+		clearInterval(_flushTimer);
+		_flushTimer = null;
+	}
+	if (_rafId !== null) {
+		cancelAnimationFrame(_rafId);
+		_rafId = null;
+	}
+	_pending = [];
 	if (_eventSource) {
 		_eventSource.close();
 		_eventSource = null;
