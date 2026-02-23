@@ -8,12 +8,9 @@ import { Button } from "$lib/components/ui/button";
 import { Input } from "$lib/components/ui/input";
 import { Label } from "$lib/components/ui/label";
 import * as RadioGroup from "$lib/components/ui/radio-group";
-import { quizConfigSchema } from "$lib/schemas/wizard";
 import type { ConfigEditorProps } from "../registry";
 
 const { config: rawConfig, onConfigChange, errors }: ConfigEditorProps = $props();
-
-const config = $derived(quizConfigSchema.safeParse(rawConfig).data);
 
 function updateField(field: string, value: unknown) {
 	onConfigChange({ ...rawConfig, [field]: value });
@@ -46,7 +43,7 @@ function updateOption(index: number, value: string) {
 		<Label for="question" class="text-cr-text">Question</Label>
 		<Input
 			id="question"
-			value={config?.question ?? ''}
+			value={(rawConfig.question as string) ?? ''}
 			oninput={(e) => updateField('question', e.currentTarget.value)}
 			placeholder="Enter your question"
 			class="border-cr-border bg-cr-bg text-cr-text"
@@ -63,7 +60,7 @@ function updateOption(index: number, value: string) {
 				variant="outline"
 				size="sm"
 				onclick={addOption}
-				disabled={(config?.options?.length ?? 0) >= 10}
+				disabled={((rawConfig.options as string[] | undefined)?.length ?? 0) >= 10}
 				class="border-cr-border text-cr-text-muted"
 			>
 				Add Option
@@ -71,11 +68,11 @@ function updateOption(index: number, value: string) {
 		</div>
 
 		<RadioGroup.Root
-			value={String(config?.correct_answer_index ?? 0)}
+			value={String(rawConfig.correct_answer_index ?? 0)}
 			onValueChange={(val) => updateField('correct_answer_index', parseInt(val))}
 			class="flex flex-col gap-2"
 		>
-			{#each config?.options ?? [] as option, index}
+			{#each (rawConfig.options as string[]) ?? [] as option, index}
 				<div class="flex items-center gap-2">
 					<div class="flex items-center justify-center w-8 shrink-0">
 						<RadioGroup.Item value={String(index)} />
@@ -90,7 +87,7 @@ function updateOption(index: number, value: string) {
 						variant="ghost"
 						size="sm"
 						onclick={() => removeOption(index)}
-						disabled={(config?.options?.length ?? 0) <= 2}
+						disabled={((rawConfig.options as string[] | undefined)?.length ?? 0) <= 2}
 						class="text-cr-text-muted hover:text-destructive"
 					>
 						×
