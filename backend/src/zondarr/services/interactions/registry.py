@@ -1,12 +1,11 @@
 """Registry for interaction type handlers.
 
 Provides a registry that maps InteractionType enum values to handler
-instances. Follows the same pattern as ClientRegistry in
-zondarr.media.registry.
+instances. All built-in interaction types are registered on
+initialization via an exhaustive match in ``_create_handler()``.
 
-The registry is pre-populated with all built-in interaction types
-on initialization. New interaction types can be registered at runtime
-without modifying existing code.
+Adding a new interaction type requires updating ``_create_handler()``
+so that ``assert_never`` continues to guarantee full coverage.
 """
 
 from collections.abc import Mapping
@@ -39,7 +38,7 @@ class InteractionRegistry:
     Adding a new interaction type requires:
     1. Add the type to InteractionType enum
     2. Create a handler class implementing InteractionHandler protocol
-    3. Register it via registry.register(type, handler)
+    3. Add a case for it in ``_create_handler()``
 
     Attributes:
         _handlers: Mapping from interaction types to handler instances.
