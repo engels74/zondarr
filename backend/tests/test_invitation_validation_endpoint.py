@@ -7,6 +7,7 @@ are NOT exposed in the GET /api/v1/invitations/validate/{code} response.
 from collections.abc import AsyncGenerator
 from typing import cast
 
+import httpx
 import msgspec
 import pytest
 from litestar import Litestar
@@ -28,9 +29,9 @@ _Json = dict[str, object]
 _JsonList = list[_Json]
 
 
-def _decode(response: object) -> _Json:
+def _decode(response: httpx.Response) -> _Json:
     """Decode a TestClient response body into a typed dict."""
-    body = cast(bytes, response.content)
+    body = response.content
     return msgspec.json.decode(body, type=_Json)
 
 
