@@ -11,6 +11,7 @@ without modifying existing code.
 
 from collections.abc import Mapping
 from datetime import datetime
+from typing import assert_never
 
 from zondarr.core.exceptions import ValidationError
 from zondarr.models.wizard import InteractionType
@@ -49,12 +50,32 @@ class InteractionRegistry:
     def __init__(self) -> None:
         """Initialize registry with all built-in interaction handlers."""
         self._handlers = {}
-        # Register all built-in handlers
-        self.register(InteractionType.CLICK, ClickHandler())
-        self.register(InteractionType.TIMER, TimerHandler())
-        self.register(InteractionType.TOS, TosHandler())
-        self.register(InteractionType.TEXT_INPUT, TextInputHandler())
-        self.register(InteractionType.QUIZ, QuizHandler())
+        # Register all built-in handlers using exhaustive match
+        for interaction_type in InteractionType:
+            self.register(interaction_type, self._create_handler(interaction_type))
+
+    @staticmethod
+    def _create_handler(interaction_type: InteractionType, /) -> InteractionHandler:
+        """Create the handler for a given interaction type.
+
+        Uses exhaustive match with assert_never to ensure every
+        InteractionType enum member has a corresponding handler.
+        Adding a new enum value without updating this method will
+        cause a type checker error.
+        """
+        match interaction_type:
+            case InteractionType.CLICK:
+                return ClickHandler()
+            case InteractionType.TIMER:
+                return TimerHandler()
+            case InteractionType.TOS:
+                return TosHandler()
+            case InteractionType.TEXT_INPUT:
+                return TextInputHandler()
+            case InteractionType.QUIZ:
+                return QuizHandler()
+            case _ as unreachable:  # pyright: ignore[reportUnnecessaryComparison] -- exhaustiveness guard
+                assert_never(unreachable)
 
     def register(
         self,
