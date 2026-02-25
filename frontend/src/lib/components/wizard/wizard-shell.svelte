@@ -255,7 +255,9 @@ async function handleInteractionValidate(
 		const newMap = new Map(interactionCompletions);
 		newMap.delete(step.id);
 		interactionCompletions = newMap;
-		validationError = result.data?.error ?? "Incorrect answer";
+		if (data.interactionType !== "quiz") {
+			validationError = result.data?.error ?? "Incorrect answer";
+		}
 		return { valid: false, error: result.data?.error ?? "Incorrect answer" };
 	} catch {
 		return { valid: false, error: "Validation failed. Please try again." };
