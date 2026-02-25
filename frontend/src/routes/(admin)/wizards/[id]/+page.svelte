@@ -51,14 +51,16 @@ function handlePreview(currentSteps: WizardStepResponse[]) {
 /**
  * Exit preview mode.
  */
-function handleExitPreview() {
+async function handleExitPreview() {
+	await invalidateAll();
 	isPreviewMode = false;
 }
 
 /**
  * Handle wizard completion in preview mode.
  */
-function handlePreviewComplete() {
+async function handlePreviewComplete() {
+	await invalidateAll();
 	isPreviewMode = false;
 }
 
