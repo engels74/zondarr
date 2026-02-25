@@ -128,7 +128,7 @@ class SyncService:
         matched_count = len(matched_ids)
 
         # Update external_user_type for matched users whose type is missing or changed
-        if matched_ids:
+        if matched_ids and not dry_run:
             local_user_map = {u.external_user_id: u for u in local_users}
             for ext_id in matched_ids:
                 local_user = local_user_map.get(ext_id)

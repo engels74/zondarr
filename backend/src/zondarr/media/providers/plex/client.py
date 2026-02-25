@@ -1395,13 +1395,14 @@ class PlexClient:
 
         Returns:
             A sequence of ExternalUser objects with external_user_id,
-            username, and email (if available).
+            username, email (if available), and user_type (home, shared,
+            or friend).
 
         Raises:
             MediaClientError: If the client is not initialized.
             MediaClientError: If user listing fails due to connection or API errors.
         """
-        if self._account is None:
+        if self._account is None or self._server is None:
             raise _create_media_client_error(
                 "Client not initialized - use async context manager",
                 operation="list_users",
