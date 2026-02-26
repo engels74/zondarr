@@ -22,7 +22,7 @@ from uuid import UUID
 
 import structlog
 
-from zondarr.core.exceptions import NotFoundError, ValidationError
+from zondarr.core.exceptions import NotFoundError, RepositoryError, ValidationError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import registry
 from zondarr.media.types import ExternalUser
@@ -344,16 +344,25 @@ class UserService:
 
         # Record sync exclusion before deleting local record to prevent
         # the background sync from re-importing "ghost" users (Plex API
-        # caching bug where removed users still appear in the users list)
+        # caching bug where removed users still appear in the users list).
+        # Best-effort: failure must not block local user deletion since the
+        # external user has already been removed from the media server.
         if self.sync_exclusion_repository is not None and server.server_type == "plex":
-            _ = await self.sync_exclusion_repository.add_exclusion(
-                user.external_user_id, user.media_server_id
-            )
-            log.info(  # pyright: ignore[reportAny]
-                "sync_exclusion_created",
-                external_user_id=user.external_user_id,
-                media_server_id=str(user.media_server_id),
-            )
+            try:
+                _ = await self.sync_exclusion_repository.add_exclusion(
+                    user.external_user_id, user.media_server_id
+                )
+                log.info(  # pyright: ignore[reportAny]
+                    "sync_exclusion_created",
+                    external_user_id=user.external_user_id,
+                    media_server_id=str(user.media_server_id),
+                )
+            except RepositoryError:
+                log.warning(  # pyright: ignore[reportAny]
+                    "sync_exclusion_failed",
+                    external_user_id=user.external_user_id,
+                    media_server_id=str(user.media_server_id),
+                )
 
         # Delete local user record after successful external operation
         await self.user_repository.delete(user)

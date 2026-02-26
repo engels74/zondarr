@@ -385,6 +385,7 @@ class UserController(Controller):
 
     @post(
         "/{user_id:uuid}/remove-shares",
+        status_code=200,
         summary="Remove shared access",
         description="Remove shared library access without removing friend relationship.",
     )

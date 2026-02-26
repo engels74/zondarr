@@ -7,7 +7,7 @@ still returns them (known Plex API caching bug).
 
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from zondarr.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -26,5 +26,14 @@ class SyncExclusion(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
     __tablename__: str = "sync_exclusions"
 
-    external_user_id: Mapped[str] = mapped_column(String(255), index=True)
+    external_user_id: Mapped[str] = mapped_column(String(255))
     media_server_id: Mapped[UUID] = mapped_column(ForeignKey("media_servers.id"))
+
+    __table_args__: tuple[Index | UniqueConstraint, ...] = (
+        Index("ix_sync_exclusions_external_user_id", "external_user_id"),
+        UniqueConstraint(
+            "external_user_id",
+            "media_server_id",
+            name="uq_sync_exclusions_external_user_server",
+        ),
+    )
