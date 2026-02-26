@@ -345,7 +345,7 @@ class UserService:
         # Record sync exclusion before deleting local record to prevent
         # the background sync from re-importing "ghost" users (Plex API
         # caching bug where removed users still appear in the users list)
-        if self.sync_exclusion_repository is not None:
+        if self.sync_exclusion_repository is not None and server.server_type == "plex":
             _ = await self.sync_exclusion_repository.add_exclusion(
                 user.external_user_id, user.media_server_id
             )
@@ -592,6 +592,9 @@ class UserService:
                 field_errors={"user_id": [str(e)]},
             ) from e
 
-        # Update local user type from "shared" to "friend"
-        user.external_user_type = "friend"
-        return await self.user_repository.update(user)
+        # Only update local user type when shared access was actually removed
+        if removed:
+            user.external_user_type = "friend"
+            return await self.user_repository.update(user)
+
+        return user

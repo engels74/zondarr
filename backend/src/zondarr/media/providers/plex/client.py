@@ -1018,12 +1018,23 @@ class PlexClient:
                         # For friends: call removeFriend (v2 sharings API)
                         self._account.removeFriend(target_user)  # pyright: ignore[reportUnknownMemberType, reportUnknownArgumentType, reportUnusedCallResult]
 
-                        # Verify removal by re-fetching the users list
-                        verify_users = self._account.users()  # pyright: ignore[reportUnknownVariableType]
-                        still_present = any(
-                            str(getattr(u, "id", "")) == external_user_id  # pyright: ignore[reportUnknownArgumentType]
-                            for u in verify_users  # pyright: ignore[reportUnknownVariableType]
-                        )
+                        # Verify removal by re-fetching the users list.
+                        # Best-effort: a transient API failure here should not
+                        # fail the deletion when removeFriend() already succeeded.
+                        try:
+                            verify_users = self._account.users()  # pyright: ignore[reportUnknownVariableType]
+                            still_present = any(
+                                str(getattr(u, "id", "")) == external_user_id  # pyright: ignore[reportUnknownArgumentType]
+                                for u in verify_users  # pyright: ignore[reportUnknownVariableType]
+                            )
+                        except Exception as verify_exc:
+                            log.warning(
+                                "plex_post_remove_verification_failed",
+                                url=self.url,
+                                user_id=external_user_id,
+                                error=str(verify_exc),
+                            )
+                            still_present = False
 
                         if not still_present:
                             friend_deleted = True
@@ -1063,12 +1074,21 @@ class PlexClient:
                                     error=str(v1_exc),
                                 )
 
-                            # Verify again after fallback
-                            verify_users_2 = self._account.users()  # pyright: ignore[reportUnknownVariableType]
-                            still_present_2 = any(
-                                str(getattr(u, "id", "")) == external_user_id  # pyright: ignore[reportUnknownArgumentType]
-                                for u in verify_users_2  # pyright: ignore[reportUnknownVariableType]
-                            )
+                            # Verify again after fallback (best-effort)
+                            try:
+                                verify_users_2 = self._account.users()  # pyright: ignore[reportUnknownVariableType]
+                                still_present_2 = any(
+                                    str(getattr(u, "id", "")) == external_user_id  # pyright: ignore[reportUnknownArgumentType]
+                                    for u in verify_users_2  # pyright: ignore[reportUnknownVariableType]
+                                )
+                            except Exception as verify_exc_2:
+                                log.warning(
+                                    "plex_post_fallback_verification_failed",
+                                    url=self.url,
+                                    user_id=external_user_id,
+                                    error=str(verify_exc_2),
+                                )
+                                still_present_2 = False
 
                             if not still_present_2:
                                 friend_deleted = True
