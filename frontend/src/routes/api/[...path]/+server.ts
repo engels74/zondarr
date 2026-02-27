@@ -4,7 +4,9 @@ import type { RequestHandler } from './$types';
 
 const INTERNAL_API_URL = env.INTERNAL_API_URL ?? publicEnv.PUBLIC_API_URL ?? 'http://localhost:8000';
 
-// Headers to strip from proxied requests (hop-by-hop only).
+// Headers to strip from proxied requests:
+// - Hop-by-hop: connection, keep-alive, transfer-encoding, upgrade
+// - Proxy-rewritten: host (overridden by upstream fetch target)
 // Origin and Referer must be preserved for CSRF origin validation.
 const STRIP_REQUEST_HEADERS = new Set([
 	'host',
@@ -18,7 +20,7 @@ const handler: RequestHandler = async ({ request, url, params }) => {
 	const path = params.path;
 	const upstream = `${INTERNAL_API_URL}/api/${path}${url.search}`;
 
-	// Forward headers, stripping only hop-by-hop headers
+	// Forward headers, stripping hop-by-hop and proxy-local headers
 	const headers = new Headers();
 	for (const [key, value] of request.headers) {
 		if (!STRIP_REQUEST_HEADERS.has(key.toLowerCase())) {
