@@ -70,7 +70,18 @@ export async function getAuthMethods(
 	const response = await customFetch(`${API_BASE_URL}/api/auth/methods`, {
 		credentials: 'include'
 	});
-	return response.json() as Promise<AuthMethodsResponse>;
+	if (!response.ok) {
+		throw new Error(`Auth methods request failed (${response.status})`);
+	}
+	const data: unknown = await response.json();
+	if (
+		data == null ||
+		typeof data !== 'object' ||
+		typeof (data as Record<string, unknown>).setup_required !== 'boolean'
+	) {
+		throw new Error('Invalid auth methods response');
+	}
+	return data as AuthMethodsResponse;
 }
 
 export async function setupAdmin(
