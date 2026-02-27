@@ -10,7 +10,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Literal, override
 
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql import Select
 
@@ -132,6 +132,51 @@ class InvitationRepository(Repository[Invitation]):
             raise RepositoryError(
                 "Failed to increment invitation use count",
                 operation="increment_use_count",
+                original=e,
+            ) from e
+
+    async def reserve_use(self, code: str) -> bool:
+        """Atomically reserve one use of an invitation.
+
+        Executes a single UPDATE statement that increments ``use_count``
+        only when the invitation is enabled, not expired, and has not
+        reached ``max_uses``.  Because the increment uses a SQL
+        expression (``use_count + 1``), it is atomic even under
+        concurrent requests.
+
+        Args:
+            code: The unique invitation code.
+
+        Returns:
+            True if a row was updated (reservation succeeded), False
+            otherwise (invitation not found, disabled, expired, or
+            exhausted).
+
+        Raises:
+            RepositoryError: If the database operation fails.
+        """
+        try:
+            now = datetime.now(UTC)
+            stmt = (
+                update(Invitation)
+                .where(
+                    Invitation.code == code,
+                    Invitation.enabled == True,  # noqa: E712
+                    (Invitation.expires_at == None) | (Invitation.expires_at > now),  # noqa: E711
+                    (Invitation.max_uses == None)  # noqa: E711
+                    | (Invitation.use_count < Invitation.max_uses),
+                )
+                .values(
+                    use_count=Invitation.use_count + 1,
+                    updated_at=now,
+                )
+            )
+            result = await self.session.execute(stmt)
+            return result.rowcount > 0  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+        except Exception as e:
+            raise RepositoryError(
+                "Failed to reserve invitation use",
+                operation="reserve_use",
                 original=e,
             ) from e
 

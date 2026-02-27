@@ -286,6 +286,44 @@ class InvitationService:
 
         return list(libraries)
 
+    async def reserve(
+        self, code: str, /
+    ) -> tuple[bool, InvitationValidationFailure | None]:
+        """Atomically reserve one use of an invitation.
+
+        Attempts an atomic SQL UPDATE that increments ``use_count`` only
+        when the invitation is valid (enabled, not expired, under
+        ``max_uses``).  If the reservation fails, fetches the invitation
+        to determine the specific failure reason for user-friendly error
+        messages.
+
+        Args:
+            code: The invitation code to reserve (positional-only).
+
+        Returns:
+            A tuple of (reserved, failure_reason).  If reserved is True,
+            failure_reason is None.  If False, failure_reason indicates
+            which condition failed.
+
+        Raises:
+            RepositoryError: If the database operation fails.
+        """
+        reserved = await self.repository.reserve_use(code)
+        if reserved:
+            return True, None
+
+        # Reservation failed — determine why for a user-friendly message
+        invitation = await self.repository.get_by_code(code)
+        if invitation is None:
+            return False, InvitationValidationFailure.NOT_FOUND
+
+        _, failure = self._check_invitation_validity(invitation)
+        # If _check_invitation_validity returns valid, the race was lost
+        # (another request just grabbed the last slot).  Report MAX_USES.
+        if failure is None:
+            return False, InvitationValidationFailure.MAX_USES_REACHED
+        return False, failure
+
     async def validate(
         self, code: str, /
     ) -> tuple[bool, InvitationValidationFailure | None]:

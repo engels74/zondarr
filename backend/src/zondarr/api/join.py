@@ -13,11 +13,10 @@ from typing import Annotated
 from litestar import Controller, Response, post
 from litestar.di import Provide
 from litestar.params import Parameter
-from litestar.status_codes import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from litestar.status_codes import HTTP_200_OK
 from litestar.types import AnyCallable
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from zondarr.core.exceptions import ValidationError
 from zondarr.repositories.identity import IdentityRepository
 from zondarr.repositories.invitation import InvitationRepository
 from zondarr.repositories.media_server import MediaServerRepository
@@ -28,7 +27,6 @@ from zondarr.services.user import UserService
 
 from .schemas import (
     RedeemInvitationRequest,
-    RedemptionErrorResponse,
     RedemptionResponse,
     UserResponse,
 )
@@ -178,7 +176,7 @@ class JoinController(Controller):
         ],
         data: RedeemInvitationRequest,
         redemption_service: RedemptionService,
-    ) -> Response[RedemptionResponse | RedemptionErrorResponse]:
+    ) -> Response[RedemptionResponse]:
         """Redeem an invitation code to create user accounts.
 
         Creates user accounts on all target media servers specified by the
@@ -191,8 +189,10 @@ class JoinController(Controller):
         The redemption request requires username and password, with optional
         email (Requirement 14.2).
 
-        On failure, returns HTTP 400 with details about which server failed
-        (Requirement 15.5).
+        On failure, ``RedemptionError`` propagates to the DI layer which
+        rolls back the DB transaction, then the registered
+        ``redemption_error_handler`` returns HTTP 400 with
+        ``RedemptionErrorResponse`` (Requirement 15.5).
 
         Args:
             code: The invitation code to redeem.
@@ -201,73 +201,37 @@ class JoinController(Controller):
 
         Returns:
             RedemptionResponse on success with identity_id and users_created.
-            RedemptionErrorResponse on failure with error details.
         """
-        try:
-            identity, users = await redemption_service.redeem(
-                code,
-                username=data.username,
-                password=data.password,
-                email=data.email,
-                auth_token=data.auth_token,
+        identity, users = await redemption_service.redeem(
+            code,
+            username=data.username,
+            password=data.password,
+            email=data.email,
+            auth_token=data.auth_token,
+        )
+
+        users_created = [
+            UserResponse(
+                id=user.id,
+                identity_id=user.identity_id,
+                media_server_id=user.media_server_id,
+                external_user_id=user.external_user_id,
+                username=user.username,
+                enabled=user.enabled,
+                created_at=user.created_at,
+                external_user_type=user.external_user_type,
+                expires_at=user.expires_at,
+                updated_at=user.updated_at,
             )
+            for user in users
+        ]
 
-            # Convert users to response format
-            users_created = [
-                UserResponse(
-                    id=user.id,
-                    identity_id=user.identity_id,
-                    media_server_id=user.media_server_id,
-                    external_user_id=user.external_user_id,
-                    username=user.username,
-                    enabled=user.enabled,
-                    created_at=user.created_at,
-                    external_user_type=user.external_user_type,
-                    expires_at=user.expires_at,
-                    updated_at=user.updated_at,
-                )
-                for user in users
-            ]
-
-            return Response(
-                content=RedemptionResponse(
-                    success=True,
-                    identity_id=identity.id,
-                    users_created=users_created,
-                    message="Account created successfully",
-                ),
-                status_code=HTTP_200_OK,
-            )
-
-        except ValidationError as e:
-            # Extract error details for the response
-            error_code = "VALIDATION_ERROR"
-            message = str(e)
-            failed_server: str | None = None
-
-            # Check if this is a server-specific error
-            if e.field_errors:
-                if "server" in e.field_errors:
-                    error_code = "SERVER_ERROR"
-                    failed_server = "media server"
-                    messages = e.field_errors.get("server", [])
-                    if messages:
-                        message = messages[0]
-                        # Try to extract server name from error message
-                        if "USERNAME_TAKEN" in message.upper():
-                            error_code = "USERNAME_TAKEN"
-                elif "code" in e.field_errors:
-                    error_code = "INVALID_INVITATION"
-                    messages = e.field_errors.get("code", [])
-                    if messages:
-                        message = messages[0]
-
-            return Response(
-                content=RedemptionErrorResponse(
-                    success=False,
-                    error_code=error_code,
-                    message=message,
-                    failed_server=failed_server,
-                ),
-                status_code=HTTP_400_BAD_REQUEST,
-            )
+        return Response(
+            content=RedemptionResponse(
+                success=True,
+                identity_id=identity.id,
+                users_created=users_created,
+                message="Account created successfully",
+            ),
+            status_code=HTTP_200_OK,
+        )

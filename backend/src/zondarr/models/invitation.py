@@ -13,7 +13,15 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 from uuid import UUID
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Table
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    Column,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from zondarr.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -65,6 +73,12 @@ class Invitation(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     """
 
     __tablename__: str = "invitations"
+    __table_args__: tuple[CheckConstraint, ...] = (
+        CheckConstraint(
+            "max_uses IS NULL OR use_count <= max_uses",
+            name="ck_invitations_use_count_le_max_uses",
+        ),
+    )
 
     code: Mapped[str] = mapped_column(String(20), unique=True, index=True)
     expires_at: Mapped[datetime | None] = mapped_column(default=None)

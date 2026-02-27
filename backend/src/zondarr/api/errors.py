@@ -33,9 +33,15 @@ from ..core.exceptions import (
     AuthenticationError,
     ExternalServiceError,
     NotFoundError,
+    RedemptionError,
     ValidationError,
 )
-from .schemas import ErrorResponse, FieldError, ValidationErrorResponse
+from .schemas import (
+    ErrorResponse,
+    FieldError,
+    RedemptionErrorResponse,
+    ValidationErrorResponse,
+)
 
 logger: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore[reportAny]
 
@@ -43,6 +49,43 @@ logger: structlog.stdlib.BoundLogger = structlog.get_logger()  # pyright: ignore
 def _generate_correlation_id() -> str:
     """Generate a unique correlation ID for error tracing."""
     return str(uuid4())
+
+
+def redemption_error_handler(
+    request: Request[object, object, State],
+    exc: RedemptionError,
+) -> Response[RedemptionErrorResponse]:
+    """Handle RedemptionError exceptions.
+
+    Returns HTTP 400 with a RedemptionErrorResponse containing the
+    redemption-specific error code and optional failed server name.
+
+    Args:
+        request: The incoming request.
+        exc: The RedemptionError exception.
+
+    Returns:
+        Response with RedemptionErrorResponse body and HTTP 400 status.
+    """
+    correlation_id = _generate_correlation_id()
+
+    logger.warning(
+        "Redemption error",
+        correlation_id=correlation_id,
+        redemption_error_code=exc.redemption_error_code,
+        failed_server=exc.failed_server,
+        path=str(request.url.path),
+    )
+
+    return Response(
+        RedemptionErrorResponse(
+            success=False,
+            error_code=exc.redemption_error_code,
+            message=exc.message,
+            failed_server=exc.failed_server,
+        ),
+        status_code=HTTP_400_BAD_REQUEST,
+    )
 
 
 def validation_error_handler(

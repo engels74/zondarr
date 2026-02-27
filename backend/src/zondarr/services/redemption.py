@@ -32,7 +32,7 @@ from datetime import UTC, datetime, timedelta
 
 import structlog
 
-from zondarr.core.exceptions import ValidationError
+from zondarr.core.exceptions import RedemptionError
 from zondarr.media.exceptions import MediaClientError
 from zondarr.media.registry import registry
 from zondarr.media.types import ExternalUser
@@ -102,39 +102,44 @@ class RedemptionService:
     ) -> tuple[Identity, Sequence[User]]:
         """Redeem an invitation code and create user accounts.
 
-        Validates the invitation, creates users on all target media servers,
-        applies library restrictions and permissions, creates local Identity
-        and User records, and increments the invitation use count.
+        Uses a **reserve-first** strategy: atomically increments
+        ``use_count`` via a single SQL UPDATE *before* any other work.
+        If any subsequent step fails, the raised ``RedemptionError``
+        propagates to the DI layer, which rolls back the entire
+        database transaction (including the use_count increment).
 
-        If any step fails, rolls back all changes (deletes created users,
-        does not create local records, does not increment use count).
+        External user cleanup (HTTP calls to media servers) is performed
+        explicitly before re-raising because those side-effects are
+        outside the DB transaction.
 
-        Implements Requirements 14.3, 14.4, 14.5, 14.6, 14.7, 14.8, 15.1, 15.2.
+        Implements Requirements 14.3-14.8, 15.1, 15.2.
 
         Args:
             code: The invitation code to redeem (positional-only).
             username: Username for the new accounts (keyword-only).
             password: Password for the new accounts (keyword-only).
             email: Optional email address (keyword-only).
+            auth_token: Optional auth token for OAuth flows (keyword-only).
 
         Returns:
             Tuple of (Identity, list of Users created).
 
         Raises:
-            ValidationError: If invitation is invalid or redemption fails.
+            RedemptionError: If invitation is invalid or redemption fails.
             RepositoryError: If database operations fail.
         """
-        # Step 1: Validate invitation (Requirement 14.3)
-        is_valid, failure = await self.invitation_service.validate(code)
-        if not is_valid:
-            raise ValidationError(
-                f"Invalid invitation: {failure}",
-                field_errors={"code": [self._failure_message(failure)]},
+        # Step 1: Atomically reserve one use (Requirement 14.3 / 14.8)
+        reserved, failure = await self.invitation_service.reserve(code)
+        if not reserved:
+            raise RedemptionError(
+                self._failure_message(failure),
+                redemption_error_code="INVALID_INVITATION",
             )
 
+        # Step 2: Fetch the invitation for target_servers / libraries
         invitation = await self.invitation_service.get_by_code(code)
 
-        # Step 2: Create users on each target server (Requirement 14.4)
+        # Step 3: Create users on each target server (Requirement 14.4)
         created_external_users: list[tuple[MediaServer, ExternalUser]] = []
 
         try:
@@ -158,7 +163,7 @@ class RedemptionService:
                         external_user_id=external_user.external_user_id,
                     )
 
-                    # Step 3: Apply library restrictions (Requirement 14.5)
+                    # Step 4: Apply library restrictions (Requirement 14.5)
                     if invitation.allowed_libraries:
                         library_ids = [
                             lib.external_id
@@ -176,8 +181,7 @@ class RedemptionService:
                                 library_count=len(library_ids),
                             )
 
-                    # Step 4: Apply permissions (Requirement 14.6)
-                    # Use invitation permissions if set, otherwise use defaults
+                    # Step 5: Apply permissions (Requirement 14.6)
                     permissions = dict(DEFAULT_PERMISSIONS)
                     _ = await client.update_permissions(
                         external_user.external_user_id,
@@ -190,36 +194,42 @@ class RedemptionService:
                     )
 
         except MediaClientError as e:
-            # Rollback: delete any users we created (Requirement 15.1, 15.2)
+            # Roll back external users (HTTP calls, outside DB transaction)
             log.warning(  # pyright: ignore[reportAny]
                 "Redemption failed, rolling back created users",
                 error=str(e),
                 created_count=len(created_external_users),
             )
             await self._rollback_users(created_external_users)
-            raise ValidationError(
-                f"Failed to create user on server: {e}",
-                field_errors={"server": [str(e)]},
+
+            error_code = (
+                "USERNAME_TAKEN"
+                if e.media_error_code and "USERNAME_TAKEN" in e.media_error_code.upper()
+                else "SERVER_ERROR"
+            )
+            raise RedemptionError(
+                str(e),
+                redemption_error_code=error_code,
+                failed_server=e.server_url or "media server",
             ) from e
         except Exception as e:
-            # Rollback on any unexpected error
             log.error(  # pyright: ignore[reportAny]
                 "Unexpected error during redemption, rolling back",
                 error=str(e),
                 created_count=len(created_external_users),
             )
             await self._rollback_users(created_external_users)
-            raise ValidationError(
+            raise RedemptionError(
                 f"Redemption failed: {e}",
-                field_errors={"code": [str(e)]},
+                redemption_error_code="SERVER_ERROR",
             ) from e
 
-        # Step 5: Calculate expiration from duration_days (Requirement 14.9)
+        # Step 6: Calculate expiration from duration_days (Requirement 14.9)
         expires_at: datetime | None = None
         if invitation.duration_days is not None:
             expires_at = datetime.now(UTC) + timedelta(days=invitation.duration_days)
 
-        # Step 5.5: Clean up stale local users (e.g. sync-imported duplicates)
+        # Step 6.5: Clean up stale local users (e.g. sync-imported duplicates)
         cleaned = await self.user_service.cleanup_stale_local_users(
             created_external_users
         )
@@ -229,7 +239,7 @@ class RedemptionService:
                 cleaned_count=cleaned,
             )
 
-        # Step 6: Create local Identity and User records (Requirement 14.7)
+        # Step 7: Create local Identity and User records (Requirement 14.7)
         identity, users = await self.user_service.create_identity_with_users(
             display_name=username,
             email=email,
@@ -237,15 +247,6 @@ class RedemptionService:
             external_users=created_external_users,
             invitation_id=invitation.id,
         )
-
-        log.info(  # pyright: ignore[reportAny]
-            "Created local identity and users",
-            identity_id=str(identity.id),
-            user_count=len(users),
-        )
-
-        # Step 7: Increment use count (Requirement 14.8)
-        _ = await self.invitation_service.redeem(code)
 
         log.info(  # pyright: ignore[reportAny]
             "Redemption completed successfully",

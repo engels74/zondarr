@@ -88,6 +88,44 @@ class ValidationError(ZondarrError):
         self.field_errors = field_errors
 
 
+class RedemptionError(ValidationError):
+    """Raised when invitation redemption fails.
+
+    Carries redemption-specific context so the error handler can produce
+    a ``RedemptionErrorResponse`` with the correct error code and optional
+    failed server name.  Because it inherits from ``ValidationError``, an
+    unhandled ``RedemptionError`` will still be caught by the generic
+    validation handler, but a dedicated handler registered *before* the
+    ``ValidationError`` entry takes priority in Litestar.
+
+    Attributes:
+        redemption_error_code: Machine-readable code (e.g. "INVALID_INVITATION").
+        failed_server: Name of the media server that failed, if applicable.
+    """
+
+    redemption_error_code: str
+    failed_server: str | None
+
+    def __init__(
+        self,
+        message: str,
+        /,
+        *,
+        redemption_error_code: str,
+        failed_server: str | None = None,
+    ) -> None:
+        """Initialize a RedemptionError.
+
+        Args:
+            message: Human-readable error description.
+            redemption_error_code: Machine-readable error code for the response.
+            failed_server: Optional name of the server that failed.
+        """
+        super().__init__(message, field_errors={})
+        self.redemption_error_code = redemption_error_code
+        self.failed_server = failed_server
+
+
 class NotFoundError(ZondarrError):
     """Raised when a requested resource is not found.
 

@@ -193,24 +193,27 @@ class TestInvitationCreationConfigurations:
             await engine.dispose()
 
     @given(
+        data=st.data(),
         max_uses=max_uses_strategy,
-        use_count=st.integers(min_value=0, max_value=100),
     )
     @settings(max_examples=15, deadline=None)
     @pytest.mark.asyncio
     async def test_remaining_uses_calculation(
         self,
         db: TestDB,
+        data: st.DataObject,
         max_uses: int,
-        use_count: int,
     ) -> None:
         """Remaining uses is correctly calculated as max_uses - use_count.
 
         **Validates: Requirements 6.1**
 
-        Property: For any invitation with max_uses M and use_count U,
-        remaining_uses SHALL equal max(0, M - U).
+        Property: For any invitation with max_uses M and use_count U
+        (where U <= M, enforced by DB CHECK constraint),
+        remaining_uses SHALL equal M - U.
         """
+        use_count = data.draw(st.integers(min_value=0, max_value=max_uses))
+
         await db.clean()
         async with db.session_factory() as session:
             repo = InvitationRepository(session)

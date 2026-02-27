@@ -2310,3 +2310,188 @@ class TestPlexRedemptionRollbackOnFailure:
             f"Expected 2 users to be created before failure, "
             f"got {len(created_user_ids)}"
         )
+
+
+# =============================================================================
+# Atomic Reservation (reserve_use)
+# =============================================================================
+
+
+class TestAtomicReservation:
+    """Tests for InvitationRepository.reserve_use() atomic reservation.
+
+    Verifies that the SQL-level atomic UPDATE correctly handles all
+    invitation states: enabled/disabled, expired, max_uses, unlimited.
+    """
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_true_and_increments(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns True and increments use_count when valid."""
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            invitation = Invitation(
+                code="RESERVE01TST",
+                enabled=True,
+                expires_at=None,
+                max_uses=5,
+                use_count=2,
+            )
+            sess.add(invitation)
+            await sess.commit()
+            await sess.refresh(invitation)
+            invitation_id = invitation.id
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("RESERVE01TST")
+            await sess.commit()
+
+        assert result is True
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            inv = await repo.get_by_id(invitation_id)
+            assert inv is not None
+            assert inv.use_count == 3
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_false_at_max_uses(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns False when use_count == max_uses."""
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            invitation = Invitation(
+                code="RESERVE02TST",
+                enabled=True,
+                expires_at=None,
+                max_uses=3,
+                use_count=3,
+            )
+            sess.add(invitation)
+            await sess.commit()
+            await sess.refresh(invitation)
+            invitation_id = invitation.id
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("RESERVE02TST")
+            await sess.commit()
+
+        assert result is False
+
+        # use_count should remain unchanged
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            inv = await repo.get_by_id(invitation_id)
+            assert inv is not None
+            assert inv.use_count == 3
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_false_when_disabled(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns False when invitation is disabled."""
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            invitation = Invitation(
+                code="RESERVE03TST",
+                enabled=False,
+                expires_at=None,
+                max_uses=10,
+                use_count=0,
+            )
+            sess.add(invitation)
+            await sess.commit()
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("RESERVE03TST")
+            await sess.commit()
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_false_when_expired(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns False when invitation is expired."""
+        from datetime import UTC, datetime, timedelta
+
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            invitation = Invitation(
+                code="RESERVE04TST",
+                enabled=True,
+                expires_at=datetime.now(UTC) - timedelta(hours=1),
+                max_uses=10,
+                use_count=0,
+            )
+            sess.add(invitation)
+            await sess.commit()
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("RESERVE04TST")
+            await sess.commit()
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_true_when_unlimited(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns True when max_uses is None (unlimited)."""
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            invitation = Invitation(
+                code="RESERVE05TST",
+                enabled=True,
+                expires_at=None,
+                max_uses=None,
+                use_count=999,
+            )
+            sess.add(invitation)
+            await sess.commit()
+            await sess.refresh(invitation)
+            invitation_id = invitation.id
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("RESERVE05TST")
+            await sess.commit()
+
+        assert result is True
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            inv = await repo.get_by_id(invitation_id)
+            assert inv is not None
+            assert inv.use_count == 1000
+
+    @pytest.mark.asyncio
+    async def test_reserve_use_returns_false_for_nonexistent_code(
+        self, db: TestDB
+    ) -> None:
+        """reserve_use returns False for a code that doesn't exist."""
+        await db.clean()
+        session_factory = db.session_factory
+
+        async with session_factory() as sess:
+            repo = InvitationRepository(sess)
+            result = await repo.reserve_use("DOESNOTEXIST")
+            await sess.commit()
+
+        assert result is False

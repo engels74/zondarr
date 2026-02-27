@@ -115,10 +115,10 @@ class TestRepositoryCRUDRoundTrip:
         suppress_health_check=[HealthCheck.function_scoped_fixture],
     )
     @given(
+        data=st.data(),
         code=code_strategy,
         expires_at=optional_datetime_strategy,
         max_uses=optional_positive_int_strategy,
-        use_count=positive_int_strategy,
         duration_days=optional_positive_int_strategy,
         enabled=st.booleans(),
         created_by=st.one_of(st.none(), name_strategy),
@@ -127,15 +127,19 @@ class TestRepositoryCRUDRoundTrip:
     async def test_invitation_crud_round_trip(
         self,
         db: TestDB,
+        data: st.DataObject,
         code: str,
         expires_at: datetime | None,
         max_uses: int | None,
-        use_count: int,
         duration_days: int | None,
         enabled: bool,
         created_by: str | None,
     ) -> None:
         """Invitation created via repository can be retrieved with all fields preserved."""
+        # use_count must not exceed max_uses (DB CHECK constraint)
+        upper = max_uses if max_uses is not None else 1000
+        use_count: int = data.draw(st.integers(min_value=0, max_value=upper))
+
         await db.clean()
         async with db.session_factory() as session:
             repo = InvitationRepository(session)
