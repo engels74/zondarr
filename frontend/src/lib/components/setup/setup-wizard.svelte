@@ -54,8 +54,10 @@ async function advanceStep(): Promise<boolean> {
 }
 
 async function handleServerComplete() {
-	const ok = await advanceStep();
-	if (!ok) return;
+	// The backend already advances onboarding from "server" → "complete" during
+	// server creation (complete_server_step), so we navigate directly without
+	// calling the skip endpoint again — a redundant call that could block
+	// navigation on transient failure even though onboarding is already complete.
 	await goto('/dashboard');
 }
 

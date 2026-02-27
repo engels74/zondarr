@@ -35,6 +35,12 @@ export type AuthMethodsResponse = Omit<
 
 export type OnboardingStep = 'account' | 'security' | 'server' | 'complete';
 
+const ONBOARDING_STEPS: readonly OnboardingStep[] = ['account', 'security', 'server', 'complete'];
+
+export function isOnboardingStep(value: unknown): value is OnboardingStep {
+	return typeof value === 'string' && (ONBOARDING_STEPS as readonly string[]).includes(value);
+}
+
 export interface AdminMeResponse {
 	id: string;
 	username: string;
@@ -90,7 +96,7 @@ export async function getAuthMethods(
 		typeof data !== 'object' ||
 		typeof (data as Record<string, unknown>).setup_required !== 'boolean' ||
 		typeof (data as Record<string, unknown>).onboarding_required !== 'boolean' ||
-		typeof (data as Record<string, unknown>).onboarding_step !== 'string'
+		!isOnboardingStep((data as Record<string, unknown>).onboarding_step)
 	) {
 		throw new Error('Invalid auth methods response');
 	}
