@@ -867,7 +867,7 @@ class JellyfinClient:
                 cause=str(exc),
             ) from exc
 
-    async def remove_shared_access(self, external_user_id: str, /) -> bool:
+    async def remove_shared_access(self, _external_user_id: str, /) -> bool:
         """Not applicable for Jellyfin — returns False.
 
         Jellyfin does not distinguish between friend and shared access.

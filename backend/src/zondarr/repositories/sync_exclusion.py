@@ -97,7 +97,7 @@ class SyncExclusionRepository(Repository[SyncExclusion]):
                 )
             )
             await self.session.flush()
-            row_count: int = result.rowcount  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportAttributeAccessIssue]
+            row_count = int(result.rowcount)  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownArgumentType]
             return row_count > 0
         except Exception as e:
             raise RepositoryError(
@@ -124,7 +124,7 @@ class SyncExclusionRepository(Repository[SyncExclusion]):
                 delete(SyncExclusion).where(SyncExclusion.created_at < cutoff)
             )
             await self.session.flush()
-            row_count: int = result.rowcount  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportAttributeAccessIssue]
+            row_count = int(result.rowcount)  # pyright: ignore[reportUnknownMemberType, reportAttributeAccessIssue, reportUnknownArgumentType]
             return row_count
         except Exception as e:
             raise RepositoryError(

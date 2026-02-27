@@ -1286,6 +1286,11 @@ class MockMyPlexAccountWithUserManagement:
     _session: MockSessionForSharedServers
     removed_users: list[str]
 
+    @property
+    def session(self) -> MockSessionForSharedServers:
+        """Public accessor for the mock session."""
+        return self._session
+
     def __init__(
         self,
         *,
@@ -1429,7 +1434,7 @@ class TestDeleteUserReturnValueCorrectness:
                 assert result is True
                 # Friend removal now uses v2 friends API via session.delete()
                 friends_url = f"https://plex.tv/api/v2/friends/{user_id}"
-                assert any(friends_url in u for u in mock_account._session.delete_urls)
+                assert any(friends_url in u for u in mock_account.session.delete_urls)
 
     @settings(max_examples=100)
     @given(

@@ -172,7 +172,8 @@ class InvitationRepository(Repository[Invitation]):
                 )
             )
             result = await self.session.execute(stmt)
-            return result.rowcount > 0  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+            row_count = int(result.rowcount)  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType, reportUnknownArgumentType]
+            return row_count > 0
         except Exception as e:
             raise RepositoryError(
                 "Failed to reserve invitation use",
