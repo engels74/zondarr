@@ -13,17 +13,19 @@ export const load: PageLoad = async ({ fetch }) => {
 
 		return {
 			methods: authMethods.methods,
-			providerAuth: authMethods.provider_auth ?? []
+			providerAuth: authMethods.provider_auth ?? [],
+			backendAvailable: true
 		};
 	} catch (e) {
 		if (isRedirect(e)) throw e;
 		if (!isNetworkError(e)) {
 			console.warn('[login loader] unexpected error from getAuthMethods:', e);
 		}
-		// Backend unreachable or broken — render login with default method
+		// Backend unreachable or broken — signal unavailability so the page can show a retry state
 		return {
 			methods: ['local'],
-			providerAuth: [] as ProviderAuthInfo[]
+			providerAuth: [] as ProviderAuthInfo[],
+			backendAvailable: false
 		};
 	}
 };
