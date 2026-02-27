@@ -28,7 +28,7 @@ function handleCsrfComplete() {
 }
 
 function handleCsrfSkip() {
-	currentStep = 3;
+	goto('/dashboard');
 }
 </script>
 
