@@ -39,8 +39,22 @@ const handler: RequestHandler = async ({ request, url, params }) => {
 			redirect: 'manual'
 		});
 
-		// Forward response with streaming body (supports SSE)
-		return new Response(response.body, {
+		// SSE responses must stream; buffer everything else to avoid
+		// ReadableStream being consumed during SvelteKit's SSR cloning.
+		const isEventStream = response.headers
+			.get('content-type')
+			?.includes('text/event-stream');
+
+		if (isEventStream) {
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers: response.headers
+			});
+		}
+
+		const body = await response.arrayBuffer();
+		return new Response(body, {
 			status: response.status,
 			statusText: response.statusText,
 			headers: response.headers
