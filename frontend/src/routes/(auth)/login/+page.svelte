@@ -11,7 +11,7 @@ import type { PageData } from "./$types";
 const { data }: { data: PageData } = $props();
 
 let error = $state("");
-let retryTimer = $state<ReturnType<typeof setInterval> | null>(null);
+let retryTimer: ReturnType<typeof setInterval> | null = null;
 
 const backendAvailable = $derived(data.backendAvailable !== false);
 const externalMethods = $derived(data.providerAuth ?? []);

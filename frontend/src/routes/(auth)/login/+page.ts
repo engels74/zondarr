@@ -18,14 +18,16 @@ export const load: PageLoad = async ({ fetch }) => {
 		};
 	} catch (e) {
 		if (isRedirect(e)) throw e;
-		if (!isNetworkError(e)) {
+		const networkError = isNetworkError(e);
+		if (!networkError) {
 			console.warn('[login loader] unexpected error from getAuthMethods:', e);
 		}
-		// Backend unreachable or broken — signal unavailability so the page can show a retry state
+		// Only signal unavailability for actual network errors (backend unreachable).
+		// Other errors (JSON parse, 500, etc.) should still show the login form.
 		return {
 			methods: ['local'],
 			providerAuth: [] as ProviderAuthInfo[],
-			backendAvailable: false
+			backendAvailable: !networkError
 		};
 	}
 };
