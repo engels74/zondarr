@@ -531,6 +531,33 @@ export async function getEnvCredentials(
 	return client.GET('/api/v1/servers/env-credentials' as never);
 }
 
+/** Per-field credential lock status for a media server. */
+export interface CredentialLockStatus {
+	url_locked: boolean;
+	api_key_locked: boolean;
+}
+
+/**
+ * Get credential lock status for a media server.
+ *
+ * @param serverId - UUID of the server
+ * @returns Per-field lock status indicating which credentials are env-var-overridden
+ */
+export async function getCredentialLocks(
+	serverId: string,
+	client: ApiClient = api
+): Promise<{ data?: CredentialLockStatus; error?: unknown }> {
+	const untypedClient = client as unknown as {
+		GET: (
+			path: string,
+			init?: { params?: { path?: { server_id: string } } }
+		) => Promise<{ data?: CredentialLockStatus; error?: unknown }>;
+	};
+	return untypedClient.GET('/api/v1/servers/{server_id}/credential-locks', {
+		params: { path: { server_id: serverId } }
+	});
+}
+
 /**
  * Delete a media server.
  *
@@ -675,6 +702,57 @@ export async function testCsrfOrigin(
 }
 
 // =============================================================================
+// Secure Cookies API Wrappers
+// =============================================================================
+
+/** Secure cookies response */
+export interface SecureCookiesResponse {
+	secure_cookies: boolean;
+	is_locked: boolean;
+}
+
+/**
+ * Get the current secure cookies setting.
+ *
+ * @returns Secure cookies status and locked status
+ */
+export async function getSecureCookies(): Promise<{
+	data?: SecureCookiesResponse;
+	error?: unknown;
+}> {
+	const response = await fetch(`${API_BASE_URL}/api/v1/settings/secure-cookies`, {
+		credentials: 'include'
+	});
+	if (!response.ok) {
+		const error = await response.json();
+		return { error };
+	}
+	return { data: (await response.json()) as SecureCookiesResponse };
+}
+
+/**
+ * Set the secure cookies setting.
+ *
+ * @param value - Whether to enable secure cookies
+ * @returns Updated secure cookies status and locked status
+ */
+export async function setSecureCookies(
+	value: boolean
+): Promise<{ data?: SecureCookiesResponse; error?: unknown }> {
+	const response = await fetch(`${API_BASE_URL}/api/v1/settings/secure-cookies`, {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ secure_cookies: value }),
+		credentials: 'include'
+	});
+	if (!response.ok) {
+		const error = await response.json();
+		return { error };
+	}
+	return { data: (await response.json()) as SecureCookiesResponse };
+}
+
+// =============================================================================
 // Settings Bundle API Wrappers
 // =============================================================================
 
@@ -687,6 +765,7 @@ export interface SettingValue {
 /** All application settings bundled */
 export interface AllSettingsResponse {
 	csrf_origin: SettingValue;
+	secure_cookies: SettingValue;
 	sync_interval_seconds: SettingValue;
 	expiration_check_interval_seconds: SettingValue;
 }

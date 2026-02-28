@@ -24,6 +24,7 @@ from zondarr.core.auth import AdminUser
 from zondarr.repositories.admin import AdminAccountRepository, RefreshTokenRepository
 from zondarr.repositories.app_setting import AppSettingRepository
 from zondarr.services.auth import AuthService
+from zondarr.services.settings import SettingsService
 
 from .schemas import (
     AdminEmailUpdate,
@@ -58,6 +59,22 @@ class AuthController(Controller):
             token_repo=RefreshTokenRepository(session),
             app_setting_repo=AppSettingRepository(session),
         )
+
+    async def _resolve_secure_cookies(
+        self, session: AsyncSession, settings: Settings
+    ) -> bool:
+        """Resolve the effective secure_cookies value.
+
+        If the SECURE_COOKIES env var is set, use the Settings value (which
+        came from the env var). Otherwise, check the database.
+        """
+        import os
+
+        if os.environ.get("SECURE_COOKIES") is not None:
+            return settings.secure_cookies
+        service = SettingsService(AppSettingRepository(session))
+        value, _ = await service.get_secure_cookies()
+        return value
 
     def _create_access_token(
         self, admin_id: str, secret_key: str, *, secure: bool = False
@@ -147,7 +164,7 @@ class AuthController(Controller):
 
         # Issue tokens
         secret_key = settings.secret_key
-        secure = settings.secure_cookies
+        secure = await self._resolve_secure_cookies(session, settings)
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -191,7 +208,7 @@ class AuthController(Controller):
         admin = await service.authenticate_local(data.username, data.password)
 
         secret_key = settings.secret_key
-        secure = settings.secure_cookies
+        secure = await self._resolve_secure_cookies(session, settings)
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -229,7 +246,7 @@ class AuthController(Controller):
         )
 
         secret_key = settings.secret_key
-        secure = settings.secure_cookies
+        secure = await self._resolve_secure_cookies(session, settings)
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -261,7 +278,7 @@ class AuthController(Controller):
         await service.revoke_refresh_token(data.refresh_token)
 
         secret_key = settings.secret_key
-        secure = settings.secure_cookies
+        secure = await self._resolve_secure_cookies(session, settings)
         _, access_cookie = self._create_access_token(
             str(admin.id), secret_key, secure=secure
         )
@@ -291,7 +308,7 @@ class AuthController(Controller):
             await service.revoke_refresh_token(data.refresh_token)
 
         # Clear access token cookie
-        secure = settings.secure_cookies
+        secure = await self._resolve_secure_cookies(session, settings)
         clear_cookie = Cookie(
             key="zondarr_access_token",
             value="",

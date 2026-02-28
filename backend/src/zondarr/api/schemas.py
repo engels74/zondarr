@@ -181,6 +181,21 @@ class EnvCredentialsResponse(msgspec.Struct, kw_only=True):
     credentials: list[EnvCredentialResponse]
 
 
+class CredentialLockStatusResponse(msgspec.Struct, kw_only=True):
+    """Per-field lock status for media server credentials.
+
+    Indicates which credential fields are overridden by environment
+    variables and cannot be edited through the UI.
+
+    Attributes:
+        url_locked: True if the URL is set via environment variable.
+        api_key_locked: True if the API key is set via environment variable.
+    """
+
+    url_locked: bool
+    api_key_locked: bool
+
+
 class MediaServerUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     """Request to update a media server.
 
@@ -1152,6 +1167,29 @@ class CsrfOriginTestResponse(msgspec.Struct, kw_only=True):
     request_origin: str | None = None
 
 
+class SecureCookiesResponse(msgspec.Struct, kw_only=True):
+    """Secure cookies setting response.
+
+    Attributes:
+        secure_cookies: Whether secure cookies are enabled.
+        is_locked: True if the value is set via environment variable and cannot
+            be changed through the API.
+    """
+
+    secure_cookies: bool
+    is_locked: bool
+
+
+class SecureCookiesUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to update the secure cookies setting.
+
+    Attributes:
+        secure_cookies: Whether to enable secure cookies.
+    """
+
+    secure_cookies: bool
+
+
 # =============================================================================
 # Connection Test Schemas
 # =============================================================================
@@ -1427,11 +1465,13 @@ class AllSettingsResponse(msgspec.Struct, kw_only=True):
 
     Attributes:
         csrf_origin: CSRF origin setting.
+        secure_cookies: Secure cookies setting.
         sync_interval_seconds: Sync interval setting.
         expiration_check_interval_seconds: Expiration check interval setting.
     """
 
     csrf_origin: SettingValue
+    secure_cookies: SettingValue
     sync_interval_seconds: SettingValue
     expiration_check_interval_seconds: SettingValue
 
