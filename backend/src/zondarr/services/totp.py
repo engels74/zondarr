@@ -7,6 +7,7 @@ rendering for admin accounts.
 import io
 import secrets
 import string
+from datetime import UTC, datetime
 
 import msgspec
 import pyotp
@@ -33,6 +34,10 @@ TOTP_INTERVAL = 30
 BACKUP_CODE_COUNT = 10
 BACKUP_CODE_CHARS = string.ascii_uppercase + string.digits
 BACKUP_CODE_HALF_LEN = 4
+
+# Rate limiting configuration
+MAX_FAILED_ATTEMPTS = 5
+RATE_LIMIT_WINDOW_SECONDS = 900  # 15 minutes
 
 
 def _generate_backup_code() -> str:
@@ -121,6 +126,55 @@ class TOTPService:
         """
         self._secret_key = secret_key
 
+    def check_rate_limit(self, admin: AdminAccount) -> None:
+        """Check if the admin is rate-limited for TOTP attempts.
+
+        Raises AuthenticationError if too many failed attempts within
+        the rate limit window.
+
+        Args:
+            admin: The admin account to check.
+
+        Raises:
+            AuthenticationError: If the account is rate-limited.
+        """
+        if admin.totp_failed_attempts >= MAX_FAILED_ATTEMPTS:
+            if admin.totp_last_failed_at is not None:
+                elapsed = (
+                    datetime.now(UTC) - admin.totp_last_failed_at
+                ).total_seconds()
+                if elapsed < RATE_LIMIT_WINDOW_SECONDS:
+                    logger.warning(
+                        "totp_rate_limited",
+                        admin_id=str(admin.id),
+                        failed_attempts=admin.totp_failed_attempts,
+                    )
+                    raise AuthenticationError(
+                        "Too many failed TOTP attempts. Try again later.",
+                        "TOTP_RATE_LIMITED",
+                    )
+                # Window expired — reset counter
+                admin.totp_failed_attempts = 0
+                admin.totp_last_failed_at = None
+
+    def record_failed_attempt(self, admin: AdminAccount) -> None:
+        """Record a failed TOTP verification attempt.
+
+        Args:
+            admin: The admin account.
+        """
+        admin.totp_failed_attempts += 1
+        admin.totp_last_failed_at = datetime.now(UTC)
+
+    def reset_failed_attempts(self, admin: AdminAccount) -> None:
+        """Reset failed attempt counter after successful verification.
+
+        Args:
+            admin: The admin account.
+        """
+        admin.totp_failed_attempts = 0
+        admin.totp_last_failed_at = None
+
     def generate_setup(self, admin: AdminAccount) -> tuple[str, str, list[str]]:
         """Generate TOTP setup data for an admin account.
 
@@ -203,6 +257,7 @@ class TOTPService:
             return False
 
         admin.totp_enabled = True
+        admin.totp_enabled_at = datetime.now(UTC)
         logger.info(
             "totp_enabled",
             admin_id=str(admin.id),
@@ -280,6 +335,9 @@ class TOTPService:
         admin.totp_enabled = False
         admin.totp_secret_encrypted = None
         admin.totp_backup_codes = None
+        admin.totp_enabled_at = None
+        admin.totp_failed_attempts = 0
+        admin.totp_last_failed_at = None
 
         logger.info(
             "totp_disabled",

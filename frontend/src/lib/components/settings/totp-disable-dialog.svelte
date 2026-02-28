@@ -42,7 +42,7 @@
 		error = '';
 		loading = true;
 		try {
-			const result = await totpDisable({ password, totp_code: code });
+			const result = await totpDisable({ password, code });
 			if (result.error) {
 				error = getErrorDetail(result.error, 'Failed to disable 2FA');
 				loading = false;

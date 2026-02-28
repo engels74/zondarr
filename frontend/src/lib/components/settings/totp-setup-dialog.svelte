@@ -50,7 +50,7 @@
 		verifyError = '';
 		verifying = true;
 		try {
-			const result = await totpVerifySetup({ totp_code: code });
+			const result = await totpVerifySetup({ code });
 			if (result.error) {
 				verifyError = getErrorDetail(result.error, 'Invalid verification code');
 				verifying = false;
@@ -126,7 +126,7 @@
 							<div
 								class="mt-2 rounded-md border border-cr-border bg-cr-bg p-3 font-mono text-xs text-cr-text break-all select-all"
 							>
-								{setupData.secret}
+								{new URL(setupData.provisioning_uri).searchParams.get('secret') ?? ''}
 							</div>
 						{/if}
 					</div>

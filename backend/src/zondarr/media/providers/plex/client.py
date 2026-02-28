@@ -935,7 +935,7 @@ class PlexClient:
         # Friend-only users may return an empty body (no shared server entries)
         try:
             data: dict[str, object] = resp.json()  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             # Empty or non-JSON response — no shared server entries exist
             return False
         shared_servers: list[dict[str, object]] = []
@@ -1019,7 +1019,9 @@ class PlexClient:
                         # NOTE: plexapi's removeFriend() uses /api/v2/sharings/
                         # which only removes library sharing, NOT the friend
                         # relationship. The correct endpoint is /api/v2/friends/.
-                        friends_url = f"https://plex.tv/api/v2/friends/{external_user_id}"
+                        friends_url = (
+                            f"https://plex.tv/api/v2/friends/{external_user_id}"
+                        )
                         base_headers: dict[str, str] = self._account._headers()  # pyright: ignore[reportUnknownMemberType, reportAssignmentType, reportPrivateUsage, reportUnknownVariableType]
                         del_resp = self._account._session.delete(  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportPrivateUsage]
                             friends_url,

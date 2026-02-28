@@ -37,11 +37,13 @@ from .schemas import (
     AuthTokenResponse,
     ExternalLoginRequest,
     LoginRequest,
+    LoginResponse,
     OnboardingStatusResponse,
     PasswordChangeResponse,
     ProviderAuthInfo,
     RefreshRequest,
 )
+from .totp import create_challenge_token
 
 # Access token lifetime
 ACCESS_TOKEN_MINUTES = 15
@@ -111,9 +113,11 @@ class AuthController(Controller):
         methods, descriptors = await service.get_auth_methods_with_providers(
             settings=settings
         )
-        setup, onboarding_required, onboarding_step = (
-            await service.get_setup_and_onboarding_status()
-        )
+        (
+            setup,
+            onboarding_required,
+            onboarding_step,
+        ) = await service.get_setup_and_onboarding_status()
 
         # Map provider descriptors to response schema
         provider_auth = [
@@ -182,7 +186,9 @@ class AuthController(Controller):
         status_code=HTTP_200_OK,
         summary="Advance onboarding step",
     )
-    async def advance_onboarding(self, session: AsyncSession) -> OnboardingStatusResponse:
+    async def advance_onboarding(
+        self, session: AsyncSession
+    ) -> OnboardingStatusResponse:
         """Advance onboarding by one step for explicit skip actions."""
         service = self._create_auth_service(session)
         onboarding_required, onboarding_step = await service.advance_onboarding()
@@ -202,11 +208,25 @@ class AuthController(Controller):
         data: LoginRequest,
         session: AsyncSession,
         settings: Settings,
-    ) -> Response[AuthTokenResponse]:
-        """Authenticate with local username/password credentials."""
+    ) -> Response[LoginResponse]:
+        """Authenticate with local username/password credentials.
+
+        If the admin has TOTP enabled, returns totp_required=True with a
+        challenge_token. The client must then call /api/auth/totp/verify
+        or /api/auth/totp/backup-code to complete login.
+        """
         service = self._create_auth_service(session)
         admin = await service.authenticate_local(data.username, data.password)
 
+        # Check if TOTP is required
+        if admin.totp_enabled:
+            challenge = create_challenge_token(str(admin.id), settings.secret_key)
+            return Response(
+                LoginResponse(totp_required=True, challenge_token=challenge),
+                status_code=HTTP_200_OK,
+            )
+
+        # No TOTP — issue tokens normally
         secret_key = settings.secret_key
         secure = await self._resolve_secure_cookies(session, settings)
         _, access_cookie = self._create_access_token(
@@ -215,7 +235,7 @@ class AuthController(Controller):
         refresh_token = await service.create_refresh_token(admin)
 
         return Response(
-            AuthTokenResponse(refresh_token=refresh_token),
+            LoginResponse(refresh_token=refresh_token),
             status_code=HTTP_200_OK,
             cookies=[access_cookie],
         )
@@ -339,11 +359,18 @@ class AuthController(Controller):
         user: AdminUser = request.user
         service = self._create_auth_service(session)
         onboarding_required, onboarding_step = await service.get_onboarding_status()
+
+        # Look up totp_enabled from the database
+        admin_repo = AdminAccountRepository(session)
+        admin = await admin_repo.get_by_id(user.id)
+        totp_enabled = admin.totp_enabled if admin else False
+
         return AdminMeResponse(
             id=user.id,
             username=user.username,
             email=user.email,
             auth_method=user.auth_method,
+            totp_enabled=totp_enabled,
             onboarding_required=onboarding_required,
             onboarding_step=onboarding_step,
         )

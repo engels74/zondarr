@@ -8,7 +8,7 @@ Provides:
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import Boolean, ForeignKey, Index, String, Text
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from zondarr.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -48,6 +48,9 @@ class AdminAccount(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     totp_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     totp_secret_encrypted: Mapped[str | None] = mapped_column(Text, default=None)
     totp_backup_codes: Mapped[str | None] = mapped_column(Text, default=None)
+    totp_enabled_at: Mapped[datetime | None] = mapped_column(default=None)
+    totp_failed_attempts: Mapped[int] = mapped_column(Integer, default=0)
+    totp_last_failed_at: Mapped[datetime | None] = mapped_column(default=None)
 
     # Relationships
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(

@@ -35,6 +35,8 @@ _AUTH_EXCLUDE_PATHS_BASE = [
     "/api/auth/login",
     "/api/auth/refresh",
     "/api/auth/logout",
+    "/api/auth/totp/verify",
+    "/api/auth/totp/backup-code",
     "/api/v1/join/",
     "/api/health",
     "/health",

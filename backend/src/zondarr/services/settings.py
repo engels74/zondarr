@@ -75,9 +75,7 @@ class SettingsService:
         Returns:
             The created or updated AppSetting.
         """
-        return await self.repository.upsert(
-            SECURE_COOKIES_KEY, str(value).lower()
-        )
+        return await self.repository.upsert(SECURE_COOKIES_KEY, str(value).lower())
 
     async def get_csrf_origin(self) -> tuple[str | None, bool]:
         """Get the CSRF origin setting.

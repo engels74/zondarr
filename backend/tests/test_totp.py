@@ -8,7 +8,6 @@ Tests cover:
 """
 
 import re
-import time
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
@@ -39,7 +38,7 @@ from zondarr.services.totp_encryption import (
 )
 
 # Stable test secret key (>= 32 chars)
-TEST_SECRET_KEY = "test-secret-key-for-totp-at-least-32-chars-long!"
+TEST_SECRET_KEY = "test-secret-key-for-totp-at-least-32-chars-long!"  # noqa: S105
 
 
 # =============================================================================
@@ -51,7 +50,7 @@ async def _create_admin(
     session: AsyncSession,
     *,
     username: str = "admin",
-    password: str = "testpassword123",
+    password: str = "testpassword123",  # noqa: S107
     totp_enabled: bool = False,
 ) -> AdminAccount:
     """Create and persist an AdminAccount for testing."""
@@ -114,7 +113,7 @@ class TestTOTPEncryption:
         secret = pyotp.random_base32()
         encrypted = encrypt_totp_secret(secret, secret_key=TEST_SECRET_KEY)
         with pytest.raises(InvalidToken):
-            decrypt_totp_secret(
+            decrypt_totp_secret(  # pyright: ignore[reportUnusedCallResult]
                 encrypted,
                 secret_key="a-completely-different-secret-key-32chars!",
             )
@@ -122,7 +121,7 @@ class TestTOTPEncryption:
     def test_decrypt_corrupted_ciphertext_raises(self) -> None:
         """Decrypting corrupted ciphertext raises InvalidToken."""
         with pytest.raises(Exception):  # noqa: B017
-            decrypt_totp_secret("not-valid-ciphertext", secret_key=TEST_SECRET_KEY)
+            decrypt_totp_secret("not-valid-ciphertext", secret_key=TEST_SECRET_KEY)  # pyright: ignore[reportUnusedCallResult]
 
     def test_different_secrets_produce_different_ciphertexts(self) -> None:
         """Two different plaintexts produce different ciphertexts."""
@@ -238,10 +237,8 @@ class TestTOTPServiceSetup:
                 # Mock segno QR save to avoid "currentColor" issue in test env
                 fake_svg = b"<svg>mock</svg>"
                 with patch("zondarr.services.totp.segno") as mock_segno:
-                    mock_qr = mock_segno.make.return_value
-                    mock_qr.save.side_effect = (
-                        lambda buf, **_kw: buf.write(fake_svg)
-                    )
+                    mock_qr = mock_segno.make.return_value  # pyright: ignore[reportAny]
+                    mock_qr.save.side_effect = lambda buf, **_kw: buf.write(fake_svg)  # pyright: ignore[reportAny, reportUnknownMemberType, reportUnknownLambdaType]
                     uri, qr_svg, backup_codes = service.generate_setup(admin)
 
                 assert uri.startswith("otpauth://totp/")
@@ -266,7 +263,7 @@ class TestTOTPServiceSetup:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="already enabled"):
-                    service.generate_setup(admin)
+                    service.generate_setup(admin)  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -299,7 +296,7 @@ class TestTOTPServiceSetup:
             async with sf() as session:
                 admin = await _create_admin(session)
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
-                _setup_totp_for_admin(admin)
+                _setup_totp_for_admin(admin)  # pyright: ignore[reportUnusedCallResult]
 
                 result = service.confirm_setup(admin, "000000")
 
@@ -319,7 +316,7 @@ class TestTOTPServiceSetup:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="already enabled"):
-                    service.confirm_setup(admin, "123456")
+                    service.confirm_setup(admin, "123456")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -334,7 +331,7 @@ class TestTOTPServiceSetup:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="No TOTP setup"):
-                    service.confirm_setup(admin, "123456")
+                    service.confirm_setup(admin, "123456")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -355,7 +352,7 @@ class TestTOTPServiceVerify:
 
                 # Enable TOTP
                 code = _get_valid_totp_code(secret)
-                service.confirm_setup(admin, code)
+                service.confirm_setup(admin, code)  # pyright: ignore[reportUnusedCallResult]
 
                 # Verify with a fresh code
                 fresh_code = _get_valid_totp_code(secret)
@@ -375,7 +372,7 @@ class TestTOTPServiceVerify:
                 secret = _setup_totp_for_admin(admin)
 
                 code = _get_valid_totp_code(secret)
-                service.confirm_setup(admin, code)
+                service.confirm_setup(admin, code)  # pyright: ignore[reportUnusedCallResult]
 
                 assert service.verify_code(admin, "000000") is False
         finally:
@@ -392,7 +389,7 @@ class TestTOTPServiceVerify:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="not enabled"):
-                    service.verify_code(admin, "123456")
+                    service.verify_code(admin, "123456")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -409,7 +406,7 @@ class TestTOTPServiceVerify:
 
                 # Enable TOTP
                 code = _get_valid_totp_code(secret)
-                service.confirm_setup(admin, code)
+                service.confirm_setup(admin, code)  # pyright: ignore[reportUnusedCallResult]
 
                 # Get backup codes by regenerating
                 backup_codes = service.regenerate_backup_codes(admin)
@@ -432,7 +429,7 @@ class TestTOTPServiceVerify:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="not enabled"):
-                    service.verify_backup_code(admin, "ABCD-1234")
+                    service.verify_backup_code(admin, "ABCD-1234")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -448,7 +445,7 @@ class TestTOTPServiceVerify:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="No backup codes"):
-                    service.verify_backup_code(admin, "ABCD-1234")
+                    service.verify_backup_code(admin, "ABCD-1234")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -468,7 +465,7 @@ class TestTOTPServiceDisable:
                 secret = _setup_totp_for_admin(admin)
 
                 code = _get_valid_totp_code(secret)
-                service.confirm_setup(admin, code)
+                service.confirm_setup(admin, code)  # pyright: ignore[reportUnusedCallResult]
                 assert admin.totp_enabled is True
 
                 service.disable(admin)
@@ -513,7 +510,7 @@ class TestTOTPServiceRegenerateBackupCodes:
                 secret = _setup_totp_for_admin(admin)
 
                 code = _get_valid_totp_code(secret)
-                service.confirm_setup(admin, code)
+                service.confirm_setup(admin, code)  # pyright: ignore[reportUnusedCallResult]
 
                 old_backup_json = admin.totp_backup_codes
                 new_codes = service.regenerate_backup_codes(admin)
@@ -537,7 +534,7 @@ class TestTOTPServiceRegenerateBackupCodes:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="not enabled"):
-                    service.regenerate_backup_codes(admin)
+                    service.regenerate_backup_codes(admin)  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -656,11 +653,11 @@ class TestTOTPServiceDecryptionFailure:
             sf = async_sessionmaker(engine, expire_on_commit=False)
             async with sf() as session:
                 admin = await _create_admin(session, totp_enabled=True)
-                admin.totp_secret_encrypted = "corrupted-ciphertext"
+                admin.totp_secret_encrypted = "corrupted-ciphertext"  # noqa: S105
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="decrypt"):
-                    service.verify_code(admin, "123456")
+                    service.verify_code(admin, "123456")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -676,7 +673,7 @@ class TestTOTPServiceDecryptionFailure:
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
                 with pytest.raises(AuthenticationError, match="not enabled"):
-                    service.verify_code(admin, "123456")
+                    service.verify_code(admin, "123456")  # pyright: ignore[reportUnusedCallResult]
         finally:
             await engine.dispose()
 
@@ -705,9 +702,7 @@ class TestChallengeToken:
         admin_id = uuid4()
         token = create_challenge_token(str(admin_id), TEST_SECRET_KEY)
         with pytest.raises(AuthenticationError, match="Invalid challenge token"):
-            validate_challenge_token(
-                token, "different-secret-key-also-32-chars-long!!"
-            )
+            validate_challenge_token(token, "different-secret-key-also-32-chars-long!!")  # pyright: ignore[reportUnusedCallResult]
 
     def test_validate_expired_token_raises(self) -> None:
         """An expired challenge token raises AuthenticationError."""
@@ -726,13 +721,13 @@ class TestChallengeToken:
         encoded = pyjwt.encode(payload, TEST_SECRET_KEY, algorithm="HS256")
 
         with pytest.raises(AuthenticationError):
-            validate_challenge_token(encoded, TEST_SECRET_KEY)
+            validate_challenge_token(encoded, TEST_SECRET_KEY)  # pyright: ignore[reportUnusedCallResult]
 
     def test_validate_wrong_purpose_raises(self) -> None:
         """A token with wrong purpose claim raises AuthenticationError."""
-        from zondarr.api.totp import validate_challenge_token
-
         from litestar.security.jwt import Token
+
+        from zondarr.api.totp import validate_challenge_token
 
         admin_id = uuid4()
         token = Token(
@@ -744,20 +739,20 @@ class TestChallengeToken:
         encoded = token.encode(secret=TEST_SECRET_KEY, algorithm="HS256")
 
         with pytest.raises(AuthenticationError, match="purpose"):
-            validate_challenge_token(encoded, TEST_SECRET_KEY)
+            validate_challenge_token(encoded, TEST_SECRET_KEY)  # pyright: ignore[reportUnusedCallResult]
 
     def test_validate_garbage_token_raises(self) -> None:
         """A completely invalid token string raises AuthenticationError."""
         from zondarr.api.totp import validate_challenge_token
 
         with pytest.raises(AuthenticationError, match="Invalid challenge token"):
-            validate_challenge_token("not.a.jwt", TEST_SECRET_KEY)
+            validate_challenge_token("not.a.jwt", TEST_SECRET_KEY)  # pyright: ignore[reportUnusedCallResult]
 
     def test_validate_token_without_purpose_raises(self) -> None:
         """A token missing the purpose extra raises AuthenticationError."""
-        from zondarr.api.totp import validate_challenge_token
-
         from litestar.security.jwt import Token
+
+        from zondarr.api.totp import validate_challenge_token
 
         admin_id = uuid4()
         token = Token(
@@ -769,4 +764,4 @@ class TestChallengeToken:
         encoded = token.encode(secret=TEST_SECRET_KEY, algorithm="HS256")
 
         with pytest.raises(AuthenticationError, match="purpose"):
-            validate_challenge_token(encoded, TEST_SECRET_KEY)
+            validate_challenge_token(encoded, TEST_SECRET_KEY)  # pyright: ignore[reportUnusedCallResult]

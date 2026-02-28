@@ -1371,6 +1371,7 @@ class AdminMeResponse(msgspec.Struct, kw_only=True):
         username: Admin username.
         email: Optional email address.
         auth_method: Authentication method used.
+        totp_enabled: Whether TOTP two-factor authentication is active.
         onboarding_required: True if onboarding is still in progress.
         onboarding_step: Current onboarding step to resume.
     """
@@ -1379,6 +1380,7 @@ class AdminMeResponse(msgspec.Struct, kw_only=True):
     username: str
     onboarding_required: bool
     onboarding_step: OnboardingStep
+    totp_enabled: bool = False
     email: str | None = None
     auth_method: str = "local"
 
@@ -1391,6 +1393,122 @@ class AuthTokenResponse(msgspec.Struct, kw_only=True):
     """
 
     refresh_token: str
+
+
+class LoginResponse(msgspec.Struct, kw_only=True, omit_defaults=True):
+    """Login response that may require TOTP verification.
+
+    When totp_required is True, the client must call the TOTP verify
+    endpoint with the challenge_token. No access token cookie is set.
+
+    When totp_required is False (or absent), refresh_token is provided
+    and the access token cookie is set normally.
+
+    Attributes:
+        totp_required: True if TOTP verification is needed.
+        challenge_token: Short-lived JWT for TOTP verification step.
+        refresh_token: Refresh token (only when login is complete).
+    """
+
+    totp_required: bool = False
+    challenge_token: str | None = None
+    refresh_token: str | None = None
+
+
+# TOTP 6-digit code
+TOTPCode = Annotated[str, msgspec.Meta(min_length=6, max_length=6, pattern=r"^\d{6}$")]
+
+
+class TOTPVerifyRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to verify a TOTP code during login.
+
+    Attributes:
+        challenge_token: The challenge JWT from the login response.
+        code: The 6-digit TOTP code from the authenticator app.
+    """
+
+    challenge_token: str
+    code: TOTPCode
+
+
+class TOTPBackupCodeRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to verify a backup code during login.
+
+    Attributes:
+        challenge_token: The challenge JWT from the login response.
+        code: The backup code in XXXX-XXXX format.
+    """
+
+    challenge_token: str
+    code: Annotated[str, msgspec.Meta(min_length=1, max_length=20)]
+
+
+class TOTPSetupResponse(msgspec.Struct, kw_only=True):
+    """Response from TOTP setup initiation.
+
+    Attributes:
+        provisioning_uri: OTPAuth URI for authenticator apps.
+        qr_code_svg: QR code as inline SVG.
+        backup_codes: List of plaintext backup codes.
+    """
+
+    provisioning_uri: str
+    qr_code_svg: str
+    backup_codes: list[str]
+
+
+class TOTPConfirmSetupRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to confirm TOTP setup with a code from the authenticator app.
+
+    Attributes:
+        code: The 6-digit TOTP code from the authenticator app.
+    """
+
+    code: TOTPCode
+
+
+class TOTPConfirmSetupResponse(msgspec.Struct, kw_only=True):
+    """Response after successful TOTP setup confirmation.
+
+    Attributes:
+        backup_codes: List of plaintext backup codes to save.
+    """
+
+    backup_codes: list[str]
+
+
+class TOTPDisableRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Request to disable TOTP two-factor authentication.
+
+    Attributes:
+        password: Current password for verification.
+        code: A valid 6-digit TOTP code to authorize disabling.
+    """
+
+    password: Annotated[str, msgspec.Meta(min_length=1)]
+    code: TOTPCode
+
+
+class TOTPRegenerateBackupCodesRequest(
+    msgspec.Struct, kw_only=True, forbid_unknown_fields=True
+):
+    """Request to regenerate backup codes.
+
+    Attributes:
+        code: A valid 6-digit TOTP code to authorize regeneration.
+    """
+
+    code: TOTPCode
+
+
+class TOTPBackupCodesResponse(msgspec.Struct, kw_only=True):
+    """Response containing backup codes.
+
+    Attributes:
+        backup_codes: List of plaintext backup codes.
+    """
+
+    backup_codes: list[str]
 
 
 class AdminProfileResponse(msgspec.Struct, kw_only=True):
@@ -1486,7 +1604,9 @@ class SyncIntervalUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=Tru
     sync_interval_seconds: Annotated[int, msgspec.Meta(ge=60, le=86400)]
 
 
-class ExpirationIntervalUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+class ExpirationIntervalUpdate(
+    msgspec.Struct, kw_only=True, forbid_unknown_fields=True
+):
     """Request to update the expiration check interval.
 
     Attributes:

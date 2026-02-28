@@ -333,9 +333,7 @@ class AuthService:
         """
         _ = await self.token_repo.revoke_all_for_admin(admin.id)
 
-    async def update_email(
-        self, admin_id: UUID, email: str | None
-    ) -> AdminAccount:
+    async def update_email(self, admin_id: UUID, email: str | None) -> AdminAccount:
         """Update the email address on an admin account.
 
         Args:
@@ -350,9 +348,7 @@ class AuthService:
         """
         admin = await self.admin_repo.get_by_id(admin_id)
         if admin is None:
-            raise AuthenticationError(
-                "Account not found", "ACCOUNT_NOT_FOUND"
-            )
+            raise AuthenticationError("Account not found", "ACCOUNT_NOT_FOUND")
         admin.email = email
         return admin
 
@@ -377,9 +373,7 @@ class AuthService:
         """
         admin = await self.admin_repo.get_by_id(admin_id)
         if admin is None:
-            raise AuthenticationError(
-                "Account not found", "ACCOUNT_NOT_FOUND"
-            )
+            raise AuthenticationError("Account not found", "ACCOUNT_NOT_FOUND")
 
         if admin.auth_method != "local":
             raise AuthenticationError(

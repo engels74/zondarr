@@ -77,18 +77,26 @@ class TestGetDashboardStats:
             async with session_factory() as session:
                 # Create invitations
                 inv_active = Invitation(code="ACTIVE01", enabled=True, use_count=0)
-                inv_used = Invitation(code="USED0001", enabled=True, use_count=2, max_uses=5)
+                inv_used = Invitation(
+                    code="USED0001", enabled=True, use_count=2, max_uses=5
+                )
                 inv_disabled = Invitation(code="DISABLED", enabled=False, use_count=0)
                 session.add_all([inv_active, inv_used, inv_disabled])
 
                 # Create media servers
                 server_enabled = MediaServer(
-                    name="Jellyfin", server_type="jellyfin",
-                    url="http://jf:8096", api_key="key1", enabled=True,
+                    name="Jellyfin",
+                    server_type="jellyfin",
+                    url="http://jf:8096",
+                    api_key="key1",
+                    enabled=True,
                 )
                 server_disabled = MediaServer(
-                    name="Plex", server_type="plex",
-                    url="http://plex:32400", api_key="key2", enabled=False,
+                    name="Plex",
+                    server_type="plex",
+                    url="http://plex:32400",
+                    api_key="key2",
+                    enabled=False,
                 )
                 session.add_all([server_enabled, server_disabled])
                 await session.flush()
@@ -140,8 +148,11 @@ class TestGetDashboardStats:
 
             async with session_factory() as session:
                 server = MediaServer(
-                    name="TestServer", server_type="jellyfin",
-                    url="http://jf:8096", api_key="key1", enabled=True,
+                    name="TestServer",
+                    server_type="jellyfin",
+                    url="http://jf:8096",
+                    api_key="key1",
+                    enabled=True,
                 )
                 session.add(server)
                 await session.flush()
@@ -165,8 +176,10 @@ class TestGetDashboardStats:
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
 
-                activities: list[dict[str, object]] = data["recent_activity"]  # pyright: ignore[reportAny]
-                sync_activities = [a for a in activities if a["type"] == "sync_completed"]
+                activities: list[dict[str, object]] = data["recent_activity"]  # pyright: ignore[reportAssignmentType]
+                sync_activities = [
+                    a for a in activities if a["type"] == "sync_completed"
+                ]
                 assert len(sync_activities) == 1
                 assert "libraries" in str(sync_activities[0]["description"])
         finally:

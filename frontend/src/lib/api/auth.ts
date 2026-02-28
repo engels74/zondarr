@@ -154,10 +154,10 @@ export async function loginLocal(
  * Verify a TOTP code during login.
  */
 export async function verifyTotp(
-	data: { challenge_token: string; totp_code: string },
+	data: { challenge_token: string; code: string },
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: TotpVerifyResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/totp-verify`, {
+	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/verify`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(data),
@@ -174,10 +174,10 @@ export async function verifyTotp(
  * Verify a backup code during login.
  */
 export async function verifyBackupCode(
-	data: { challenge_token: string; backup_code: string },
+	data: { challenge_token: string; code: string },
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: TotpVerifyResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/login/backup-verify`, {
+	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/backup-code`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(data),
@@ -321,9 +321,9 @@ export async function changePassword(
 // =============================================================================
 
 export interface TotpSetupResponse {
-	secret: string;
 	provisioning_uri: string;
 	qr_code_svg: string;
+	backup_codes: string[];
 }
 
 export interface TotpVerifySetupResponse {
@@ -356,10 +356,10 @@ export async function totpSetup(
  * Returns backup codes on success.
  */
 export async function totpVerifySetup(
-	data: { totp_code: string },
+	data: { code: string },
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: TotpVerifySetupResponse; error?: unknown }> {
-	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/verify-setup`, {
+	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/confirm-setup`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
 		body: JSON.stringify(data),
@@ -373,10 +373,10 @@ export async function totpVerifySetup(
 }
 
 /**
- * Disable TOTP 2FA. Requires password and a valid TOTP code.
+ * Disable TOTP 2FA. Requires password confirmation.
  */
 export async function totpDisable(
-	data: { password: string; totp_code: string },
+	data: { password: string; code: string },
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ error?: unknown }> {
 	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/disable`, {
@@ -396,7 +396,7 @@ export async function totpDisable(
  * Regenerate backup codes. Requires a valid TOTP code.
  */
 export async function totpRegenerateBackupCodes(
-	data: { totp_code: string },
+	data: { code: string },
 	customFetch: typeof globalThis.fetch = fetch
 ): Promise<{ data?: TotpBackupCodesResponse; error?: unknown }> {
 	const response = await customFetch(`${API_BASE_URL}/api/auth/totp/regenerate-backup-codes`, {

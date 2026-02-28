@@ -32,7 +32,7 @@
 		error = '';
 		loading = true;
 		try {
-			const result = await totpRegenerateBackupCodes({ totp_code: code });
+			const result = await totpRegenerateBackupCodes({ code });
 			if (result.error) {
 				error = getErrorDetail(result.error, 'Invalid verification code');
 				loading = false;

@@ -53,6 +53,7 @@ from zondarr.api.oauth import OAuthController
 from zondarr.api.providers import ProviderController
 from zondarr.api.servers import ServerController
 from zondarr.api.settings import SettingsController
+from zondarr.api.totp import TOTPController
 from zondarr.api.users import UserController
 from zondarr.api.wizards import WizardController
 from zondarr.config import Settings, load_settings
@@ -243,6 +244,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
         ProviderController,
         ServerController,
         SettingsController,
+        TOTPController,
         UserController,
         WizardController,
     ]

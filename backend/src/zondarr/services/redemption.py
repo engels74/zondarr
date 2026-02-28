@@ -344,9 +344,7 @@ class RedemptionService:
         }
         return messages.get(failure, "Invalid invitation")
 
-    def _failure_error_code(
-        self, failure: InvitationValidationFailure | None
-    ) -> str:
+    def _failure_error_code(self, failure: InvitationValidationFailure | None) -> str:
         """Convert failure enum to machine-readable error code.
 
         Args:

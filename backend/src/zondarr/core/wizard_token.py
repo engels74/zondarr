@@ -52,9 +52,7 @@ def _sign_payload(payload_bytes: bytes, secret_key: str) -> str:
     return f"{payload_b64}.{signature}"
 
 
-def _verify_signature(
-    token: str, secret_key: str
-) -> tuple[bytes, bool]:
+def _verify_signature(token: str, secret_key: str) -> tuple[bytes, bool]:
     """Verify HMAC signature and return (payload_bytes, is_valid)."""
     try:
         parts = token.split(".")
@@ -121,9 +119,7 @@ def verify_wizard_completion(
         if not valid:
             return False
 
-        payload = msgspec.json.decode(
-            payload_bytes, type=_WizardTokenPayload
-        )
+        payload = msgspec.json.decode(payload_bytes, type=_WizardTokenPayload)
 
         if payload.wizard_id != str(expected_wizard_id):
             return False
@@ -191,9 +187,7 @@ def verify_wizard_progress(
         if not valid:
             return None
 
-        payload = msgspec.json.decode(
-            payload_bytes, type=_WizardProgressPayload
-        )
+        payload = msgspec.json.decode(payload_bytes, type=_WizardProgressPayload)
 
         if payload.wizard_id != str(expected_wizard_id):
             return None

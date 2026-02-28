@@ -31,5 +31,21 @@ export const setupSchema = z
 		path: ['confirmPassword']
 	});
 
+export const totpCodeSchema = z.object({
+	code: z
+		.string()
+		.length(6, 'Code must be 6 digits')
+		.regex(/^\d{6}$/, 'Code must contain only digits')
+});
+
+export const backupCodeSchema = z.object({
+	code: z
+		.string()
+		.min(1, 'Backup code is required')
+		.regex(/^[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}$/, 'Backup code must be in XXXX-XXXX format')
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type SetupFormData = z.infer<typeof setupSchema>;
+export type TotpCodeFormData = z.infer<typeof totpCodeSchema>;
+export type BackupCodeFormData = z.infer<typeof backupCodeSchema>;
