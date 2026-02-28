@@ -41,6 +41,7 @@ from zondarr.api.errors import (
     internal_error_handler,
     litestar_http_exception_handler,
     not_found_handler,
+    redemption_error_handler,
     validation_error_handler,
 )
 from zondarr.api.health import HealthController
@@ -61,6 +62,7 @@ from zondarr.core.exceptions import (
     AuthenticationError,
     ExternalServiceError,
     NotFoundError,
+    RedemptionError,
     ValidationError,
 )
 from zondarr.core.log_buffer import capture_log_processor, log_buffer
@@ -277,6 +279,7 @@ def create_app(settings: Settings | None = None) -> Litestar:
         ],
         exception_handlers={
             AuthenticationError: authentication_error_handler,
+            RedemptionError: redemption_error_handler,
             ValidationError: validation_error_handler,
             NotFoundError: not_found_handler,
             ExternalServiceError: external_service_error_handler,

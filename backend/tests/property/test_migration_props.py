@@ -2,7 +2,6 @@
 
 Feature: zondarr-foundation
 Property: 14
-Validates: Requirements 10.4, 10.5
 """
 
 from uuid import uuid4
@@ -68,8 +67,6 @@ class TestMigrationsPreserveData:
     """
     Feature: zondarr-foundation
     Property 14: Migrations Preserve Data
-
-    **Validates: Requirements 10.4, 10.5**
     """
 
     @given(
@@ -113,21 +110,25 @@ class TestMigrationsPreserveData:
             assert result.enabled == enabled
 
     @given(
+        data=st.data(),
         code=code_strategy,
         max_uses=optional_positive_int_strategy,
-        use_count=positive_int_strategy,
         enabled=st.booleans(),
     )
     @pytest.mark.asyncio
     async def test_invitation_data_survives_migration_cycle(
         self,
         db: TestDB,
+        data: st.DataObject,
         code: str,
         max_uses: int | None,
-        use_count: int,
         enabled: bool,
     ) -> None:
         """Invitation data is preserved through migration upgrade."""
+        # use_count must not exceed max_uses (DB CHECK constraint)
+        upper = max_uses if max_uses is not None else 1000
+        use_count = data.draw(st.integers(min_value=0, max_value=upper))
+
         await db.clean()
         invitation_id = uuid4()
         async with db.session_factory() as session:

@@ -2,8 +2,6 @@
 
 Feature: phase-6-polish
 Tests invitation creation with various configurations and redemption validation.
-
-**Validates: Requirements 6.1, 6.2**
 """
 
 from datetime import UTC, datetime, timedelta
@@ -46,15 +44,11 @@ url_strategy = st.from_regex(r"https?://[a-z0-9]+\.[a-z]{2,}", fullmatch=True)
 
 # =============================================================================
 # Property Tests: Invitation Creation with Various Configurations
-# Validates: Requirements 6.1
 # =============================================================================
 
 
 class TestInvitationCreationConfigurations:
-    """Property tests for invitation creation with various configurations.
-
-    **Validates: Requirements 6.1**
-    """
+    """Property tests for invitation creation with various configurations."""
 
     @given(
         max_uses=max_uses_strategy,
@@ -69,8 +63,6 @@ class TestInvitationCreationConfigurations:
         duration_days: int,
     ) -> None:
         """Invitation creation with max_uses and duration_days persists correctly.
-
-        **Validates: Requirements 6.1**
 
         Property: For any valid max_uses and duration_days values, the created
         invitation SHALL have those exact values persisted.
@@ -110,8 +102,6 @@ class TestInvitationCreationConfigurations:
     ) -> None:
         """Invitation creation with future expiration date persists correctly.
 
-        **Validates: Requirements 6.1**
-
         Property: For any future expiration date, the created invitation
         SHALL have that expiration date persisted and be considered active.
         """
@@ -139,8 +129,6 @@ class TestInvitationCreationConfigurations:
     async def test_create_with_custom_code(self, db: TestDB, code: str) -> None:
         """Invitation creation with custom code uses the provided code.
 
-        **Validates: Requirements 6.1**
-
         Property: For any valid custom code, the created invitation
         SHALL use that exact code.
         """
@@ -163,8 +151,6 @@ class TestInvitationCreationConfigurations:
     @pytest.mark.asyncio
     async def test_create_without_limits_is_unlimited(self) -> None:
         """Invitation creation without limits creates unlimited invitation.
-
-        **Validates: Requirements 6.1**
 
         Property: An invitation created without max_uses or expires_at
         SHALL be considered unlimited and always active (when enabled).
@@ -193,24 +179,25 @@ class TestInvitationCreationConfigurations:
             await engine.dispose()
 
     @given(
+        data=st.data(),
         max_uses=max_uses_strategy,
-        use_count=st.integers(min_value=0, max_value=100),
     )
     @settings(max_examples=15, deadline=None)
     @pytest.mark.asyncio
     async def test_remaining_uses_calculation(
         self,
         db: TestDB,
+        data: st.DataObject,
         max_uses: int,
-        use_count: int,
     ) -> None:
         """Remaining uses is correctly calculated as max_uses - use_count.
 
-        **Validates: Requirements 6.1**
-
-        Property: For any invitation with max_uses M and use_count U,
-        remaining_uses SHALL equal max(0, M - U).
+        Property: For any invitation with max_uses M and use_count U
+        (where U <= M, enforced by DB CHECK constraint),
+        remaining_uses SHALL equal M - U.
         """
+        use_count = data.draw(st.integers(min_value=0, max_value=max_uses))
+
         await db.clean()
         async with db.session_factory() as session:
             repo = InvitationRepository(session)
@@ -232,15 +219,11 @@ class TestInvitationCreationConfigurations:
 
 # =============================================================================
 # Property Tests: Invitation Redemption Validation
-# Validates: Requirements 6.2
 # =============================================================================
 
 
 class TestInvitationRedemptionValidation:
-    """Property tests for invitation redemption validation.
-
-    **Validates: Requirements 6.2**
-    """
+    """Property tests for invitation redemption validation."""
 
     @given(
         code=code_strategy,
@@ -257,8 +240,6 @@ class TestInvitationRedemptionValidation:
         redemption_count: int,
     ) -> None:
         """Multiple redemptions correctly increment use_count.
-
-        **Validates: Requirements 6.2**
 
         Property: For any invitation with max_uses M, redeeming N times
         (where N < M) SHALL result in use_count = N.
@@ -310,8 +291,6 @@ class TestInvitationRedemptionValidation:
     ) -> None:
         """Redemption fails when max_uses is reached.
 
-        **Validates: Requirements 6.2**
-
         Property: For any invitation with max_uses M and use_count = M,
         redemption SHALL fail with MAX_USES_REACHED error.
         """
@@ -355,8 +334,6 @@ class TestInvitationRedemptionValidation:
     ) -> None:
         """Redemption fails when invitation has expired.
 
-        **Validates: Requirements 6.2**
-
         Property: For any invitation with expires_at in the past,
         redemption SHALL fail with EXPIRED error.
         """
@@ -391,8 +368,6 @@ class TestInvitationRedemptionValidation:
     @pytest.mark.asyncio
     async def test_redemption_fails_when_disabled(self, db: TestDB, code: str) -> None:
         """Redemption fails when invitation is disabled.
-
-        **Validates: Requirements 6.2**
 
         Property: For any disabled invitation, redemption SHALL fail
         with DISABLED error.
@@ -430,8 +405,6 @@ class TestInvitationRedemptionValidation:
     ) -> None:
         """Redemption fails for non-existent invitation code.
 
-        **Validates: Requirements 6.2**
-
         Property: For any code that doesn't exist in the database,
         redemption SHALL fail with NOT_FOUND error.
         """
@@ -466,8 +439,6 @@ class TestInvitationRedemptionValidation:
         max_uses: int,
     ) -> None:
         """Valid invitation passes all validation checks.
-
-        **Validates: Requirements 6.2**
 
         Property: For any invitation that is enabled, not expired,
         and not exhausted, validation SHALL succeed.
@@ -505,15 +476,11 @@ class TestInvitationRedemptionValidation:
 
 # =============================================================================
 # Property Tests: Invitation Update Operations
-# Validates: Requirements 6.1, 6.2
 # =============================================================================
 
 
 class TestInvitationUpdateOperations:
-    """Property tests for invitation update operations.
-
-    **Validates: Requirements 6.1, 6.2**
-    """
+    """Property tests for invitation update operations."""
 
     @given(
         code=code_strategy,
@@ -530,8 +497,6 @@ class TestInvitationUpdateOperations:
         new_max_uses: int,
     ) -> None:
         """Updating max_uses persists the new value.
-
-        **Validates: Requirements 6.1**
 
         Property: For any invitation, updating max_uses SHALL persist
         the new value while preserving other fields.
@@ -579,8 +544,6 @@ class TestInvitationUpdateOperations:
     ) -> None:
         """Disabling an invitation prevents redemption.
 
-        **Validates: Requirements 6.2**
-
         Property: For any enabled invitation, disabling it SHALL
         prevent further redemptions.
         """
@@ -615,8 +578,6 @@ class TestInvitationUpdateOperations:
     @pytest.mark.asyncio
     async def test_delete_invitation(self, db: TestDB, code: str) -> None:
         """Deleting an invitation removes it from the database.
-
-        **Validates: Requirements 6.1**
 
         Property: For any invitation, deleting it SHALL remove it
         from the database and make it unretrievable.
