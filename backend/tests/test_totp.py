@@ -552,9 +552,10 @@ class TestTOTPServiceRateLimiting:
                 admin = await _create_admin(session)
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
-                # Simulate MAX_FAILED_ATTEMPTS failures
+                # Simulate MAX_FAILED_ATTEMPTS failures.
+                # Use naive datetime to match what SQLite returns.
                 admin.totp_failed_attempts = MAX_FAILED_ATTEMPTS
-                admin.totp_last_failed_at = datetime.now(UTC)
+                admin.totp_last_failed_at = datetime.now(UTC).replace(tzinfo=None)
 
                 with pytest.raises(AuthenticationError, match="Too many failed"):
                     service.check_rate_limit(admin)
@@ -571,10 +572,12 @@ class TestTOTPServiceRateLimiting:
                 admin = await _create_admin(session)
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
-                # Set failed attempts with expired window
+                # Set failed attempts with expired window.
+                # Use naive datetime to match what SQLite returns.
                 admin.totp_failed_attempts = MAX_FAILED_ATTEMPTS
-                admin.totp_last_failed_at = datetime.now(UTC) - timedelta(
-                    seconds=RATE_LIMIT_WINDOW_SECONDS + 1
+                admin.totp_last_failed_at = (
+                    datetime.now(UTC).replace(tzinfo=None)
+                    - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
                 )
 
                 # Should not raise, and should reset counter
@@ -594,11 +597,46 @@ class TestTOTPServiceRateLimiting:
                 admin = await _create_admin(session)
                 service = TOTPService(secret_key=TEST_SECRET_KEY)
 
+                # Use naive datetime to match what SQLite returns.
                 admin.totp_failed_attempts = MAX_FAILED_ATTEMPTS - 1
-                admin.totp_last_failed_at = datetime.now(UTC)
+                admin.totp_last_failed_at = datetime.now(UTC).replace(tzinfo=None)
 
                 # Should not raise
                 service.check_rate_limit(admin)
+        finally:
+            await engine.dispose()
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_handles_naive_datetime_from_sqlite(self) -> None:
+        """check_rate_limit works when totp_last_failed_at is timezone-naive.
+
+        SQLite strips timezone info on storage, so datetimes read back from
+        the DB are naive. This test ensures no TypeError from comparing
+        aware and naive datetimes.
+        """
+        engine = await create_test_engine()
+        try:
+            sf = async_sessionmaker(engine, expire_on_commit=False)
+            async with sf() as session:
+                admin = await _create_admin(session)
+                service = TOTPService(secret_key=TEST_SECRET_KEY)
+
+                # Simulate what SQLite returns: a naive datetime (no tzinfo)
+                admin.totp_failed_attempts = MAX_FAILED_ATTEMPTS
+                admin.totp_last_failed_at = datetime.now(UTC).replace(tzinfo=None)
+
+                # Should raise rate limit, NOT TypeError
+                with pytest.raises(AuthenticationError, match="Too many failed"):
+                    service.check_rate_limit(admin)
+
+                # Also test window expiry with a naive datetime
+                admin.totp_last_failed_at = (
+                    datetime.now(UTC).replace(tzinfo=None)
+                    - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
+                )
+                service.check_rate_limit(admin)
+                assert admin.totp_failed_attempts == 0
+                assert admin.totp_last_failed_at is None
         finally:
             await engine.dispose()
 
