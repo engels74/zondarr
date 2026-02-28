@@ -30,6 +30,8 @@ let { data }: Props = $props();
 				<GeneralTab
 					csrfOrigin={data.settings.csrf_origin.value}
 					isLocked={data.settings.csrf_origin.is_locked}
+					secureCookies={data.settings.secure_cookies.value === 'true'}
+					secureCookiesLocked={data.settings.secure_cookies.is_locked}
 				/>
 			{:else}
 				<p class="text-sm text-muted-foreground py-4">Failed to load settings.</p>

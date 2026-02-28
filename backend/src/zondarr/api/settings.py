@@ -24,6 +24,8 @@ from zondarr.api.schemas import (
     CsrfOriginTestResponse,
     CsrfOriginUpdate,
     ExpirationIntervalUpdate,
+    SecureCookiesResponse,
+    SecureCookiesUpdate,
     SettingValue,
     SyncIntervalUpdate,
 )
@@ -101,6 +103,41 @@ class SettingsController(Controller):
         origin, locked = await settings_service.get_csrf_origin()
         return CsrfOriginResponse(csrf_origin=origin, is_locked=locked)
 
+    @get(
+        "/secure-cookies",
+        summary="Get secure cookies setting",
+        description="Returns whether secure cookies are enabled and if the setting is locked by an environment variable.",
+    )
+    async def get_secure_cookies(
+        self,
+        settings_service: SettingsService,
+    ) -> SecureCookiesResponse:
+        """Get the current secure cookies configuration."""
+        value, is_locked = await settings_service.get_secure_cookies()
+        return SecureCookiesResponse(secure_cookies=value, is_locked=is_locked)
+
+    @put(
+        "/secure-cookies",
+        summary="Update secure cookies setting",
+        description="Enable or disable secure cookies. Fails if the value is locked by an environment variable.",
+    )
+    async def update_secure_cookies(
+        self,
+        data: SecureCookiesUpdate,
+        settings_service: SettingsService,
+    ) -> SecureCookiesResponse:
+        """Update the secure cookies setting in the database."""
+        _, is_locked = await settings_service.get_secure_cookies()
+        if is_locked:
+            raise ValidationError(
+                "Secure cookies is set via SECURE_COOKIES environment variable and cannot be changed through the API",
+                field_errors={"secure_cookies": ["Locked by environment variable"]},
+            )
+
+        _ = await settings_service.set_secure_cookies(data.secure_cookies)
+        value, locked = await settings_service.get_secure_cookies()
+        return SecureCookiesResponse(secure_cookies=value, is_locked=locked)
+
     @post(
         "/csrf-origin/test",
         summary="Test CSRF origin against browser",
@@ -152,11 +189,15 @@ class SettingsController(Controller):
     ) -> AllSettingsResponse:
         """Bundle all settings with lock status."""
         csrf_origin, csrf_locked = await settings_service.get_csrf_origin()
+        secure_cookies, secure_locked = await settings_service.get_secure_cookies()
         sync_interval, sync_locked = await settings_service.get_sync_interval()
         exp_interval, exp_locked = await settings_service.get_expiration_interval()
 
         return AllSettingsResponse(
             csrf_origin=SettingValue(value=csrf_origin, is_locked=csrf_locked),
+            secure_cookies=SettingValue(
+                value=str(secure_cookies).lower(), is_locked=secure_locked
+            ),
             sync_interval_seconds=SettingValue(
                 value=str(sync_interval), is_locked=sync_locked
             ),

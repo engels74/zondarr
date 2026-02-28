@@ -12,6 +12,7 @@ from zondarr.repositories.app_setting import AppSettingRepository
 
 # Database keys for settings
 CSRF_ORIGIN_KEY = "csrf_origin"
+SECURE_COOKIES_KEY = "secure_cookies"
 SYNC_INTERVAL_KEY = "sync_interval_seconds"
 EXPIRATION_INTERVAL_KEY = "expiration_check_interval_seconds"
 
@@ -43,6 +44,40 @@ class SettingsService:
     ) -> None:
         self.repository = repository
         self.settings = settings
+
+    async def get_secure_cookies(self) -> tuple[bool, bool]:
+        """Get the secure cookies setting.
+
+        Checks SECURE_COOKIES environment variable first (via presence check),
+        then falls back to the database value.
+
+        Returns:
+            A tuple of (secure_cookies_enabled, is_locked).
+            is_locked is True when the value comes from an environment variable.
+        """
+        env_val = os.environ.get("SECURE_COOKIES")
+        if env_val is not None:
+            return env_val.lower() in ("true", "1", "yes"), True
+
+        # Fall back to DB
+        setting = await self.repository.get_by_key(SECURE_COOKIES_KEY)
+        if setting is not None and setting.value is not None:
+            return setting.value.lower() in ("true", "1", "yes"), False
+
+        return False, False
+
+    async def set_secure_cookies(self, value: bool) -> AppSetting:
+        """Set the secure cookies setting in the database.
+
+        Args:
+            value: Whether to enable secure cookies.
+
+        Returns:
+            The created or updated AppSetting.
+        """
+        return await self.repository.upsert(
+            SECURE_COOKIES_KEY, str(value).lower()
+        )
 
     async def get_csrf_origin(self) -> tuple[str | None, bool]:
         """Get the CSRF origin setting.

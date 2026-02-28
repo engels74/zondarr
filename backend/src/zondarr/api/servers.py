@@ -44,6 +44,7 @@ from zondarr.services.sync import SyncService
 from .schemas import (
     ConnectionTestRequest,
     ConnectionTestResponse,
+    CredentialLockStatusResponse,
     EnvCredentialResponse,
     EnvCredentialsResponse,
     ErrorResponse,
@@ -417,6 +418,42 @@ class ServerController(Controller):
             )
 
         return EnvCredentialsResponse(credentials=credentials)
+
+    @get(
+        "/{server_id:uuid}/credential-locks",
+        cache=False,
+        summary="Get credential lock status for a server",
+        description="Returns which credential fields (URL, API key) are overridden by environment variables for a specific media server.",
+    )
+    async def get_credential_locks(
+        self,
+        server_id: Annotated[
+            UUID,
+            Parameter(description="Media server UUID"),
+        ],
+        settings: Settings,
+        media_server_service: MediaServerService,
+    ) -> CredentialLockStatusResponse:
+        """Get per-field credential lock status for a media server.
+
+        Checks whether env vars override the URL and/or API key for
+        this server's provider type.
+
+        Args:
+            server_id: The UUID of the media server.
+            settings: Application settings from DI.
+            media_server_service: MediaServerService from DI.
+
+        Returns:
+            CredentialLockStatusResponse with per-field lock booleans.
+        """
+        server = await media_server_service.get_by_id(server_id)
+        provider_creds = settings.provider_credentials.get(server.server_type, {})
+
+        return CredentialLockStatusResponse(
+            url_locked=bool(provider_creds.get("url")),
+            api_key_locked=bool(provider_creds.get("api_key")),
+        )
 
     @get(
         "/",

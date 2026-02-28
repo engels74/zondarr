@@ -18,6 +18,8 @@ import {
 	Clock3,
 	Database,
 	ExternalLink,
+	KeyRound,
+	Lock,
 	RefreshCw,
 	Server,
 	Trash2,
@@ -34,6 +36,7 @@ import {
 	withErrorHandling,
 } from "$lib/api/client";
 import { asErrorResponse, getErrorMessage } from "$lib/api/errors";
+import { Badge } from "$lib/components/ui/badge";
 import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
 import ErrorState from "$lib/components/error-state.svelte";
 import LibrarySyncResultsDialog from "$lib/components/servers/library-sync-results-dialog.svelte";
@@ -72,6 +75,8 @@ const usersStatus = $derived<SyncChannelStatus | null>(
 	data.server?.sync_status?.users ?? null,
 );
 const actionBusy = $derived(syncingUsers || syncingLibraries || deleting);
+const urlLocked = $derived(data.credentialLocks?.url_locked ?? false);
+const apiKeyLocked = $derived(data.credentialLocks?.api_key_locked ?? false);
 
 onMount(() => {
 	const countdownTimer = setInterval(() => {
@@ -324,12 +329,43 @@ async function handleDelete() {
 
 					<!-- URL -->
 					<div class="space-y-1" data-field="url">
-						<Label class="text-cr-text-muted text-xs uppercase tracking-wide flex items-center gap-1">
-							<ExternalLink class="size-3" />
-							URL
-						</Label>
+						<div class="flex items-center gap-2">
+							<Label class="text-cr-text-muted text-xs uppercase tracking-wide flex items-center gap-1">
+								<ExternalLink class="size-3" />
+								URL
+							</Label>
+							{#if urlLocked}
+								<Badge variant="secondary" class="gap-1">
+									<Lock class="size-3" />
+									Environment Variable
+								</Badge>
+							{/if}
+						</div>
 						<div class="font-mono text-sm text-cr-text bg-cr-bg px-3 py-2 rounded border border-cr-border break-all">
 							{data.server.url}
+						</div>
+					</div>
+
+					<!-- API Key -->
+					<div class="space-y-1" data-field="api_key">
+						<div class="flex items-center gap-2">
+							<Label class="text-cr-text-muted text-xs uppercase tracking-wide flex items-center gap-1">
+								<KeyRound class="size-3" />
+								API Key
+							</Label>
+							{#if apiKeyLocked}
+								<Badge variant="secondary" class="gap-1">
+									<Lock class="size-3" />
+									Environment Variable
+								</Badge>
+							{/if}
+						</div>
+						<div class="font-mono text-sm text-cr-text bg-cr-bg px-3 py-2 rounded border border-cr-border break-all">
+							{#if apiKeyLocked}
+								<span class="text-cr-text-muted">Set via environment variable</span>
+							{:else}
+								<span class="text-cr-text-muted">••••••••</span>
+							{/if}
 						</div>
 					</div>
 
