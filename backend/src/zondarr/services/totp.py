@@ -142,7 +142,10 @@ class TOTPService:
         # regardless of whether the threshold was reached.
         if (
             admin.totp_last_failed_at is not None
-            and (datetime.now(UTC) - admin.totp_last_failed_at).total_seconds()
+            and (
+                datetime.now(UTC).replace(tzinfo=None)
+                - admin.totp_last_failed_at
+            ).total_seconds()
             >= RATE_LIMIT_WINDOW_SECONDS
         ):
             admin.totp_failed_attempts = 0
