@@ -90,6 +90,9 @@ async function handleSecureCookiesToggle(checked: boolean) {
 			secureCookiesEnabled = checked;
 			showSuccess(checked ? 'Secure cookies enabled' : 'Secure cookies disabled');
 		}
+	} catch {
+		showError('Failed to update secure cookies setting');
+		secureCookiesEnabled = !checked;
 	} finally {
 		savingSecureCookies = false;
 	}
