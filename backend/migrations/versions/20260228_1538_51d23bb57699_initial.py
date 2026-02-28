@@ -232,6 +232,18 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
+        sa.CheckConstraint(
+            "sync_type IN ('libraries', 'users')",
+            name="ck_sync_runs_sync_type",
+        ),
+        sa.CheckConstraint(
+            "trigger IN ('automatic', 'manual', 'onboarding')",
+            name="ck_sync_runs_trigger",
+        ),
+        sa.CheckConstraint(
+            "status IN ('success', 'failed')",
+            name="ck_sync_runs_status",
+        ),
         sa.ForeignKeyConstraint(
             ["media_server_id"], ["media_servers.id"], ondelete="CASCADE"
         ),
