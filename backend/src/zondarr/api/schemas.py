@@ -426,10 +426,13 @@ class StepValidationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=
     Attributes:
         step_id: The UUID of the step being validated.
         interactions: List of interaction responses. Empty for informational steps.
+        progress_token: Signed progress token from prior step validation.
+            Required for non-first steps to prove sequential completion.
     """
 
     step_id: UUID
     interactions: list[InteractionResponseData] = []
+    progress_token: str | None = None
 
 
 class StepInteractionResponse(msgspec.Struct, omit_defaults=True):

@@ -31,6 +31,7 @@ let interactionCompletions = $state<
 >(new Map());
 let isValidating = $state(false);
 let validationError = $state<string | null>(null);
+let progressToken = $state<string | null>(null);
 
 // Derived values
 const currentStep = $derived(wizard.steps[currentStepIndex]);
@@ -99,6 +100,7 @@ $effect(() => {
 			try {
 				const parsed = JSON.parse(saved);
 				currentStepIndex = parsed.stepIndex ?? 0;
+				progressToken = parsed.progressToken ?? null;
 				// Restore nested map structure
 				if (parsed.completions) {
 					interactionCompletions = new Map(
@@ -132,6 +134,7 @@ $effect(() => {
 			JSON.stringify({
 				stepIndex: currentStepIndex,
 				completions,
+				progressToken,
 			}),
 		);
 	}
@@ -158,6 +161,7 @@ async function handleNext() {
 		const result = await validateStep({
 			step_id: step.id,
 			interactions: interactions.length > 0 ? interactions : [],
+			progress_token: progressToken,
 		});
 
 		if (!result.data?.valid) {
@@ -175,6 +179,8 @@ async function handleNext() {
 			}
 			onComplete(result.data?.completion_token);
 		} else {
+			// Store progress token for next step validation
+			progressToken = result.data?.completion_token ?? null;
 			currentStepIndex++;
 		}
 	} finally {
@@ -243,6 +249,7 @@ async function handleInteractionValidate(
 		const result = await validateStep({
 			step_id: step.id,
 			interactions,
+			progress_token: progressToken,
 		});
 
 		if (result.data?.valid) {

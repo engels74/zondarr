@@ -607,22 +607,26 @@ class WizardController(Controller):
         Validates all interaction responses for a step (AND logic).
         Empty interactions list = informational step, always valid.
 
-        When the validated step is the final step of its wizard, the
-        returned ``completion_token`` is an HMAC-signed wizard completion
-        token (used to prove completion during invitation redemption).
+        Non-first steps require a ``progress_token`` from the prior step
+        validation, ensuring sequential completion. The returned
+        ``completion_token`` is a signed progress token for intermediate
+        steps, or a signed wizard completion token for the final step
+        (used during invitation redemption).
 
         This endpoint is publicly accessible without authentication.
 
         Args:
-            data: The validation request with step_id and interactions.
+            data: The validation request with step_id, interactions, and
+                optional progress_token.
             wizard_service: WizardService from DI.
             settings: Application settings from DI.
 
         Returns:
-            Validation result with completion token if valid.
+            Validation result with completion/progress token if valid.
 
         Raises:
             NotFoundError: If the step or an interaction does not exist.
+            ValidationError: If progress token is missing or invalid.
         """
         # Convert interaction responses to tuples
         interaction_tuples: list[tuple[UUID, Mapping[str, object], datetime | None]] = [
@@ -633,6 +637,7 @@ class WizardController(Controller):
             data.step_id,
             interaction_tuples,
             secret_key=settings.secret_key,
+            progress_token=data.progress_token,
         )
 
         return StepValidationResponse(

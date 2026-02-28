@@ -1351,6 +1351,7 @@ export interface components {
             /** Format: uuid */
             step_id: string;
             interactions?: components["schemas"]["InteractionResponseData"][];
+            progress_token?: string | null;
         };
         /** StepValidationResponse */
         StepValidationResponse: {
