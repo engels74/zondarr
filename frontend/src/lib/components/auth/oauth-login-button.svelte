@@ -9,10 +9,11 @@ interface Props {
 	method: string;
 	displayName: string;
 	onsuccess: () => void;
+	ontotp: (challengeToken: string) => void;
 	onerror: (message: string) => void;
 }
 
-const { method, displayName, onsuccess, onerror }: Props = $props();
+const { method, displayName, onsuccess, ontotp, onerror }: Props = $props();
 
 let loading = $state(false);
 
@@ -70,6 +71,9 @@ async function handleOAuthLogin() {
 					if (result.error) {
 						loading = false;
 						onerror(getErrorDetail(result.error, `${displayName} login failed`));
+					} else if (result.data?.totp_required && result.data.challenge_token) {
+						loading = false;
+						ontotp(result.data.challenge_token);
 					} else {
 						loading = false;
 						onsuccess();

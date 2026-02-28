@@ -200,7 +200,7 @@ export async function loginExternal(
 	method: string,
 	credentials: Record<string, string>,
 	customFetch: typeof globalThis.fetch = fetch
-): Promise<{ data?: AuthTokenResponse; error?: unknown }> {
+): Promise<{ data?: LoginResponse; error?: unknown }> {
 	const response = await customFetch(`${API_BASE_URL}/api/auth/login/${method}`, {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -211,7 +211,7 @@ export async function loginExternal(
 		const error = await response.json();
 		return { error };
 	}
-	const result = (await response.json()) as AuthTokenResponse;
+	const result = (await response.json()) as LoginResponse;
 	return { data: result };
 }
 

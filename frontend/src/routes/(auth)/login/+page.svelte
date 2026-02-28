@@ -68,6 +68,10 @@ async function handleExternalSuccess() {
 	await goto("/dashboard");
 }
 
+function handleExternalTotp(challengeToken: string) {
+	totpChallengeToken = challengeToken;
+}
+
 function handleExternalError(message: string) {
 	error = message;
 }
@@ -129,6 +133,7 @@ function handleExternalError(message: string) {
 								method={method.method_name}
 								displayName={method.display_name}
 								onsuccess={handleExternalSuccess}
+								ontotp={handleExternalTotp}
 								onerror={handleExternalError}
 							/>
 						{:else}
@@ -137,6 +142,7 @@ function handleExternalError(message: string) {
 								displayName={method.display_name}
 								fields={method.fields}
 								onsuccess={handleExternalSuccess}
+								ontotp={handleExternalTotp}
 								onerror={handleExternalError}
 							/>
 						{/if}
