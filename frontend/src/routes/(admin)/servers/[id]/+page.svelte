@@ -531,11 +531,6 @@ async function handleDelete() {
 							{/if}
 						</Button>
 
-						<p class="text-sm text-cr-text-muted flex-1">
-							Run immediate synchronization for users and libraries. Automatic sync status is
-							shown above.
-						</p>
-
 						<!-- Delete Button -->
 						<Button
 							variant="outline"
