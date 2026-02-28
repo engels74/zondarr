@@ -11,10 +11,11 @@ interface Props {
 	displayName: string;
 	fields: AuthFieldInfo[];
 	onsuccess: () => void;
+	ontotp: (challengeToken: string) => void;
 	onerror: (message: string) => void;
 }
 
-const { method, displayName, fields, onsuccess, onerror }: Props = $props();
+const { method, displayName, fields, onsuccess, ontotp, onerror }: Props = $props();
 
 let expanded = $state(false);
 let fieldValues = $state<Record<string, string>>({});
@@ -52,6 +53,8 @@ async function handleSubmit(e: SubmitEvent) {
 		const response = await loginExternal(method, fieldValues);
 		if (response.error) {
 			onerror(getErrorDetail(response.error, `${displayName} login failed`));
+		} else if (response.data?.totp_required && response.data.challenge_token) {
+			ontotp(response.data.challenge_token);
 		} else {
 			onsuccess();
 		}

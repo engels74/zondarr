@@ -891,7 +891,8 @@ class TestExternalLoginTOTPEnforcement:
             data: dict[str, object] = resp.json()  # pyright: ignore[reportAny]
             assert data["totp_required"] is True
             assert data["challenge_token"] is not None
-            # No access cookie should be set
+            # No refresh token or access cookie should be issued before TOTP verification
+            assert "refresh_token" not in data
             assert "zondarr_access_token" not in resp.cookies
         finally:
             await engine.dispose()
@@ -939,8 +940,6 @@ class TestExternalLoginTOTPEnforcement:
         """Challenge token from external login can be used with /api/auth/totp/verify."""
         from litestar.testing import TestClient
 
-        from zondarr.api.totp import validate_challenge_token
-
         engine = await create_test_engine()
         try:
             sf = async_sessionmaker(engine, expire_on_commit=False)
@@ -974,8 +973,20 @@ class TestExternalLoginTOTPEnforcement:
             challenge_token = data["challenge_token"]
             assert isinstance(challenge_token, str)
 
-            # Step 2: Validate the challenge token resolves to the correct admin
-            admin_id = validate_challenge_token(challenge_token, TEST_SECRET_KEY)
-            assert admin_id == admin.id
+            # Step 2: Complete login via the actual TOTP verify endpoint
+            totp_code = _get_valid_totp_code(secret)
+            with TestClient(app) as client:
+                verify_resp = client.post(
+                    "/api/auth/totp/verify",
+                    json={
+                        "challenge_token": challenge_token,
+                        "code": totp_code,
+                    },
+                )
+
+            assert verify_resp.status_code == 200
+            verify_data: dict[str, object] = verify_resp.json()  # pyright: ignore[reportAny]
+            assert verify_data.get("refresh_token") is not None
+            assert "zondarr_access_token" in verify_resp.cookies
         finally:
             await engine.dispose()
