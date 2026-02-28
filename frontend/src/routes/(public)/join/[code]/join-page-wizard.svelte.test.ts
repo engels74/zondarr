@@ -186,7 +186,7 @@ afterEach(() => {
 // Pre-wizard display before registration
 // =============================================================================
 
-describe('Requirement 14.1: Pre-wizard display before registration', () => {
+describe('Pre-wizard display before registration', () => {
 	/**
 	 * For any valid invitation with a pre_wizard, the join flow SHALL display
 	 * a notice indicating additional steps are required.
@@ -235,7 +235,7 @@ describe('Requirement 14.1: Pre-wizard display before registration', () => {
 // Post-wizard display after registration
 // =============================================================================
 
-describe('Requirement 14.2: Post-wizard display after registration', () => {
+describe('Post-wizard display after registration', () => {
 	/**
 	 * For any valid invitation with a post_wizard, the wizard data SHALL be
 	 * available in the validation response.
@@ -274,7 +274,7 @@ describe('Requirement 14.2: Post-wizard display after registration', () => {
 // Pre-wizard completion before registration
 // =============================================================================
 
-describe('Requirement 14.3: Pre-wizard completion before registration', () => {
+describe('Pre-wizard completion before registration', () => {
 	/**
 	 * For any valid invitation with a pre_wizard, the wizard steps SHALL be
 	 * ordered by step_order.
@@ -319,7 +319,7 @@ describe('Requirement 14.3: Pre-wizard completion before registration', () => {
 // Post-wizard completion before success
 // =============================================================================
 
-describe('Requirement 14.4: Post-wizard completion before success', () => {
+describe('Post-wizard completion before success', () => {
 	/**
 	 * For any valid invitation with a post_wizard, the wizard SHALL be
 	 * enabled for display.
@@ -357,7 +357,7 @@ describe('Requirement 14.4: Post-wizard completion before success', () => {
 // No accounts created if pre-wizard abandoned
 // =============================================================================
 
-describe('Requirement 14.5: No accounts created if pre-wizard abandoned', () => {
+describe('No accounts created if pre-wizard abandoned', () => {
 	/**
 	 * Session storage key generation SHALL be consistent for wizard progress.
 	 */
@@ -406,7 +406,7 @@ describe('Requirement 14.5: No accounts created if pre-wizard abandoned', () => 
 // Session persistence
 // =============================================================================
 
-describe('Requirement 14.6: Session persistence', () => {
+describe('Session persistence', () => {
 	/**
 	 * Join flow state SHALL be serializable to JSON.
 	 */
