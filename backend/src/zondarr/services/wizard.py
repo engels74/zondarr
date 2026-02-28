@@ -680,9 +680,7 @@ class WizardService:
             raise ValidationError(
                 "Progress token does not cover all prior steps",
                 field_errors={
-                    "progress_token": [
-                        "Must complete all prior steps in order"
-                    ]
+                    "progress_token": ["Must complete all prior steps in order"]
                 },
             )
 

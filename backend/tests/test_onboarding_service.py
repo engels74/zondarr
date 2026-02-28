@@ -41,7 +41,9 @@ class TestGetStatus:
         assert step == "account"
 
     @pytest.mark.asyncio
-    async def test_existing_admin_defaults_to_security(self, session: AsyncSession) -> None:
+    async def test_existing_admin_defaults_to_security(
+        self, session: AsyncSession
+    ) -> None:
         await _create_admin(session)
         service = _make_service(session)
 
@@ -55,7 +57,9 @@ class TestGetStatus:
         assert setting.value == "security"
 
     @pytest.mark.asyncio
-    async def test_existing_admin_uses_persisted_step(self, session: AsyncSession) -> None:
+    async def test_existing_admin_uses_persisted_step(
+        self, session: AsyncSession
+    ) -> None:
         await _create_admin(session)
         repo = AppSettingRepository(session)
         _ = await repo.upsert(ONBOARDING_STEP_KEY, "complete")
@@ -99,7 +103,9 @@ class TestTransitions:
         assert third == "complete"
 
     @pytest.mark.asyncio
-    async def test_advance_skip_step_requires_admin(self, session: AsyncSession) -> None:
+    async def test_advance_skip_step_requires_admin(
+        self, session: AsyncSession
+    ) -> None:
         service = _make_service(session)
 
         with pytest.raises(AuthenticationError, match="Admin setup is required"):

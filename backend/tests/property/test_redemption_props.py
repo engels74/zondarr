@@ -2276,9 +2276,7 @@ class TestAtomicReservation:
     """
 
     @pytest.mark.asyncio
-    async def test_reserve_use_returns_true_and_increments(
-        self, db: TestDB
-    ) -> None:
+    async def test_reserve_use_returns_true_and_increments(self, db: TestDB) -> None:
         """reserve_use returns True and increments use_count when valid."""
         await db.clean()
         session_factory = db.session_factory
@@ -2310,9 +2308,7 @@ class TestAtomicReservation:
             assert inv.use_count == 3
 
     @pytest.mark.asyncio
-    async def test_reserve_use_returns_false_at_max_uses(
-        self, db: TestDB
-    ) -> None:
+    async def test_reserve_use_returns_false_at_max_uses(self, db: TestDB) -> None:
         """reserve_use returns False when use_count == max_uses."""
         await db.clean()
         session_factory = db.session_factory
@@ -2345,9 +2341,7 @@ class TestAtomicReservation:
             assert inv.use_count == 3
 
     @pytest.mark.asyncio
-    async def test_reserve_use_returns_false_when_disabled(
-        self, db: TestDB
-    ) -> None:
+    async def test_reserve_use_returns_false_when_disabled(self, db: TestDB) -> None:
         """reserve_use returns False when invitation is disabled."""
         await db.clean()
         session_factory = db.session_factory
@@ -2371,9 +2365,7 @@ class TestAtomicReservation:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_reserve_use_returns_false_when_expired(
-        self, db: TestDB
-    ) -> None:
+    async def test_reserve_use_returns_false_when_expired(self, db: TestDB) -> None:
         """reserve_use returns False when invitation is expired."""
         from datetime import UTC, datetime, timedelta
 
@@ -2399,9 +2391,7 @@ class TestAtomicReservation:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_reserve_use_returns_true_when_unlimited(
-        self, db: TestDB
-    ) -> None:
+    async def test_reserve_use_returns_true_when_unlimited(self, db: TestDB) -> None:
         """reserve_use returns True when max_uses is None (unlimited)."""
         await db.clean()
         session_factory = db.session_factory

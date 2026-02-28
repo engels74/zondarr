@@ -221,7 +221,9 @@ class SettingsController(Controller):
         if is_locked:
             raise ValidationError(
                 "Sync interval is set via SYNC_INTERVAL_SECONDS environment variable and cannot be changed through the API",
-                field_errors={"sync_interval_seconds": ["Locked by environment variable"]},
+                field_errors={
+                    "sync_interval_seconds": ["Locked by environment variable"]
+                },
             )
         _ = await settings_service.set_sync_interval(data.sync_interval_seconds)
         value, locked = await settings_service.get_sync_interval()
@@ -242,7 +244,11 @@ class SettingsController(Controller):
         if is_locked:
             raise ValidationError(
                 "Expiration interval is set via EXPIRATION_CHECK_INTERVAL_SECONDS environment variable and cannot be changed through the API",
-                field_errors={"expiration_check_interval_seconds": ["Locked by environment variable"]},
+                field_errors={
+                    "expiration_check_interval_seconds": [
+                        "Locked by environment variable"
+                    ]
+                },
             )
         _ = await settings_service.set_expiration_interval(
             data.expiration_check_interval_seconds

@@ -93,9 +93,7 @@ class TestCredentialLocks:
             app = _make_test_app(session_factory, settings)
 
             with TestClient(app) as client:
-                response = client.get(
-                    f"/api/v1/servers/{server_id}/credential-locks"
-                )
+                response = client.get(f"/api/v1/servers/{server_id}/credential-locks")
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
                 assert data["url_locked"] is False
@@ -133,9 +131,7 @@ class TestCredentialLocks:
             app = _make_test_app(session_factory, settings)
 
             with TestClient(app) as client:
-                response = client.get(
-                    f"/api/v1/servers/{server_id}/credential-locks"
-                )
+                response = client.get(f"/api/v1/servers/{server_id}/credential-locks")
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
                 assert data["url_locked"] is True
@@ -170,9 +166,7 @@ class TestCredentialLocks:
             app = _make_test_app(session_factory, settings)
 
             with TestClient(app) as client:
-                response = client.get(
-                    f"/api/v1/servers/{server_id}/credential-locks"
-                )
+                response = client.get(f"/api/v1/servers/{server_id}/credential-locks")
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
                 assert data["url_locked"] is True
@@ -207,9 +201,7 @@ class TestCredentialLocks:
             app = _make_test_app(session_factory, settings)
 
             with TestClient(app) as client:
-                response = client.get(
-                    f"/api/v1/servers/{server_id}/credential-locks"
-                )
+                response = client.get(f"/api/v1/servers/{server_id}/credential-locks")
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
                 assert data["url_locked"] is False
@@ -247,13 +239,10 @@ class TestCredentialLocks:
             app = _make_test_app(session_factory, settings)
 
             with TestClient(app) as client:
-                response = client.get(
-                    f"/api/v1/servers/{server_id}/credential-locks"
-                )
+                response = client.get(f"/api/v1/servers/{server_id}/credential-locks")
                 assert response.status_code == 200
                 data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
                 assert data["url_locked"] is True
                 assert data["api_key_locked"] is True
         finally:
             await engine.dispose()
-

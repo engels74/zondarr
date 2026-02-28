@@ -4,6 +4,7 @@ import { getErrorDetail, loginLocal } from "$lib/api/auth";
 import CredentialLoginForm from "$lib/components/auth/credential-login-form.svelte";
 import LocalLoginForm from "$lib/components/auth/local-login-form.svelte";
 import OAuthLoginButton from "$lib/components/auth/oauth-login-button.svelte";
+import TotpVerifyStep from "$lib/components/auth/totp-verify-step.svelte";
 import * as Card from "$lib/components/ui/card";
 import { Separator } from "$lib/components/ui/separator";
 import type { PageData } from "./$types";
@@ -12,10 +13,12 @@ const { data }: { data: PageData } = $props();
 
 let error = $state("");
 let retryTimer: ReturnType<typeof setInterval> | null = null;
+let totpChallengeToken = $state<string | null>(null);
 
 const backendAvailable = $derived(data.backendAvailable !== false);
 const externalMethods = $derived(data.providerAuth ?? []);
 const hasExternal = $derived(externalMethods.length > 0);
+const showTotpStep = $derived(totpChallengeToken !== null);
 
 $effect(() => {
 	if (!backendAvailable && !retryTimer) {
@@ -41,8 +44,23 @@ async function handleLocalLogin(username: string, password: string) {
 		error = getErrorDetail(result.error, "Invalid credentials");
 		return;
 	}
+	if (result.data?.totp_required && result.data.challenge_token) {
+		totpChallengeToken = result.data.challenge_token;
+		return;
+	}
 	await invalidateAll();
 	await goto("/dashboard");
+}
+
+async function handleTotpSuccess() {
+	totpChallengeToken = null;
+	await invalidateAll();
+	await goto("/dashboard");
+}
+
+function handleTotpCancel() {
+	totpChallengeToken = null;
+	error = "";
 }
 
 async function handleExternalSuccess() {
@@ -65,6 +83,16 @@ function handleExternalError(message: string) {
 		</Card.Header>
 		<Card.Content class="flex justify-center py-4">
 			<div class="h-6 w-6 animate-spin rounded-full border-2 border-cr-text-muted border-t-cr-accent"></div>
+		</Card.Content>
+	</Card.Root>
+{:else if showTotpStep}
+	<Card.Root class="border-cr-border bg-cr-surface">
+		<Card.Content class="py-6">
+			<TotpVerifyStep
+				challengeToken={totpChallengeToken!}
+				onsuccess={handleTotpSuccess}
+				oncancel={handleTotpCancel}
+			/>
 		</Card.Content>
 	</Card.Root>
 {:else}
