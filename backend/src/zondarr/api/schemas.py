@@ -426,10 +426,13 @@ class StepValidationRequest(msgspec.Struct, kw_only=True, forbid_unknown_fields=
     Attributes:
         step_id: The UUID of the step being validated.
         interactions: List of interaction responses. Empty for informational steps.
+        progress_token: Signed progress token from prior step validation.
+            Required for non-first steps to prove sequential completion.
     """
 
     step_id: UUID
     interactions: list[InteractionResponseData] = []
+    progress_token: str | None = None
 
 
 class StepInteractionResponse(msgspec.Struct, omit_defaults=True):
@@ -770,12 +773,15 @@ class RedeemInvitationRequest(msgspec.Struct, kw_only=True, forbid_unknown_field
         email: Optional email address for the identity.
         auth_token: Optional OAuth auth token from the provider (e.g. Plex auth token).
             Used for direct library sharing without creating a friend relationship.
+        pre_wizard_token: Signed wizard completion token proving the pre-wizard
+            was completed. Required when the invitation has a pre_wizard_id configured.
     """
 
     username: Username
     password: Password
     email: EmailStr | None = None
     auth_token: str | None = None
+    pre_wizard_token: str | None = None
 
 
 # =============================================================================

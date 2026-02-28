@@ -17,6 +17,11 @@ from datetime import datetime
 from uuid import UUID
 
 from zondarr.core.exceptions import NotFoundError, ValidationError
+from zondarr.core.wizard_token import (
+    sign_wizard_completion,
+    sign_wizard_progress,
+    verify_wizard_progress,
+)
 from zondarr.models.wizard import InteractionType, StepInteraction, Wizard, WizardStep
 from zondarr.repositories.step_interaction import StepInteractionRepository
 from zondarr.repositories.wizard import WizardRepository
@@ -508,6 +513,9 @@ class WizardService:
         step_id: UUID,
         interactions: list[tuple[UUID, InputConfig, datetime | None]],
         /,
+        *,
+        secret_key: str | None = None,
+        progress_token: str | None = None,
     ) -> tuple[bool, str | None, str | None]:
         """Validate step completion with all interactions.
 
@@ -516,16 +524,25 @@ class WizardService:
         Steps with zero DB interactions are informational and always valid.
         All interactions must pass (AND logic).
 
+        Uses signed progress tokens to enforce sequential step completion.
+        Non-first steps require a valid ``progress_token`` proving all
+        prior steps were validated. The returned token is either a progress
+        token (for intermediate steps) or a signed wizard completion token
+        (for the final step, when ``secret_key`` is provided).
+
         Args:
             step_id: The UUID of the step (positional-only).
             interactions: List of (interaction_id, response, started_at) tuples (positional-only).
+            secret_key: App secret key for signing tokens (keyword-only).
+            progress_token: Signed progress token from prior step validation (keyword-only).
 
         Returns:
-            A tuple of (is_valid, error_message, completion_token).
+            A tuple of (is_valid, error_message, token).
 
         Raises:
             NotFoundError: If the step or an interaction does not exist.
-            ValidationError: If submitted interaction IDs don't match the step's interactions.
+            ValidationError: If submitted interaction IDs don't match the step's interactions,
+                or if a required progress token is missing/invalid.
             RepositoryError: If the database operation fails.
         """
         step = await self.step_repo.get_by_id(step_id)
@@ -537,9 +554,23 @@ class WizardService:
         expected_ids = {i.id for i in db_interactions}
         submitted_ids = {iid for iid, _, _ in interactions}
 
+        # Determine step position within the wizard
+        wizard_steps = await self.step_repo.get_by_wizard_id(step.wizard_id)
+        step_ids = [s.id for s in wizard_steps]
+        step_index = step_ids.index(step.id) if step.id in step_ids else -1
+        is_first_step = step_index == 0
+        is_last_step = step_index == len(step_ids) - 1
+
+        # Verify progress token for non-first steps
+        prior_validated_ids = self._verify_progress(
+            step, step_ids, step_index, is_first_step, secret_key, progress_token
+        )
+
         # Informational step: only valid when DB truly has zero interactions
         if not expected_ids:
-            token = secrets.token_urlsafe(32)
+            token = self._make_step_token(
+                step, secret_key, is_last_step, prior_validated_ids
+            )
             return True, None, token
 
         # Enforce exact match between submitted and expected interaction IDs
@@ -579,8 +610,120 @@ class WizardService:
             if not is_valid:
                 return False, error, None
 
-        token = secrets.token_urlsafe(32)
+        token = self._make_step_token(
+            step, secret_key, is_last_step, prior_validated_ids
+        )
         return True, None, token
+
+    @staticmethod
+    def _verify_progress(
+        step: WizardStep,
+        step_ids: list[UUID],
+        step_index: int,
+        is_first_step: bool,
+        secret_key: str | None,
+        progress_token: str | None,
+    ) -> list[str]:
+        """Verify the progress token proves all prior steps were validated.
+
+        Args:
+            step: The current step being validated.
+            step_ids: Ordered list of all step IDs in the wizard.
+            step_index: Index of the current step in the wizard.
+            is_first_step: Whether this is the first step.
+            secret_key: App secret key for token verification.
+            progress_token: The progress token to verify.
+
+        Returns:
+            List of previously validated step ID strings (empty for first step).
+
+        Raises:
+            ValidationError: If the progress token is missing or invalid
+                for a non-first step.
+        """
+        if is_first_step:
+            return []
+
+        if secret_key is None:
+            # No secret key — can't verify progress, allow (dev mode)
+            return []
+
+        if progress_token is None:
+            raise ValidationError(
+                "Progress token is required for non-first steps",
+                field_errors={
+                    "progress_token": [
+                        "Must complete prior steps before validating this step"
+                    ]
+                },
+            )
+
+        validated_ids = verify_wizard_progress(
+            progress_token,
+            step.wizard_id,
+            secret_key,
+        )
+
+        if validated_ids is None:
+            raise ValidationError(
+                "Invalid or expired progress token",
+                field_errors={
+                    "progress_token": [
+                        "Progress token is invalid, expired, or for a different wizard"
+                    ]
+                },
+            )
+
+        # Verify the progress token contains all expected prior step IDs
+        expected_prior = [str(sid) for sid in step_ids[:step_index]]
+        if validated_ids != expected_prior:
+            raise ValidationError(
+                "Progress token does not cover all prior steps",
+                field_errors={
+                    "progress_token": [
+                        "Must complete all prior steps in order"
+                    ]
+                },
+            )
+
+        return validated_ids
+
+    @staticmethod
+    def _make_step_token(
+        step: WizardStep,
+        secret_key: str | None,
+        is_last_step: bool,
+        prior_validated_ids: list[str],
+    ) -> str:
+        """Generate a token for a validated step.
+
+        Returns a signed wizard completion token for the final step
+        (when ``secret_key`` is provided), a signed progress token for
+        intermediate steps, or a random token when no secret key is
+        available.
+
+        Args:
+            step: The validated wizard step.
+            secret_key: App secret key for signing, or None.
+            is_last_step: Whether this step is the last step of its wizard.
+            prior_validated_ids: Step IDs validated before this step.
+
+        Returns:
+            A token string (completion, progress, or random).
+        """
+        if secret_key is None:
+            return secrets.token_urlsafe(32)
+
+        if is_last_step:
+            return sign_wizard_completion(step.wizard_id, secret_key)
+
+        # Intermediate step: return a progress token with this step added
+        all_validated = [*prior_validated_ids, str(step.id)]
+        return sign_wizard_progress(
+            step.wizard_id,
+            [UUID(sid) for sid in all_validated],
+            secret_key,
+        )
 
     # ==================== Validation Helpers ====================
 
