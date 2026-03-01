@@ -1127,10 +1127,13 @@ class CsrfOriginResponse(msgspec.Struct, kw_only=True):
         csrf_origin: The configured CSRF origin URL, or null if not set.
         is_locked: True if the value is set via environment variable and cannot
             be changed through the API.
+        secure_cookies_auto_enabled: True when secure cookies were automatically
+            enabled because the CSRF origin was set to an HTTPS URL.
     """
 
     csrf_origin: str | None
     is_locked: bool
+    secure_cookies_auto_enabled: bool = False
 
 
 class CsrfOriginUpdate(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):

@@ -636,6 +636,7 @@ export async function checkOAuthPin(
 export interface CsrfOriginResponse {
 	csrf_origin: string | null;
 	is_locked: boolean;
+	secure_cookies_auto_enabled?: boolean;
 }
 
 /**
@@ -783,9 +784,7 @@ export interface AboutResponse {
  *
  * @param customFetch - Optional fetch function (use SvelteKit's fetch in load functions)
  */
-export async function getAllSettings(
-	customFetch: typeof globalThis.fetch = fetch
-): Promise<{
+export async function getAllSettings(customFetch: typeof globalThis.fetch = fetch): Promise<{
 	data?: AllSettingsResponse;
 	error?: unknown;
 }> {
