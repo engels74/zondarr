@@ -1,8 +1,8 @@
 """initial
 
-Revision ID: 51d23bb57699
+Revision ID: 879656e4f2f5
 Revises:
-Create Date: 2026-02-28 15:38:56.635702
+Create Date: 2026-03-01 01:21:08.229807
 """
 
 from collections.abc import Sequence
@@ -12,7 +12,7 @@ from alembic import op
 from sqlalchemy.dialects import sqlite
 
 # Revision identifiers, used by Alembic.
-revision: str = "51d23bb57699"
+revision: str = "879656e4f2f5"
 down_revision: str | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -30,6 +30,12 @@ def upgrade() -> None:
         sa.Column("external_id", sa.String(length=255), nullable=True),
         sa.Column("enabled", sa.Boolean(), nullable=False),
         sa.Column("last_login_at", sa.DateTime(), nullable=True),
+        sa.Column("totp_enabled", sa.Boolean(), nullable=False),
+        sa.Column("totp_secret_encrypted", sa.Text(), nullable=True),
+        sa.Column("totp_backup_codes", sa.Text(), nullable=True),
+        sa.Column("totp_enabled_at", sa.DateTime(), nullable=True),
+        sa.Column("totp_failed_attempts", sa.Integer(), nullable=False),
+        sa.Column("totp_last_failed_at", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "created_at",
@@ -233,16 +239,14 @@ def upgrade() -> None:
         ),
         sa.Column("updated_at", sa.DateTime(), nullable=True),
         sa.CheckConstraint(
-            "sync_type IN ('libraries', 'users')",
-            name="ck_sync_runs_sync_type",
+            "status IN ('success', 'failed')", name="ck_sync_runs_status"
+        ),
+        sa.CheckConstraint(
+            "sync_type IN ('libraries', 'users')", name="ck_sync_runs_sync_type"
         ),
         sa.CheckConstraint(
             "trigger IN ('automatic', 'manual', 'onboarding')",
             name="ck_sync_runs_trigger",
-        ),
-        sa.CheckConstraint(
-            "status IN ('success', 'failed')",
-            name="ck_sync_runs_status",
         ),
         sa.ForeignKeyConstraint(
             ["media_server_id"], ["media_servers.id"], ondelete="CASCADE"
