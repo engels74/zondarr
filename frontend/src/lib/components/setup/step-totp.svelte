@@ -2,9 +2,9 @@
 	import { Loader2, ShieldCheck } from '@lucide/svelte';
 	import {
 		getErrorDetail,
+		type TotpSetupResponse,
 		totpSetup,
-		totpVerifySetup,
-		type TotpSetupResponse
+		totpVerifySetup
 	} from '$lib/api/auth';
 	import TotpCodeInput from '$lib/components/auth/totp-code-input.svelte';
 	import BackupCodesDisplay from '$lib/components/settings/backup-codes-display.svelte';

@@ -206,6 +206,7 @@ $effect(() => {
 									fill="none"
 									stroke="currentColor"
 									stroke-width="2"
+									aria-hidden="true"
 								>
 									<polyline points="20 6 9 17 4 12" />
 								</svg>
@@ -226,6 +227,7 @@ $effect(() => {
 	<!-- Quick-filter badges for errors and warnings -->
 	{#if errorCount > 0}
 		<button
+			type="button"
 			class="inline-flex items-center gap-1 rounded-full border border-transparent bg-red-500/15 px-2 py-0.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-500/25 dark:text-red-400 {levelFilter === 'ERROR' ? 'ring-1 ring-red-500/50' : ''}"
 			onclick={() => onLevelChange(levelFilter === "ERROR" ? "ALL" : "ERROR")}
 			title="Toggle error filter"
@@ -236,6 +238,7 @@ $effect(() => {
 	{/if}
 	{#if warningCount > 0}
 		<button
+			type="button"
 			class="inline-flex items-center gap-1 rounded-full border border-transparent bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/25 dark:text-amber-400 {levelFilter === 'WARNING' ? 'ring-1 ring-amber-500/50' : ''}"
 			onclick={() =>
 				onLevelChange(levelFilter === "WARNING" ? "ALL" : "WARNING")}

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Biome schema version in biome.json files",
+      "fileMatch": ["(^|/)biome\\.json$"],
+      "matchStrings": [
+        "\"\\$schema\":\\s*\"https://biomejs\\.dev/schemas/(?<currentValue>[\\d.]+)/schema\\.json\""
+      ],
+      "depNameTemplate": "@biomejs/biome",
+      "datasourceTemplate": "npm",
+      "extractVersionTemplate": "^(?<version>.*)$"
+    }
+  ],
+  "packageRules": [
+    {
+      "groupName": "litestar",
+      "matchPackageNames": ["litestar", "granian"]
+    },
+    {
+      "groupName": "sqlalchemy",
+      "matchPackageNames": ["sqlalchemy", "alembic", "aiosqlite", "asyncpg"]
+    },
+    {
+      "groupName": "testing-python",
+      "matchPackageNames": ["pytest", "/^pytest-/", "hypothesis"]
+    },
+    {
+      "groupName": "security",
+      "matchPackageNames": ["argon2-cffi", "pyjwt", "pyotp", "cryptography"]
+    },
+    {
+      "groupName": "svelte",
+      "matchPackageNames": ["svelte", "/^@sveltejs\\//", "/^svelte-/"]
+    },
+    {
+      "groupName": "unocss",
+      "matchPackageNames": ["unocss", "/^@unocss\\//", "/^unocss-/"]
+    },
+    {
+      "groupName": "testing-frontend",
+      "matchPackageNames": ["vitest", "/^@testing-library\\//", "fast-check", "jsdom", "@types/jsdom"]
+    },
+    {
+      "groupName": "biome",
+      "matchPackageNames": ["@biomejs/biome"]
+    }
+  ]
+}

@@ -2,7 +2,8 @@ import { env } from '$env/dynamic/private';
 import { env as publicEnv } from '$env/dynamic/public';
 import type { RequestHandler } from './$types';
 
-const INTERNAL_API_URL = env.INTERNAL_API_URL ?? publicEnv.PUBLIC_API_URL ?? 'http://localhost:8000';
+const INTERNAL_API_URL =
+	env.INTERNAL_API_URL ?? publicEnv.PUBLIC_API_URL ?? 'http://localhost:8000';
 
 // Headers to strip from proxied requests:
 // - Hop-by-hop: connection, keep-alive, transfer-encoding, upgrade
@@ -42,9 +43,7 @@ const handler: RequestHandler = async ({ request, url, params }) => {
 
 		// SSE responses must stream; buffer everything else to avoid
 		// ReadableStream being consumed during SvelteKit's SSR cloning.
-		const isEventStream = response.headers
-			.get('content-type')
-			?.includes('text/event-stream');
+		const isEventStream = response.headers.get('content-type')?.includes('text/event-stream');
 
 		if (isEventStream) {
 			return new Response(response.body, {

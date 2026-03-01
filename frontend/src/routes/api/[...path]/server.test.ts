@@ -42,15 +42,11 @@ describe('API proxy route', () => {
 			}
 		);
 
-		const response = await POST(
-			makeEvent(request, 'v1/settings/csrf-origin/test')
-		);
+		const response = await POST(makeEvent(request, 'v1/settings/csrf-origin/test'));
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [upstream, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
-		expect(upstream).toBe(
-			'http://localhost:8000/api/v1/settings/csrf-origin/test?from=setup'
-		);
+		expect(upstream).toBe('http://localhost:8000/api/v1/settings/csrf-origin/test?from=setup');
 		expect(init.method).toBe('POST');
 		expect(init.body).toBeDefined();
 

@@ -61,17 +61,17 @@ describe('SetupWizard', () => {
 		vi.resetAllMocks();
 	});
 
-	it('shows setup steps in Account -> Security -> Server order', () => {
+	it('shows setup steps in Account -> Two-Factor -> Security -> Server order', () => {
 		const { container } = render(SetupWizard);
 
 		const stepLabels = Array.from(
 			container.querySelectorAll('.step-indicator span.text-xs.font-medium.uppercase')
 		).map((label) => label.textContent?.trim());
 
-		expect(stepLabels).toEqual(['Account', 'Security', 'Server']);
+		expect(stepLabels).toEqual(['Account', 'Two-Factor', 'Security', 'Server']);
 	});
 
-	it('moves from admin step to the CSRF step after creating an admin', async () => {
+	it('moves from admin step to the TOTP step after creating an admin', async () => {
 		const user = userEvent.setup();
 		vi.mocked(authApi.setupAdmin).mockResolvedValue({
 			data: { refresh_token: 'token' },
@@ -82,7 +82,7 @@ describe('SetupWizard', () => {
 		await submitAdminStep(user, container);
 
 		await waitFor(() => {
-			expect(container.textContent).toContain('Security Configuration');
+			expect(container.textContent).toContain('Two-Factor Authentication');
 		});
 	});
 
@@ -116,6 +116,12 @@ describe('SetupWizard', () => {
 
 		const { container } = render(SetupWizard);
 		await submitAdminStep(user, container);
+
+		await waitFor(() => {
+			expect(container.textContent).toContain('Two-Factor Authentication');
+		});
+
+		await user.click(findButton(container, 'Set up later')!);
 
 		await waitFor(() => {
 			expect(container.textContent).toContain('Security Configuration');

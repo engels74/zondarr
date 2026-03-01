@@ -94,4 +94,3 @@ const syncedAtFormatted = $derived.by(() => {
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
-

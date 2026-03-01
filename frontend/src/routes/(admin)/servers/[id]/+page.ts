@@ -8,11 +8,11 @@
  */
 
 import {
+	type CredentialLockStatus,
 	createScopedClient,
 	getCredentialLocks,
 	getServer,
-	type CredentialLockStatus,
-	type MediaServerDetailResponse,
+	type MediaServerDetailResponse
 } from '$lib/api/client';
 import { ApiError, asErrorResponse } from '$lib/api/errors';
 import type { PageLoad } from './$types';
@@ -24,7 +24,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
 	try {
 		const [serverResult, locksResult] = await Promise.all([
 			getServer(id, client),
-			getCredentialLocks(id, client),
+			getCredentialLocks(id, client)
 		]);
 
 		if (serverResult.data) {

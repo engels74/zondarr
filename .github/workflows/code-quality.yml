@@ -1,0 +1,128 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  prek:
+    name: Pre-commit Checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || '' }}
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install root dependencies (prek)
+        run: bun install
+
+      - name: Install frontend dependencies
+        run: bun install --cwd frontend
+
+      - name: Install backend dependencies
+        run: uv sync --project backend --all-extras
+
+      - name: Biome auto-migrate
+        if: github.actor == 'renovate[bot]'
+        run: |
+          bunx biome migrate --write
+          bunx biome check --write frontend/ || true
+
+      - name: Push migration changes
+        if: github.actor == 'renovate[bot]'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: auto-migrate biome config"
+            git push
+          fi
+
+      - uses: j178/prek-action@v1
+        with:
+          extra-args: --all-files --hook-stage manual
+        env:
+          SKIP: no-commit-to-branch
+
+  typecheck:
+    name: Type Checking
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install root dependencies (prek)
+        run: bun install
+
+      - name: Install frontend dependencies
+        run: bun install --cwd frontend
+
+      - name: Install backend dependencies
+        run: uv sync --project backend --all-extras
+
+      - name: Run basedpyright
+        run: cd backend && uv run basedpyright
+
+      - name: Run svelte-check
+        run: bun --cwd frontend run check
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install root dependencies (prek)
+        run: bun install
+
+      - name: Install frontend dependencies
+        run: bun install --cwd frontend
+
+      - name: Install backend dependencies
+        run: uv sync --project backend --all-extras
+
+      - name: Run backend tests
+        run: cd backend && uv run pytest
+
+      - name: Run frontend tests
+        run: bun run --cwd frontend test

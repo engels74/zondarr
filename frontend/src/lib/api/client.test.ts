@@ -137,12 +137,10 @@ describe('Property 3: API Error Transformation', () => {
 						detail: fc.string({ minLength: 1, maxLength: 500 })
 					}),
 					// Standard Error
-					fc
-						.string({ minLength: 1, maxLength: 500 })
-						.map((msg) => ({
-							type: 'error' as const,
-							message: msg
-						})),
+					fc.string({ minLength: 1, maxLength: 500 }).map((msg) => ({
+						type: 'error' as const,
+						message: msg
+					})),
 					// Non-empty String
 					fc.string({ minLength: 1, maxLength: 500 })
 				),

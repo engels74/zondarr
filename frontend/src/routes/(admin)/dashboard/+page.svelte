@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
 	import { Clock, Server, Ticket, Users } from '@lucide/svelte';
+	import { invalidateAll } from '$app/navigation';
 	import { getErrorMessage, isNetworkError } from '$lib/api/errors';
 	import DashboardSkeleton from '$lib/components/dashboard/dashboard-skeleton.svelte';
 	import RecentActivity from '$lib/components/dashboard/recent-activity.svelte';

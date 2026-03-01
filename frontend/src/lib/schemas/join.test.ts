@@ -375,7 +375,7 @@ describe('sanitizeEmailToUsername', () => {
 	});
 
 	it('should truncate long local parts to 32 chars', () => {
-		const longLocal = 'a'.repeat(50) + '@example.com';
+		const longLocal = `${'a'.repeat(50)}@example.com`;
 		const result = sanitizeEmailToUsername(longLocal);
 		expect(result.length).toBeLessThanOrEqual(32);
 	});
@@ -387,7 +387,7 @@ describe('sanitizeEmailToUsername', () => {
 
 	it('should strip trailing underscores after truncation', () => {
 		// 31 a's + dot → 31 a's + underscore → truncated to 32, trailing _ stripped
-		const email = 'a'.repeat(31) + '.@example.com';
+		const email = `${'a'.repeat(31)}.@example.com`;
 		const result = sanitizeEmailToUsername(email);
 		expect(result).not.toMatch(/_$/);
 	});

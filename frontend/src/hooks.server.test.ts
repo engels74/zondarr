@@ -51,12 +51,12 @@ describe('hooks onboarding guard', () => {
 		);
 		const resolve = vi.fn();
 
-		await expect(handle({ event: makeEvent('/dashboard'), resolve } as never)).rejects.toMatchObject(
-			{
-				status: 302,
-				location: '/setup'
-			}
-		);
+		await expect(
+			handle({ event: makeEvent('/dashboard'), resolve } as never)
+		).rejects.toMatchObject({
+			status: 302,
+			location: '/setup'
+		});
 		expect(resolve).not.toHaveBeenCalled();
 	});
 

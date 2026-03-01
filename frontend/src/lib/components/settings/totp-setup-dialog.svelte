@@ -2,9 +2,9 @@
 	import { Loader2 } from '@lucide/svelte';
 	import {
 		getErrorDetail,
+		type TotpSetupResponse,
 		totpSetup,
-		totpVerifySetup,
-		type TotpSetupResponse
+		totpVerifySetup
 	} from '$lib/api/auth';
 	import TotpCodeInput from '$lib/components/auth/totp-code-input.svelte';
 	import { Button } from '$lib/components/ui/button';

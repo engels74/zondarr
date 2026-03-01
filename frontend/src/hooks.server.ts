@@ -54,11 +54,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 		pathname.startsWith('/api') || pathname === '/health' || pathname.startsWith('/health/');
 
 	// Enforce onboarding flow before allowing access to normal app routes.
-	if (
-		event.locals.user?.onboarding_required &&
-		pathname !== '/setup' &&
-		!isOnboardingBypassPath
-	) {
+	if (event.locals.user?.onboarding_required && pathname !== '/setup' && !isOnboardingBypassPath) {
 		redirect(302, '/setup');
 	}
 

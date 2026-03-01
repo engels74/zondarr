@@ -143,8 +143,7 @@ class TOTPService:
         if (
             admin.totp_last_failed_at is not None
             and (
-                datetime.now(UTC).replace(tzinfo=None)
-                - admin.totp_last_failed_at
+                datetime.now(UTC).replace(tzinfo=None) - admin.totp_last_failed_at
             ).total_seconds()
             >= RATE_LIMIT_WINDOW_SECONDS
         ):
@@ -213,9 +212,7 @@ class TOTPService:
         # Generate QR code as SVG
         qr = segno.make(uri)
         svg_buffer = io.BytesIO()
-        qr.save(
-            svg_buffer, kind="svg", scale=4, dark="#000000", light=None
-        )
+        qr.save(svg_buffer, kind="svg", scale=4, dark="#000000", light=None)
         qr_svg = svg_buffer.getvalue().decode()
 
         # Generate and store backup codes
