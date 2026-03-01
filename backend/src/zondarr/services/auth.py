@@ -282,6 +282,56 @@ class AuthService:
 
         return raw_token
 
+    async def consume_refresh_token(self, raw_token: str) -> AdminAccount:
+        """Atomically consume a refresh token and return the associated admin.
+
+        Uses an atomic UPDATE to mark the token as revoked in a single
+        operation, preventing race conditions where the same token could
+        be used concurrently. If the atomic consume fails, the token is
+        looked up to determine the reason (replay, expired, or invalid).
+
+        On replay detection, all tokens for the admin are revoked as a
+        security precaution (the token family may be compromised).
+
+        Args:
+            raw_token: The raw refresh token string.
+
+        Returns:
+            The associated AdminAccount.
+
+        Raises:
+            AuthenticationError: If the token is invalid, expired, revoked,
+                or the account is disabled.
+        """
+        token_hash = _hash_token(raw_token)
+        now = datetime.now(UTC)
+        consumed = await self.token_repo.consume_token(token_hash, now)
+
+        if consumed is None:
+            # Determine the reason for failure
+            existing = await self.token_repo.get_by_token_hash(token_hash)
+            if existing is not None and existing.revoked:
+                # Replay detected — revoke all tokens for this admin
+                logger.warning(
+                    "refresh_token_replay_detected",
+                    admin_id=str(existing.admin_account_id),
+                )
+                _ = await self.token_repo.revoke_all_for_admin(existing.admin_account_id)
+                await self.token_repo.session.flush()
+                raise AuthenticationError("Token has been revoked", "TOKEN_REVOKED")
+            if existing is not None and existing.expires_at <= now:
+                raise AuthenticationError("Token has expired", "TOKEN_EXPIRED")
+            raise AuthenticationError("Invalid refresh token", "INVALID_TOKEN")
+
+        # Token consumed successfully — validate the admin account
+        admin = await self.admin_repo.get_by_id(consumed.admin_account_id)
+        if admin is None or not admin.enabled:
+            raise AuthenticationError(
+                "Account not found or disabled", "ACCOUNT_DISABLED"
+            )
+
+        return admin
+
     async def validate_refresh_token(self, raw_token: str) -> AdminAccount:
         """Validate a refresh token and return the associated admin.
 

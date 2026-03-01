@@ -305,10 +305,7 @@ class AuthController(Controller):
     ) -> Response[AuthTokenResponse]:
         """Exchange a refresh token for a new access token."""
         service = self._create_auth_service(session)
-        admin = await service.validate_refresh_token(data.refresh_token)
-
-        # Revoke old refresh token and issue new ones (token rotation)
-        await service.revoke_refresh_token(data.refresh_token)
+        admin = await service.consume_refresh_token(data.refresh_token)
 
         secret_key = settings.secret_key
         secure = await self._resolve_secure_cookies(session, settings)
