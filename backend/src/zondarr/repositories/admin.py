@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import override
 from uuid import uuid4
 
-from sqlalchemy import delete, exists, func, insert, literal, select
+from sqlalchemy import delete, exists, func, insert, literal, select, update
 from sqlalchemy.exc import IntegrityError
 
 from zondarr.core.exceptions import RepositoryError
@@ -206,6 +206,49 @@ class RefreshTokenRepository(Repository[RefreshToken]):
             raise RepositoryError(
                 "Failed to revoke tokens for admin",
                 operation="revoke_all_for_admin",
+                original=e,
+            ) from e
+
+    async def consume_token(
+        self, token_hash: str, now: datetime
+    ) -> RefreshToken | None:
+        """Atomically consume a refresh token by marking it as revoked.
+
+        Uses a conditional UPDATE to ensure the token is valid, not already
+        revoked, and not expired — all in a single atomic operation. This
+        prevents race conditions where the same token could be used twice.
+
+        Args:
+            token_hash: The SHA-256 hash of the token.
+            now: Current UTC datetime.
+
+        Returns:
+            The consumed RefreshToken if successful, None if the token
+            was already consumed, expired, or not found.
+        """
+        try:
+            stmt = (
+                update(RefreshToken)
+                .where(
+                    RefreshToken.token_hash == token_hash,
+                    RefreshToken.revoked.is_(False),
+                    RefreshToken.expires_at > now,
+                )
+                .values(revoked=True)
+            )
+            result = await self.session.execute(stmt)
+            if result.rowcount == 0:  # pyright: ignore[reportAttributeAccessIssue, reportUnknownMemberType]
+                return None
+            # Fetch the consumed token
+            stmt2 = select(RefreshToken).where(
+                RefreshToken.token_hash == token_hash,
+            )
+            result2 = await self.session.execute(stmt2)
+            return result2.scalar_one_or_none()
+        except Exception as e:
+            raise RepositoryError(
+                "Failed to consume refresh token",
+                operation="consume_token",
                 original=e,
             ) from e
 
