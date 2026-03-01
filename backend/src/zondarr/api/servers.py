@@ -539,7 +539,10 @@ class ServerController(Controller):
         Args:
             data: MediaServerCreate with server configuration.
             media_server_service: MediaServerService from DI.
+            sync_run_repository: SyncRunRepository from DI.
+            sync_service: SyncService from DI.
             settings: Application settings from DI.
+            session: AsyncSession from DI.
 
         Returns:
             Created media server details.
