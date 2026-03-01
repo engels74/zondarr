@@ -714,7 +714,7 @@ function getFieldErrors(field: string): string[] {
 												: 'border-cr-border'}"
 										>
 											{#if isServerSelected(server.id)}
-												<svg class="size-3 text-cr-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+												<svg class="size-3 text-cr-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
 													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
 												</svg>
 											{/if}

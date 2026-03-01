@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Activity, RefreshCw, Server, Ticket, UserPlus } from '@lucide/svelte';
-	import * as Card from '$lib/components/ui/card';
 	import type { RecentActivityItem } from '$lib/api/client';
+	import * as Card from '$lib/components/ui/card';
 
 	interface Props {
 		activities: RecentActivityItem[];

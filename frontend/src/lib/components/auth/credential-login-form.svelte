@@ -77,7 +77,7 @@ function getInputType(fieldType: string): string {
 		class="w-full border-cr-border bg-cr-bg text-cr-text"
 		style="--provider-color: {color}"
 	>
-		<svg class="mr-2 size-4" viewBox="0 0 24 24" fill="currentColor">
+		<svg class="mr-2 size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<path d={iconSvg} />
 		</svg>
 		Sign in with {displayName}
@@ -90,7 +90,7 @@ function getInputType(fieldType: string): string {
 			onclick={() => (expanded = false)}
 			class="mb-3 flex w-full items-center gap-2 text-sm font-medium text-cr-text"
 		>
-			<svg class="size-4" viewBox="0 0 24 24" fill="currentColor">
+			<svg class="size-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 				<path d={iconSvg} />
 			</svg>
 			{displayName} login
@@ -134,9 +134,9 @@ function getInputType(fieldType: string): string {
 
 <style>
 	:global(button[style*="--provider-color"]:hover) {
-		background: color-mix(in srgb, var(--provider-color) 10%, transparent) !important;
-		color: var(--provider-color) !important;
-		border-color: color-mix(in srgb, var(--provider-color) 30%, transparent) !important;
+		background: color-mix(in srgb, var(--provider-color) 10%, transparent);
+		color: var(--provider-color);
+		border-color: color-mix(in srgb, var(--provider-color) 30%, transparent);
 	}
 
 	:global(.provider-submit-btn:hover) {

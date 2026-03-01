@@ -1,12 +1,12 @@
 <script lang="ts">
 import { KeyRound, User } from '@lucide/svelte';
 import { type AdminMeResponse, changePassword, updateAdminEmail } from '$lib/api/auth';
+import TotpManagementCard from '$lib/components/settings/totp-management-card.svelte';
 import { Badge } from '$lib/components/ui/badge';
 import { Button } from '$lib/components/ui/button';
 import * as Card from '$lib/components/ui/card';
 import { Input } from '$lib/components/ui/input';
 import { Label } from '$lib/components/ui/label';
-import TotpManagementCard from '$lib/components/settings/totp-management-card.svelte';
 import { emailUpdateSchema, passwordChangeSchema } from '$lib/schemas/settings';
 import { showApiError, showError, showSuccess } from '$lib/utils/toast';
 

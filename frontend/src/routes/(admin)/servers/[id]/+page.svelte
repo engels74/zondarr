@@ -36,12 +36,12 @@ import {
 	withErrorHandling,
 } from "$lib/api/client";
 import { asErrorResponse, getErrorMessage } from "$lib/api/errors";
-import { Badge } from "$lib/components/ui/badge";
 import ConfirmDialog from "$lib/components/confirm-dialog.svelte";
 import ErrorState from "$lib/components/error-state.svelte";
 import LibrarySyncResultsDialog from "$lib/components/servers/library-sync-results-dialog.svelte";
 import SyncResultsDialog from "$lib/components/servers/sync-results-dialog.svelte";
 import StatusBadge from "$lib/components/status-badge.svelte";
+import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
 import * as Card from "$lib/components/ui/card";
 import { Label } from "$lib/components/ui/label";

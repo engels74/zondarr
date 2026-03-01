@@ -66,7 +66,7 @@ function handlePaste(e: ClipboardEvent) {
 	}
 
 	// Focus the next empty input or the last one
-	const nextEmpty = digits.findIndex((d) => d === "");
+	const nextEmpty = digits.indexOf("");
 	const focusIndex = nextEmpty === -1 ? DIGITS - 1 : nextEmpty;
 	inputRefs[focusIndex]?.focus();
 }

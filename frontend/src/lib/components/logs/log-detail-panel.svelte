@@ -7,19 +7,19 @@
  */
 
 import {
-	X,
-	Copy,
-	Bug,
-	Info,
 	AlertTriangle,
-	XCircle,
+	Bug,
+	Copy,
+	Info,
 	ShieldAlert,
+	X,
+	XCircle,
 } from "@lucide/svelte";
+import { fly } from "svelte/transition";
 import { Badge } from "$lib/components/ui/badge";
 import { Button } from "$lib/components/ui/button";
 import { Separator } from "$lib/components/ui/separator";
 import type { LogEntry } from "$lib/stores/log-stream.svelte";
-import { fly } from "svelte/transition";
 
 interface Props {
 	entry: LogEntry | null;

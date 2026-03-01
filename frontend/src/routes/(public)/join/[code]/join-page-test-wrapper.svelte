@@ -88,7 +88,7 @@ function getFailureMessage(reason: string | null | undefined): string {
 			</CardContent>
 		</Card>
 	<!-- Valid code state -->
-	{:else if validation && validation.valid}
+	{:else if validation?.valid}
 		<Card data-valid-code class="border-emerald-500/30 bg-emerald-500/5">
 			<CardHeader>
 				<div class="flex items-center gap-3">
@@ -120,7 +120,7 @@ function getFailureMessage(reason: string | null | undefined): string {
 				{/if}
 
 				<!-- Target servers -->
-				{#if validation.target_servers && validation.target_servers.length > 0}
+				{#if validation.target_servers?.length > 0}
 					<div data-target-servers>
 						<div class="mb-3 flex items-center gap-2 text-cr-text">
 							<Server class="size-4" />
@@ -138,7 +138,7 @@ function getFailureMessage(reason: string | null | undefined): string {
 				{/if}
 
 				<!-- Allowed libraries -->
-				{#if validation.allowed_libraries && validation.allowed_libraries.length > 0}
+				{#if validation.allowed_libraries?.length > 0}
 					<div data-allowed-libraries>
 						<div class="mb-3 flex items-center gap-2 text-cr-text">
 							<Library class="size-4" />
@@ -152,7 +152,7 @@ function getFailureMessage(reason: string | null | undefined): string {
 							{/each}
 						</div>
 					</div>
-				{:else if validation.target_servers && validation.target_servers.length > 0}
+				{:else if validation.target_servers?.length > 0}
 					<div data-all-libraries class="flex items-center gap-2 text-cr-text-muted">
 						<Library class="size-4" />
 						<p class="text-sm">Access to all libraries on target servers</p>

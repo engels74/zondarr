@@ -1,7 +1,7 @@
 import {
 	createScopedClient,
-	getDashboardStats,
-	type DashboardStatsResponse
+	type DashboardStatsResponse,
+	getDashboardStats
 } from '$lib/api/client';
 import { ApiError, asErrorResponse } from '$lib/api/errors';
 import type { PageLoad } from './$types';

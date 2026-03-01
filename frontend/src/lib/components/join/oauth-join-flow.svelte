@@ -248,7 +248,7 @@ function openAuthUrl() {
 				data-oauth-signin-button
 			>
 				{#if providerIconSvg}
-					<svg class="size-5 mr-2" viewBox="0 0 24 24" fill="currentColor">
+					<svg class="size-5 mr-2" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 						<path d={providerIconSvg}/>
 					</svg>
 				{/if}

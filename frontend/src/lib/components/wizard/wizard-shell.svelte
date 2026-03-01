@@ -321,7 +321,7 @@ async function handleInteractionValidate(
 									<div class="interaction-header">
 										<div class="completion-ring" class:done={isCompleted}>
 											{#if isCompleted}
-												<svg viewBox="0 0 20 20" class="check-icon">
+												<svg viewBox="0 0 20 20" class="check-icon" aria-hidden="true">
 													<path d="M6 10l3 3 5-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
 												</svg>
 											{/if}

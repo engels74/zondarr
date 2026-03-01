@@ -2,8 +2,8 @@
 	import { Loader2 } from '@lucide/svelte';
 	import { getErrorDetail, totpRegenerateBackupCodes } from '$lib/api/auth';
 	import TotpCodeInput from '$lib/components/auth/totp-code-input.svelte';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import { showApiError, showSuccess } from '$lib/utils/toast';
 	import BackupCodesDisplay from './backup-codes-display.svelte';
 

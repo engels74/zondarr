@@ -409,19 +409,17 @@ describe('Property 12: Error Message Safety', () => {
 		await fc.assert(
 			fc.asyncProperty(
 				// Use longer strings that won't naturally appear in the generic message
-				fc
-					.string({ minLength: 10, maxLength: 200 })
-					.filter((s) => {
-						const trimmed = s.trim();
-						// Filter out strings that could naturally appear in the generic message
-						return (
-							trimmed.length >= 10 &&
-							!trimmed.includes('Something went wrong') &&
-							!trimmed.includes('unexpected error') &&
-							!trimmed.includes('Please try again') &&
-							!trimmed.includes('Try again')
-						);
-					}),
+				fc.string({ minLength: 10, maxLength: 200 }).filter((s) => {
+					const trimmed = s.trim();
+					// Filter out strings that could naturally appear in the generic message
+					return (
+						trimmed.length >= 10 &&
+						!trimmed.includes('Something went wrong') &&
+						!trimmed.includes('unexpected error') &&
+						!trimmed.includes('Please try again') &&
+						!trimmed.includes('Try again')
+					);
+				}),
 				async (errorMessage) => {
 					const { container, component } = render(ErrorBoundaryWrapper);
 

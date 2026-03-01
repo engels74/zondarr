@@ -9,11 +9,11 @@
  */
 
 import {
+	AlertTriangle,
 	Bug,
 	Info,
-	AlertTriangle,
-	XCircle,
 	ShieldAlert,
+	XCircle,
 } from "@lucide/svelte";
 import type { LogEntry, LogLevel } from "$lib/stores/log-stream.svelte";
 

@@ -91,7 +91,7 @@ function handleComplete() {
 <div class="timer-interaction">
 	<!-- Circular progress indicator -->
 	<div class="timer-ring" class:pulse={isFinalCountdown} class:complete={isComplete}>
-		<svg viewBox="0 0 160 160" class="progress-svg">
+		<svg viewBox="0 0 160 160" class="progress-svg" aria-hidden="true">
 			<!-- Background circle -->
 			<circle cx="80" cy="80" r={radius} class="track" />
 			<!-- Progress circle -->
@@ -248,7 +248,7 @@ function handleComplete() {
 </style>
 
 <!-- SVG gradient definition -->
-<svg width="0" height="0" style="position: absolute;">
+<svg width="0" height="0" style="position: absolute;" aria-hidden="true">
 	<defs>
 		<linearGradient id="timer-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
 			<stop offset="0%" style="stop-color: var(--wizard-accent-gradient-start)" />
