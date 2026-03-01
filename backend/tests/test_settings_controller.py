@@ -325,3 +325,47 @@ class TestCsrfOriginTestEndpoint:
                 assert data["request_origin"] == "https://app.example.com"
         finally:
             await engine.dispose()
+
+
+class TestUpdateCsrfOriginAutoEnableSecureCookies:
+    """Tests for secure_cookies_auto_enabled flag in PUT /api/v1/settings/csrf-origin."""
+
+    @pytest.mark.asyncio
+    async def test_https_returns_auto_enabled_true(self) -> None:
+        """PUT with HTTPS origin should return secure_cookies_auto_enabled=true."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = _make_test_app(session_factory, _make_test_settings())
+
+            with TestClient(app) as client:
+                response = client.put(
+                    "/api/v1/settings/csrf-origin",
+                    json={"csrf_origin": "https://secure.example.com"},
+                )
+                assert response.status_code == 200
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+                assert data["csrf_origin"] == "https://secure.example.com"
+                assert data["secure_cookies_auto_enabled"] is True
+        finally:
+            await engine.dispose()
+
+    @pytest.mark.asyncio
+    async def test_http_returns_auto_enabled_false(self) -> None:
+        """PUT with HTTP origin should return secure_cookies_auto_enabled=false."""
+        engine = await create_test_engine()
+        try:
+            session_factory = async_sessionmaker(engine, expire_on_commit=False)
+            app = _make_test_app(session_factory, _make_test_settings())
+
+            with TestClient(app) as client:
+                response = client.put(
+                    "/api/v1/settings/csrf-origin",
+                    json={"csrf_origin": "http://insecure.example.com"},
+                )
+                assert response.status_code == 200
+                data: dict[str, object] = response.json()  # pyright: ignore[reportAny]
+                assert data["csrf_origin"] == "http://insecure.example.com"
+                assert data["secure_cookies_auto_enabled"] is False
+        finally:
+            await engine.dispose()

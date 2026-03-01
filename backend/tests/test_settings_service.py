@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from zondarr.config import Settings
 from zondarr.repositories.app_setting import AppSettingRepository
-from zondarr.services.settings import SettingsService
+from zondarr.services.settings import SECURE_COOKIES_KEY, SettingsService
 
 
 def _make_settings(csrf_origin: str | None = None) -> Settings:
@@ -82,7 +82,7 @@ class TestSetCsrfOrigin:
         repo = AppSettingRepository(session)
         service = SettingsService(repo, settings=_make_settings())
 
-        result = await service.set_csrf_origin("https://new.com")
+        result, _ = await service.set_csrf_origin("https://new.com")
         assert result.key == "csrf_origin"
         assert result.value == "https://new.com"
 
@@ -91,8 +91,8 @@ class TestSetCsrfOrigin:
         repo = AppSettingRepository(session)
         service = SettingsService(repo, settings=_make_settings())
 
-        _ = await service.set_csrf_origin("https://first.com")
-        result = await service.set_csrf_origin("https://second.com")
+        _, _ = await service.set_csrf_origin("https://first.com")
+        result, _ = await service.set_csrf_origin("https://second.com")
         assert result.value == "https://second.com"
 
     @pytest.mark.asyncio
@@ -100,8 +100,8 @@ class TestSetCsrfOrigin:
         repo = AppSettingRepository(session)
         service = SettingsService(repo, settings=_make_settings())
 
-        _ = await service.set_csrf_origin("https://set.com")
-        result = await service.set_csrf_origin(None)
+        _, _ = await service.set_csrf_origin("https://set.com")
+        result, _ = await service.set_csrf_origin(None)
         assert result.value is None
 
     @pytest.mark.asyncio
@@ -109,7 +109,102 @@ class TestSetCsrfOrigin:
         repo = AppSettingRepository(session)
         service = SettingsService(repo, settings=_make_settings())
 
-        _ = await service.set_csrf_origin("https://round.trip")
+        _, _ = await service.set_csrf_origin("https://round.trip")
         origin, is_locked = await service.get_csrf_origin()
         assert origin == "https://round.trip"
         assert is_locked is False
+
+
+class TestSetCsrfOriginAutoEnableSecureCookies:
+    """Tests for automatic secure_cookies enablement when setting HTTPS CSRF origin."""
+
+    @pytest.mark.asyncio
+    async def test_https_origin_auto_enables_secure_cookies(
+        self, session: AsyncSession
+    ) -> None:
+        """Setting an HTTPS origin should auto-enable secure_cookies in the DB."""
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        _, auto_enabled = await service.set_csrf_origin("https://example.com")
+
+        assert auto_enabled is True
+        secure_setting = await repo.get_by_key(SECURE_COOKIES_KEY)
+        assert secure_setting is not None
+        assert secure_setting.value == "true"
+
+    @pytest.mark.asyncio
+    async def test_http_origin_does_not_auto_enable(
+        self, session: AsyncSession
+    ) -> None:
+        """Setting an HTTP origin should NOT auto-enable secure_cookies."""
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        _, auto_enabled = await service.set_csrf_origin("http://example.com")
+
+        assert auto_enabled is False
+        secure_setting = await repo.get_by_key(SECURE_COOKIES_KEY)
+        assert secure_setting is None
+
+    @pytest.mark.asyncio
+    async def test_none_origin_does_not_auto_enable(
+        self, session: AsyncSession
+    ) -> None:
+        """Setting origin to None should NOT auto-enable secure_cookies."""
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        _, auto_enabled = await service.set_csrf_origin(None)
+
+        assert auto_enabled is False
+        secure_setting = await repo.get_by_key(SECURE_COOKIES_KEY)
+        assert secure_setting is None
+
+    @pytest.mark.asyncio
+    async def test_https_skips_when_env_locked(
+        self, session: AsyncSession, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When SECURE_COOKIES env var is set, auto-enable should be skipped."""
+        monkeypatch.setenv("SECURE_COOKIES", "false")
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        _, auto_enabled = await service.set_csrf_origin("https://example.com")
+
+        assert auto_enabled is False
+        # No DB write for secure_cookies should have happened
+        secure_setting = await repo.get_by_key(SECURE_COOKIES_KEY)
+        assert secure_setting is None
+
+    @pytest.mark.asyncio
+    async def test_https_already_enabled_no_redundant_write(
+        self, session: AsyncSession
+    ) -> None:
+        """When secure_cookies is already enabled, auto_enabled should be False."""
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        # Pre-enable secure cookies
+        _ = await service.set_secure_cookies(True)
+
+        _, auto_enabled = await service.set_csrf_origin("https://example.com")
+
+        assert auto_enabled is False
+        # Still enabled
+        value, _ = await service.get_secure_cookies()
+        assert value is True
+
+    @pytest.mark.asyncio
+    async def test_returns_setting_and_auto_enabled_flag(
+        self, session: AsyncSession
+    ) -> None:
+        """Return value should be a tuple of (AppSetting, auto_enabled)."""
+        repo = AppSettingRepository(session)
+        service = SettingsService(repo, settings=_make_settings())
+
+        setting, auto_enabled = await service.set_csrf_origin("https://example.com")
+
+        assert setting.key == "csrf_origin"
+        assert setting.value == "https://example.com"
+        assert auto_enabled is True

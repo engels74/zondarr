@@ -10,6 +10,7 @@ import * as Card from '$lib/components/ui/card';
 import { Input } from '$lib/components/ui/input';
 import { Label } from '$lib/components/ui/label';
 import { csrfOriginSchema } from '$lib/schemas/setup';
+import { showInfo } from '$lib/utils/toast';
 
 interface Props {
 	onComplete: () => void;
@@ -107,6 +108,10 @@ async function handleSubmit() {
 			const errorBody = asErrorResponse(response.error);
 			serverError = errorBody?.detail ?? 'Failed to save CSRF origin';
 			return;
+		}
+
+		if (response.data?.secure_cookies_auto_enabled) {
+			showInfo('Secure cookies have been automatically enabled because your site uses HTTPS.');
 		}
 
 		onComplete();

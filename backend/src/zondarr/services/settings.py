@@ -6,9 +6,13 @@ take precedence over database values and are marked as "locked".
 
 import os
 
+import structlog
+
 from zondarr.config import Settings
 from zondarr.models.app_setting import AppSetting
 from zondarr.repositories.app_setting import AppSettingRepository
+
+logger: structlog.stdlib.BoundLogger = structlog.get_logger(__name__)  # pyright: ignore[reportAny]
 
 # Database keys for settings
 CSRF_ORIGIN_KEY = "csrf_origin"
@@ -98,16 +102,44 @@ class SettingsService:
 
         return None, False
 
-    async def set_csrf_origin(self, origin: str | None) -> AppSetting:
+    async def set_csrf_origin(self, origin: str | None) -> tuple[AppSetting, bool]:
         """Set the CSRF origin in the database.
+
+        When the origin is HTTPS, automatically enables secure cookies
+        in the database — unless the SECURE_COOKIES env var is set (locked)
+        or secure cookies are already enabled.
 
         Args:
             origin: The origin URL to set, or None to clear.
 
         Returns:
-            The created or updated AppSetting.
+            A tuple of (app_setting, secure_cookies_auto_enabled).
+            secure_cookies_auto_enabled is True when secure cookies were
+            automatically enabled as a result of this call.
         """
-        return await self.repository.upsert(CSRF_ORIGIN_KEY, origin)
+        setting = await self.repository.upsert(CSRF_ORIGIN_KEY, origin)
+        auto_enabled = False
+
+        if origin is not None and origin.startswith("https://"):
+            env_val = os.environ.get("SECURE_COOKIES")
+            if env_val is not None:
+                logger.info(
+                    "secure_cookies_auto_enable_skipped",
+                    csrf_origin=origin,
+                    reason="SECURE_COOKIES env var is set",
+                )
+            else:
+                # Check if already enabled in DB to avoid redundant write
+                current_val, _ = await self.get_secure_cookies()
+                if not current_val:
+                    _ = await self.set_secure_cookies(True)
+                    auto_enabled = True
+                    logger.info(
+                        "secure_cookies_auto_enabled",
+                        csrf_origin=origin,
+                    )
+
+        return setting, auto_enabled
 
     async def get_sync_interval(self) -> tuple[int, bool]:
         """Get the sync interval setting.

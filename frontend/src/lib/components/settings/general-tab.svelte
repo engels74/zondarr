@@ -13,7 +13,7 @@ import { Input } from '$lib/components/ui/input';
 import { Label } from '$lib/components/ui/label';
 import { Switch } from '$lib/components/ui/switch';
 import { csrfOriginSchema } from '$lib/schemas/setup';
-import { showApiError, showError, showSuccess } from '$lib/utils/toast';
+import { showApiError, showError, showInfo, showSuccess } from '$lib/utils/toast';
 
 interface Props {
 	csrfOrigin: string | null;
@@ -48,6 +48,10 @@ async function handleSave() {
 			showApiError(result.error);
 		} else {
 			showSuccess('CSRF origin saved');
+			if (result.data?.secure_cookies_auto_enabled) {
+				secureCookiesEnabled = true;
+				showInfo('Secure cookies have been automatically enabled for HTTPS.');
+			}
 		}
 	} finally {
 		saving = false;

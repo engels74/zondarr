@@ -94,14 +94,18 @@ class SettingsController(Controller):
                 field_errors={"csrf_origin": ["Locked by environment variable"]},
             )
 
-        _ = await settings_service.set_csrf_origin(data.csrf_origin)
+        _, auto_enabled = await settings_service.set_csrf_origin(data.csrf_origin)
         onboarding_service = OnboardingService(
             admin_repo=AdminAccountRepository(session),
             app_setting_repo=app_setting_repository,
         )
         _ = await onboarding_service.complete_security_step()
         origin, locked = await settings_service.get_csrf_origin()
-        return CsrfOriginResponse(csrf_origin=origin, is_locked=locked)
+        return CsrfOriginResponse(
+            csrf_origin=origin,
+            is_locked=locked,
+            secure_cookies_auto_enabled=auto_enabled,
+        )
 
     @get(
         "/secure-cookies",
