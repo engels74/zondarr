@@ -316,7 +316,9 @@ class AuthService:
                     "refresh_token_replay_detected",
                     admin_id=str(existing.admin_account_id),
                 )
-                _ = await self.token_repo.revoke_all_for_admin(existing.admin_account_id)
+                _ = await self.token_repo.revoke_all_for_admin(
+                    existing.admin_account_id
+                )
                 # Commit revocations before raising so they survive the
                 # provide_db_session rollback triggered by the exception.
                 await self.token_repo.session.commit()

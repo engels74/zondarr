@@ -576,10 +576,9 @@ class TestTOTPServiceRateLimiting:
                 # Set failed attempts with expired window.
                 # Use naive datetime to match what SQLite returns.
                 admin.totp_failed_attempts = MAX_FAILED_ATTEMPTS
-                admin.totp_last_failed_at = (
-                    datetime.now(UTC).replace(tzinfo=None)
-                    - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
-                )
+                admin.totp_last_failed_at = datetime.now(UTC).replace(
+                    tzinfo=None
+                ) - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
 
                 # Should not raise, and should reset counter
                 service.check_rate_limit(admin)
@@ -631,10 +630,9 @@ class TestTOTPServiceRateLimiting:
                     service.check_rate_limit(admin)
 
                 # Also test window expiry with a naive datetime
-                admin.totp_last_failed_at = (
-                    datetime.now(UTC).replace(tzinfo=None)
-                    - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
-                )
+                admin.totp_last_failed_at = datetime.now(UTC).replace(
+                    tzinfo=None
+                ) - timedelta(seconds=RATE_LIMIT_WINDOW_SECONDS + 1)
                 service.check_rate_limit(admin)
                 assert admin.totp_failed_attempts == 0
                 assert admin.totp_last_failed_at is None

@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Clock, Lock, RefreshCw } from '@lucide/svelte';
 import {
-	type SettingValue, 
+	type SettingValue,
 	updateExpirationInterval,
 	updateSyncInterval
 } from '$lib/api/client';

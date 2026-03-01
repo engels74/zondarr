@@ -36,7 +36,7 @@ jobs:
         run: bun install --cwd frontend
 
       - name: Install backend dependencies
-        run: uv sync --project backend --dev
+        run: uv sync --project backend --all-extras
 
       - name: Biome auto-migrate
         if: github.actor == 'renovate[bot]'
@@ -86,7 +86,7 @@ jobs:
         run: bun install --cwd frontend
 
       - name: Install backend dependencies
-        run: uv sync --project backend --dev
+        run: uv sync --project backend --all-extras
 
       - name: Run basedpyright
         run: cd backend && uv run basedpyright
@@ -119,7 +119,7 @@ jobs:
         run: bun install --cwd frontend
 
       - name: Install backend dependencies
-        run: uv sync --project backend --dev
+        run: uv sync --project backend --all-extras
 
       - name: Run backend tests
         run: cd backend && uv run pytest
