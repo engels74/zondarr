@@ -317,7 +317,9 @@ class AuthService:
                     admin_id=str(existing.admin_account_id),
                 )
                 _ = await self.token_repo.revoke_all_for_admin(existing.admin_account_id)
-                await self.token_repo.session.flush()
+                # Commit revocations before raising so they survive the
+                # provide_db_session rollback triggered by the exception.
+                await self.token_repo.session.commit()
                 raise AuthenticationError("Token has been revoked", "TOKEN_REVOKED")
             if existing is not None and existing.expires_at <= now:
                 raise AuthenticationError("Token has expired", "TOKEN_EXPIRED")
