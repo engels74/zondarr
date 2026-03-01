@@ -12,6 +12,7 @@ import * as fc from 'fast-check';
 import { JSDOM } from 'jsdom';
 import { marked } from 'marked';
 import { describe, expect, it } from 'vitest';
+import { ALLOWED_ATTR, ALLOWED_TAGS } from '../markdown-utils';
 
 // Initialize DOMPurify with JSDOM for Node.js environment
 const window = new JSDOM('').window;
@@ -23,27 +24,8 @@ const purify = DOMPurify(window);
 function sanitizeMarkdown(markdown: string): string {
 	const rawHtml = marked.parse(markdown, { async: false }) as string;
 	return purify.sanitize(rawHtml, {
-		ALLOWED_TAGS: [
-			'h1',
-			'h2',
-			'h3',
-			'h4',
-			'h5',
-			'h6',
-			'p',
-			'br',
-			'strong',
-			'em',
-			'u',
-			'a',
-			'ul',
-			'ol',
-			'li',
-			'blockquote',
-			'code',
-			'pre'
-		],
-		ALLOWED_ATTR: ['href', 'target', 'rel']
+		ALLOWED_TAGS: [...ALLOWED_TAGS],
+		ALLOWED_ATTR: [...ALLOWED_ATTR]
 	});
 }
 
@@ -256,7 +238,11 @@ describe('Property 13: Markdown XSS Sanitization', () => {
 					fc.constant('`inline code`'),
 					fc.constant('```\ncode block\n```'),
 					// Blockquote
-					fc.constant('> Quote')
+					fc.constant('> Quote'),
+					// Images
+					fc.constant('![Alt text](https://example.com/image.png)'),
+					// Horizontal rules
+					fc.constant('---')
 				),
 				(validMarkdown) => {
 					const sanitized = sanitizeMarkdown(validMarkdown);

@@ -6,12 +6,11 @@
  * and session persistence. Renders markdown content with XSS sanitization.
  * Interactions are rendered internally via the interaction type registry.
  */
-import DOMPurify from "dompurify";
-import { marked } from "marked";
 import { browser } from "$app/environment";
 import type { WizardDetailResponse } from "$lib/api/client";
 import { validateStep } from "$lib/api/client";
 import { getInteractionType, type InteractionCompletionData } from "./interactions";
+import { renderMarkdown } from "./markdown-utils";
 import WizardNavigation from "./wizard-navigation.svelte";
 import WizardProgress from "./wizard-progress.svelte";
 
@@ -64,32 +63,7 @@ const totalCount = $derived(currentInteractions.length);
 // Render markdown content with sanitization
 const renderedMarkdown = $derived.by(() => {
 	if (!currentStep?.content_markdown) return "";
-	const rawHtml = marked.parse(currentStep.content_markdown, {
-		async: false,
-	}) as string;
-	return DOMPurify.sanitize(rawHtml, {
-		ALLOWED_TAGS: [
-			"h1",
-			"h2",
-			"h3",
-			"h4",
-			"h5",
-			"h6",
-			"p",
-			"br",
-			"strong",
-			"em",
-			"u",
-			"a",
-			"ul",
-			"ol",
-			"li",
-			"blockquote",
-			"code",
-			"pre",
-		],
-		ALLOWED_ATTR: ["href", "target", "rel"],
-	});
+	return renderMarkdown(currentStep.content_markdown);
 });
 
 // Restore progress from sessionStorage on mount (skip in preview mode)
@@ -276,6 +250,7 @@ async function handleInteractionValidate(
 		<WizardProgress current={currentStepIndex + 1} total={wizard.steps.length} {progress} />
 
 		<!-- Step content card -->
+		{#key currentStep?.id}
 		<div class="wizard-card">
 			<!-- Step title -->
 			{#if currentStep?.title}
@@ -349,6 +324,7 @@ async function handleInteractionValidate(
 				<p class="wizard-error">{validationError}</p>
 			{/if}
 		</div>
+		{/key}
 
 		<!-- Navigation -->
 		<WizardNavigation
@@ -450,10 +426,33 @@ async function handleInteractionValidate(
 		backdrop-filter: blur(8px);
 		box-shadow:
 			0 4px 24px var(--wizard-shadow-lg),
-			0 0 0 1px var(--wizard-card-inset) inset;
-		animation: wizard-reveal 0.6s ease-out 0.1s both;
+			0 0 0 1px var(--wizard-card-inset) inset,
+			0 0 0 1px hsl(45 90% 55% / 0.06) inset;
+		animation: step-enter 0.5s ease-out both;
+		max-height: calc(100dvh - 200px);
 		overflow-y: auto;
+		overflow-x: hidden;
 		min-height: 0;
+		scroll-behavior: smooth;
+		scrollbar-color: hsl(220 10% 30%) transparent;
+		scrollbar-width: thin;
+	}
+
+	.wizard-card::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.wizard-card::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.wizard-card::-webkit-scrollbar-thumb {
+		background: hsl(220 10% 30%);
+		border-radius: 4px;
+	}
+
+	.wizard-card::-webkit-scrollbar-thumb:hover {
+		background: hsl(220 10% 40%);
 	}
 
 	/* Cinematic title */
@@ -480,6 +479,7 @@ async function handleInteractionValidate(
 		color: var(--wizard-accent);
 		text-decoration: underline;
 		text-underline-offset: 2px;
+		transition: opacity 0.15s ease;
 	}
 
 	.wizard-content :global(a:hover) {
@@ -497,6 +497,206 @@ async function handleInteractionValidate(
 		padding: 0.125rem 0.375rem;
 		border-radius: 0.25rem;
 		font-size: 0.9em;
+		color: var(--wizard-accent);
+		white-space: nowrap;
+	}
+
+	/* Headings */
+	.wizard-content :global(h1) {
+		font-family: 'Instrument Serif', 'Playfair Display', Georgia, serif;
+		font-size: 1.875rem;
+		font-weight: 500;
+		letter-spacing: -0.02em;
+		margin-top: 1.5rem;
+		margin-bottom: 0.75rem;
+		color: var(--wizard-text);
+		line-height: 1.2;
+	}
+
+	.wizard-content :global(h2) {
+		font-family: 'Instrument Serif', 'Playfair Display', Georgia, serif;
+		font-size: 1.5rem;
+		font-weight: 500;
+		letter-spacing: -0.01em;
+		margin-top: 1.25rem;
+		margin-bottom: 0.5rem;
+		color: var(--wizard-text);
+		line-height: 1.3;
+	}
+
+	.wizard-content :global(h3) {
+		font-family: 'Satoshi', 'DM Sans', system-ui, sans-serif;
+		font-size: 1.25rem;
+		font-weight: 600;
+		margin-top: 1.125rem;
+		margin-bottom: 0.5rem;
+		color: var(--wizard-text);
+		line-height: 1.4;
+	}
+
+	.wizard-content :global(h4) {
+		font-family: 'Satoshi', 'DM Sans', system-ui, sans-serif;
+		font-size: 1.125rem;
+		font-weight: 600;
+		margin-top: 1rem;
+		margin-bottom: 0.375rem;
+		color: var(--wizard-text);
+		line-height: 1.4;
+	}
+
+	.wizard-content :global(h5),
+	.wizard-content :global(h6) {
+		font-family: 'Satoshi', 'DM Sans', system-ui, sans-serif;
+		font-size: 1rem;
+		font-weight: 600;
+		margin-top: 0.875rem;
+		margin-bottom: 0.375rem;
+		color: var(--wizard-text-muted);
+		line-height: 1.4;
+	}
+
+	/* Paragraph */
+	.wizard-content :global(p) {
+		margin-bottom: 1rem;
+		color: var(--wizard-text-muted);
+		line-height: 1.7;
+	}
+
+	/* Horizontal rule */
+	.wizard-content :global(hr) {
+		height: 1px;
+		background: linear-gradient(
+			to right,
+			transparent,
+			hsl(220 10% 22%),
+			transparent
+		);
+		border: none;
+		margin-top: 1.5rem;
+		margin-bottom: 1.5rem;
+		border-radius: 1px;
+	}
+
+	/* Blockquote */
+	.wizard-content :global(blockquote) {
+		border-left: 3px solid var(--wizard-accent);
+		padding-left: 1rem;
+		padding-top: 0.5rem;
+		padding-bottom: 0.5rem;
+		margin-left: 0;
+		margin-right: 0;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		background: hsl(220 15% 10% / 0.5);
+		color: var(--wizard-text-muted);
+		font-style: italic;
+		line-height: 1.6;
+	}
+
+	/* Code blocks */
+	.wizard-content :global(pre) {
+		background: var(--wizard-code-bg);
+		padding: 1rem;
+		border-radius: 0.5rem;
+		border: 1px solid hsl(220 10% 22%);
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		overflow-x: auto;
+		line-height: 1.5;
+	}
+
+	.wizard-content :global(pre code) {
+		background: transparent;
+		padding: 0;
+		border-radius: 0;
+		font-size: 0.875rem;
+		color: hsl(220 10% 92%);
+		white-space: pre;
+		display: block;
+	}
+
+	/* Images */
+	.wizard-content :global(img) {
+		max-width: 100%;
+		height: auto;
+		border-radius: 0.5rem;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		display: block;
+		box-shadow: 0 4px 16px hsl(0 0% 0% / 0.3);
+		transition: box-shadow 0.2s ease;
+	}
+
+	.wizard-content :global(img:hover) {
+		box-shadow: 0 8px 32px hsl(0 0% 0% / 0.4);
+	}
+
+	.wizard-content :global(img:focus-visible) {
+		outline: 2px solid var(--wizard-accent);
+		outline-offset: 2px;
+	}
+
+	/* Lists */
+	.wizard-content :global(ul) {
+		padding-left: 1.5rem;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		list-style-type: disc;
+		list-style-position: outside;
+	}
+
+	.wizard-content :global(ol) {
+		padding-left: 1.5rem;
+		margin-top: 1rem;
+		margin-bottom: 1rem;
+		list-style-type: decimal;
+		list-style-position: outside;
+	}
+
+	.wizard-content :global(li) {
+		margin-bottom: 0.375rem;
+		color: var(--wizard-text-muted);
+		line-height: 1.6;
+	}
+
+	.wizard-content :global(li > p) {
+		margin-bottom: 0;
+	}
+
+	.wizard-content :global(li strong) {
+		color: var(--wizard-text);
+	}
+
+	/* Nested lists */
+	.wizard-content :global(ul ul),
+	.wizard-content :global(ol ol),
+	.wizard-content :global(ul ol),
+	.wizard-content :global(ol ul) {
+		margin-top: 0.5rem;
+		margin-bottom: 0;
+		padding-left: 1.5rem;
+	}
+
+	/* Link enhancements */
+	.wizard-content :global(a:focus-visible) {
+		outline: 2px solid var(--wizard-accent);
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+
+	.wizard-content :global(a:active) {
+		opacity: 0.7;
+	}
+
+	/* Text formatting */
+	.wizard-content :global(em) {
+		font-style: italic;
+		color: var(--wizard-text-muted);
+	}
+
+	.wizard-content :global(u) {
+		text-decoration: underline;
+		text-underline-offset: 2px;
 	}
 
 	/* Interaction area */
@@ -602,6 +802,18 @@ async function handleInteractionValidate(
 		border-radius: 0.5rem;
 	}
 
+	/* Step transition animation */
+	@keyframes step-enter {
+		from {
+			opacity: 0;
+			transform: translateY(12px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
 	/* Reveal animation */
 	@keyframes wizard-reveal {
 		from {
@@ -623,6 +835,29 @@ async function handleInteractionValidate(
 		}
 		100% {
 			transform: scale(1);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.wizard-card,
+		.wizard-title,
+		.wizard-content,
+		.wizard-interaction,
+		.interaction-block {
+			animation: none !important;
+		}
+
+		.wizard-content :global(a),
+		.wizard-content :global(img) {
+			transition: none !important;
+		}
+
+		.progress-fill {
+			transition: none !important;
+		}
+
+		.wizard-card {
+			scroll-behavior: auto !important;
 		}
 	}
 </style>
