@@ -2,7 +2,7 @@
 	import { Loader2 } from '@lucide/svelte';
 	import {
 		getErrorDetail,
-		type TotpSetupResponse, 
+		type TotpSetupResponse,
 		totpSetup,
 		totpVerifySetup
 	} from '$lib/api/auth';
