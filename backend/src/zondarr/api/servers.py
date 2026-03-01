@@ -527,6 +527,7 @@ class ServerController(Controller):
         data: MediaServerCreate,
         media_server_service: MediaServerService,
         sync_run_repository: SyncRunRepository,
+        sync_service: SyncService,
         settings: Settings,
         session: AsyncSession,
     ) -> MediaServerWithLibrariesResponse:
@@ -538,7 +539,10 @@ class ServerController(Controller):
         Args:
             data: MediaServerCreate with server configuration.
             media_server_service: MediaServerService from DI.
+            sync_run_repository: SyncRunRepository from DI.
+            sync_service: SyncService from DI.
             settings: Application settings from DI.
+            session: AsyncSession from DI.
 
         Returns:
             Created media server details.
@@ -600,6 +604,40 @@ class ServerController(Controller):
             )
             logger.warning(
                 "Failed to sync libraries after server creation",
+                server_id=str(server.id),
+                error=str(exc),
+            )
+
+        # Sync users after creation (best-effort — don't fail server creation)
+        user_sync_started_at = datetime.now(UTC)
+        try:
+            sync_result = await sync_service.sync_server(server.id, dry_run=False)
+            await self._record_sync_run(
+                sync_run_repository=sync_run_repository,
+                media_server_id=server.id,
+                sync_type="users",
+                trigger="onboarding",
+                status="success",
+                started_at=user_sync_started_at,
+            )
+            logger.info(
+                "user_sync_completed_onboarding",
+                server_id=str(server.id),
+                imported=sync_result.imported_users,
+                matched=sync_result.matched_users,
+            )
+        except Exception as exc:
+            await self._record_sync_run(
+                sync_run_repository=sync_run_repository,
+                media_server_id=server.id,
+                sync_type="users",
+                trigger="onboarding",
+                status="failed",
+                started_at=user_sync_started_at,
+                error_message=str(exc),
+            )
+            logger.warning(
+                "Failed to sync users after server creation",
                 server_id=str(server.id),
                 error=str(exc),
             )
