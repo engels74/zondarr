@@ -680,7 +680,7 @@ function handleRegistrationRetry() {
 				{/if}
 
 				<!-- Target servers -->
-				{#if data.validation.target_servers?.length > 0}
+				{#if (data.validation.target_servers?.length ?? 0) > 0}
 					<div data-target-servers>
 						<div class="mb-3 flex items-center gap-2 text-cr-text">
 							<Server class="size-4" />
@@ -698,7 +698,7 @@ function handleRegistrationRetry() {
 				{/if}
 
 				<!-- Allowed libraries -->
-				{#if data.validation.allowed_libraries?.length > 0}
+				{#if (data.validation.allowed_libraries?.length ?? 0) > 0}
 					<div data-allowed-libraries>
 						<div class="mb-3 flex items-center gap-2 text-cr-text">
 							<Library class="size-4" />
@@ -712,7 +712,7 @@ function handleRegistrationRetry() {
 							{/each}
 						</div>
 					</div>
-				{:else if data.validation.target_servers?.length > 0}
+				{:else if (data.validation.target_servers?.length ?? 0) > 0}
 					<div class="flex items-center gap-2 text-cr-text-muted">
 						<Library class="size-4" />
 						<p class="text-sm">Access to all libraries on target servers</p>
