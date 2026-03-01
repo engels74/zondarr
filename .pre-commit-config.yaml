@@ -32,7 +32,7 @@ repos:
       # Biome for frontend JS/TS/Svelte/JSON/CSS
       - id: biome
         name: Format and lint with Biome
-        entry: bunx biome check --write
+        entry: ./frontend/node_modules/.bin/biome check --write
         language: system
         types_or: [javascript, ts, svelte, json, css]
         files: ^frontend/

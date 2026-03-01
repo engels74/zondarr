@@ -125,4 +125,4 @@ jobs:
         run: cd backend && uv run pytest
 
       - name: Run frontend tests
-        run: cd frontend && bun test
+        run: bun run --cwd frontend test
