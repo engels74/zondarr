@@ -8,8 +8,7 @@
  * @module $lib/components/wizard/markdown-editor
  */
 
-import DOMPurify from "dompurify";
-import { marked } from "marked";
+import { renderMarkdown } from "./markdown-utils";
 
 interface Props {
 	value: string;
@@ -30,30 +29,7 @@ let textareaRef = $state<HTMLTextAreaElement | null>(null);
 // Render markdown with sanitization
 const renderedHtml = $derived.by(() => {
 	if (!value) return '<p class="empty-preview">Preview will appear here...</p>';
-	const rawHtml = marked.parse(value, { async: false }) as string;
-	return DOMPurify.sanitize(rawHtml, {
-		ALLOWED_TAGS: [
-			"h1",
-			"h2",
-			"h3",
-			"h4",
-			"h5",
-			"h6",
-			"p",
-			"br",
-			"strong",
-			"em",
-			"u",
-			"a",
-			"ul",
-			"ol",
-			"li",
-			"blockquote",
-			"code",
-			"pre",
-		],
-		ALLOWED_ATTR: ["href", "target", "rel"],
-	});
+	return renderMarkdown(value);
 });
 
 /**
@@ -159,6 +135,29 @@ function formatLink() {
 	}
 }
 
+function formatImage() {
+	if (!textareaRef) return;
+
+	const start = textareaRef.selectionStart;
+	const end = textareaRef.selectionEnd;
+	const selected = value.slice(start, end);
+
+	if (selected) {
+		// Use selected text as alt text
+		const newValue = `${value.slice(0, start)}![${selected}](image-url)${value.slice(end)}`;
+		value = newValue;
+		requestAnimationFrame(() => {
+			if (!textareaRef) return;
+			textareaRef.focus();
+			// Select "image-url" for easy replacement
+			textareaRef.selectionStart = start + selected.length + 3;
+			textareaRef.selectionEnd = start + selected.length + 12;
+		});
+	} else {
+		insertFormatting("![", "](image-url)", "alt text");
+	}
+}
+
 function formatBulletList() {
 	insertLineFormatting("- ", "list item");
 }
@@ -216,6 +215,13 @@ function formatCode() {
 					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
 						<path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+					</svg>
+				</button>
+				<button type="button" class="toolbar-btn" onclick={formatImage} title="Image">
+					<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+						<circle cx="9" cy="9" r="2" />
+						<path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
 					</svg>
 				</button>
 				<button type="button" class="toolbar-btn" onclick={formatBulletList} title="Bullet list">
