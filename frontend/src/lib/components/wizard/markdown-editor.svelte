@@ -127,8 +127,8 @@ function formatLink() {
 			if (!textareaRef) return;
 			textareaRef.focus();
 			// Select "url" for easy replacement
-			textareaRef.selectionStart = start + selected.length + 2;
-			textareaRef.selectionEnd = start + selected.length + 5;
+			textareaRef.selectionStart = start + selected.length + 3;
+			textareaRef.selectionEnd = start + selected.length + 6;
 		});
 	} else {
 		insertFormatting("[", "](url)", "link text");
@@ -150,8 +150,8 @@ function formatImage() {
 			if (!textareaRef) return;
 			textareaRef.focus();
 			// Select "image-url" for easy replacement
-			textareaRef.selectionStart = start + selected.length + 3;
-			textareaRef.selectionEnd = start + selected.length + 12;
+			textareaRef.selectionStart = start + selected.length + 4;
+			textareaRef.selectionEnd = start + selected.length + 13;
 		});
 	} else {
 		insertFormatting("![", "](image-url)", "alt text");

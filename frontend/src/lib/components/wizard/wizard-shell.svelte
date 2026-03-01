@@ -855,5 +855,9 @@ async function handleInteractionValidate(
 		.progress-fill {
 			transition: none !important;
 		}
+
+		.wizard-card {
+			scroll-behavior: auto !important;
+		}
 	}
 </style>

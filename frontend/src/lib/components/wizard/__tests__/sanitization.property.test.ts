@@ -238,7 +238,11 @@ describe('Property 13: Markdown XSS Sanitization', () => {
 					fc.constant('`inline code`'),
 					fc.constant('```\ncode block\n```'),
 					// Blockquote
-					fc.constant('> Quote')
+					fc.constant('> Quote'),
+					// Images
+					fc.constant('![Alt text](https://example.com/image.png)'),
+					// Horizontal rules
+					fc.constant('---')
 				),
 				(validMarkdown) => {
 					const sanitized = sanitizeMarkdown(validMarkdown);
