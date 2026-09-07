@@ -5,7 +5,9 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
-from dev_cli.preflight import _ensure_secret_key as _ensure_secret_key  # pyright: ignore[reportPrivateUsage]  # testing private function
+from dev_cli.preflight import (
+    _ensure_secret_key as _ensure_secret_key,  # pyright: ignore[reportPrivateUsage]  # testing private function
+)
 
 
 def test_generates_and_persists_key_when_missing() -> None:

@@ -111,6 +111,7 @@ $effect(() => {
 
 	<!-- Mobile Navigation Overlay -->
 	{#if mobileMenuOpen}
+		<!-- biome-ignore lint/a11y/useSemanticElements: The dismiss-only overlay is outside tab order; the menu has a separate keyboard close control. -->
 		<div
 			class="fixed inset-0 z-40 bg-black/50 md:hidden"
 			onclick={closeMobileMenu}

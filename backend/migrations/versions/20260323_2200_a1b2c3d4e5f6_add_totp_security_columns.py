@@ -26,9 +26,7 @@ def upgrade() -> None:
         batch_op.add_column(
             sa.Column("totp_last_used_code", sa.String(length=6), nullable=True)
         )
-        batch_op.add_column(
-            sa.Column("totp_last_used_at", sa.Integer(), nullable=True)
-        )
+        batch_op.add_column(sa.Column("totp_last_used_at", sa.Integer(), nullable=True))
 
 
 def downgrade() -> None:

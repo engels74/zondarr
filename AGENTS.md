@@ -21,7 +21,7 @@ migrations, generates `SECRET_KEY`, and wires `CORS_ORIGINS` / `PUBLIC_API_URL` 
 | Typecheck | `uv run basedpyright` | `bun run --cwd frontend check` |
 | Lint/format | `uv run ruff check --fix . && uv run ruff format .` | `frontend/node_modules/.bin/biome check --write frontend/` |
 
-`-n0` disables the `-n auto` xdist workers baked into `addopts`; omit it for full runs.
+`-n0` disables xdist. CI and pre-push bound full runs to `-n 4` rather than host CPU count.
 `bun run lint` (= `prek run --all-files`) runs every hook across both sides.
 
 ## Repo-wide gotchas
@@ -30,9 +30,9 @@ migrations, generates `SECRET_KEY`, and wires `CORS_ORIGINS` / `PUBLIC_API_URL` 
 - prek's **pre-push** stage runs basedpyright, svelte-check, pytest and vitest; the commit stage
   runs ruff, biome, gitleaks, and conventional-commit message linting. A failing `git push` is
   usually these hooks, not the remote.
-- `dev_cli/` sits outside every automated gate: ruff is scoped to `^backend/(src|tests)/`,
-  CI runs basedpyright only in `backend/`, and pytest's `testpaths = ["tests"]` never reaches
-  `dev_cli/tests/`. Run and type-check it by hand if you change it.
+- CI and prek cover `dev_cli/` with locked Ruff, recommended basedpyright, and its
+  own pytest suite. CI also builds both apps, checks generated API declarations, and
+  smokes real migrated Granian/Bun servers. See `CI.md`.
 - Serialization is **msgspec**, never Pydantic. Pydantic is only a transitive dep of
   `jellyfin-sdk`; its 3.14 warning is filtered in `backend/pyproject.toml`.
 

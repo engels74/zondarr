@@ -47,8 +47,11 @@ function toggleAccepted() {
 	<!-- Custom checkbox with card -->
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- biome-ignore lint/a11y/useKeyWithClickEvents: The nested native checkbox button owns keyboard activation; the card is an additional pointer target. -->
+	<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 	<div class="checkbox-card" onclick={toggleAccepted} role="group">
 		<label class="checkbox-container">
+			<!-- biome-ignore lint/a11y/useSemanticElements: This native button supplies keyboard activation for the custom checked state. -->
 			<button
 				type="button"
 				role="checkbox"

@@ -85,6 +85,7 @@ export function focus() {
 }
 </script>
 
+<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 <div class="flex justify-center gap-2" role="group" aria-label="TOTP verification code">
 	{#each { length: DIGITS } as _, i}
 		<input

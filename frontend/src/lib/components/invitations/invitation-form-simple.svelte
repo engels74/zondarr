@@ -184,6 +184,7 @@ function getFieldErrors(field: string): string[] {
 			Target Servers
 			<span class="text-rose-400">*</span>
 		</Label>
+		<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 		<div
 			class="mt-2 grid gap-2 sm:grid-cols-2 rounded-lg transition-shadow {getFieldErrors('server_ids').length > 0 ? 'ring-2 ring-rose-500/50 p-1' : ''}"
 			role="group"
@@ -241,6 +242,7 @@ function getFieldErrors(field: string): string[] {
 				Allowed Libraries
 				<span class="text-cr-text-muted text-xs">(optional - all if none selected)</span>
 			</Label>
+			<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 			<div
 				class="mt-2 flex flex-wrap gap-2"
 				role="group"

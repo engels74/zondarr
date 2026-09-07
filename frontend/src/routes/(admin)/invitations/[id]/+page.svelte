@@ -742,6 +742,7 @@ function getFieldErrors(field: string): string[] {
 								<Server class="size-4 text-cr-accent" />
 								Target Servers
 							</Label>
+							<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 							<div
 								class="grid gap-2 sm:grid-cols-2 rounded-lg transition-shadow {getFieldErrors('server_ids').length > 0 ? 'ring-2 ring-rose-500/50 p-1' : ''}"
 								role="group"

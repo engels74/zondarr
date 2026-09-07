@@ -83,6 +83,7 @@ $effect(() => {
 </script>
 
 {#if languages.length > 1}
+	<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 	<div class="lang-switcher" role="group" aria-label="Language selection">
 		<button
 			type="button"

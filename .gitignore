@@ -257,8 +257,7 @@ vite.config.ts.timestamp-*
 backend/data/
 .bootstrap_token
 
-# Root package manager artifacts
-/bun.lock
+# Root tooling lockfile is committed for reproducible prek installation.
 
 # Local seed/fixture scripts
-scripts/
+/scripts/
