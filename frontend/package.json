@@ -4,18 +4,20 @@
 	"version": "0.0.1",
 	"type": "module",
 	"scripts": {
-		"dev": "vite dev",
-		"build": "vite build",
-		"preview": "vite preview",
-		"prepare": "svelte-kit sync || echo ''",
+		"dev": "bun --bun vite dev",
+		"build": "bun --bun vite build",
+		"preview": "bun --bun vite preview",
+		"prepare": "svelte-kit sync",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
-		"test": "vitest --run",
+		"test": "vitest --run --maxWorkers=4",
 		"test:watch": "vitest",
-		"generate:api": "openapi-typescript http://localhost:8000/docs/openapi.json -o src/lib/api/types.d.ts"
+		"generate:api": "openapi-typescript http://localhost:8000/docs/openapi.json -o src/lib/api/types.d.ts",
+		"check:biome": "biome ci ..",
+		"start": "NODE_ENV=production bun ./build/index.js"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.14",
+		"@biomejs/biome": "2.5.8",
 		"@internationalized/date": "^3.12.1",
 		"@lucide/svelte": "^1.14.0",
 		"@sveltejs/kit": "^2.59.0",
@@ -50,5 +52,6 @@
 		"openapi-fetch": "^0.17.0",
 		"tailwind-merge": "^3.5.0",
 		"tailwind-variants": "^3.2.2"
-	}
+	},
+	"packageManager": "bun@1.4.2"
 }

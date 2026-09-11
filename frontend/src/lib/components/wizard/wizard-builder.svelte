@@ -456,6 +456,7 @@ function handleDragEnd() {
 					{:else}
 						<div class="space-y-2">
 							{#each steps as step, index (step.id)}
+								<!-- biome-ignore lint/a11y/useSemanticElements: The drag-sort container keeps list semantics and its existing grid layout. -->
 								<div
 									class="step-item"
 									class:dragging={draggedStepId === step.id}

@@ -1,6 +1,6 @@
 """Tests for dev_cli.cli argument parsing."""
 
-from dev_cli.cli import parse_args, StartArgs, StopArgs
+from dev_cli.cli import StartArgs, StopArgs, parse_args
 
 
 def test_empty_args_defaults_to_start() -> None:

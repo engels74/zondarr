@@ -81,7 +81,7 @@ class ServerProcess:
         if sys.platform != "win32":
             try:
                 os.killpg(pid, signal.SIGTERM)
-            except (ProcessLookupError, PermissionError):
+            except ProcessLookupError, PermissionError:
                 self.process.terminate()
         else:
             self.process.terminate()
@@ -93,7 +93,7 @@ class ServerProcess:
             if sys.platform != "win32":
                 try:
                     os.killpg(pid, signal.SIGKILL)
-                except (ProcessLookupError, PermissionError):
+                except ProcessLookupError, PermissionError:
                     self.process.kill()
             else:
                 self.process.kill()
@@ -149,7 +149,7 @@ class DevRunner:
                 "--interface",
                 "asgi",
                 "--host",
-                "0.0.0.0",
+                "0.0.0.0",  # noqa: S104 — existing explicit development-server listener.
                 "--port",
                 str(self.backend_port),
                 "--backpressure",
@@ -375,7 +375,7 @@ class DevRunner:
                         return True
                 finally:
                     response.close()
-            except (urllib.error.URLError, OSError, TimeoutError):
+            except urllib.error.URLError, OSError, TimeoutError:
                 pass
 
             if attempt < max_attempts - 1:

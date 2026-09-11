@@ -93,7 +93,7 @@ def _run_migrations(backend_dir: Path, /) -> bool:
         return True
 
     result = subprocess.run(
-        ["uv", "run", "alembic", "upgrade", "head"],
+        ["uv", "run", "alembic", "upgrade", "head"],  # noqa: S607 — developer-selected uv on PATH.
         cwd=backend_dir,
         capture_output=True,
         text=True,
@@ -121,7 +121,7 @@ def _is_db_at_head(backend_dir: Path, /) -> bool:
         if current == head:
             print_info(f"Database already at head ({head[:12]})")
             return True
-    except Exception:
+    except Exception:  # noqa: S110 — failed shortcut falls back to checked Alembic execution.
         pass
     return False
 
@@ -199,7 +199,7 @@ def _install_backend_deps(backend_dir: Path, /) -> bool:
 
     print_info("Backend .venv not found — running uv sync --extra dev...")
     result = subprocess.run(
-        ["uv", "sync", "--extra", "dev"],
+        ["uv", "sync", "--extra", "dev"],  # noqa: S607 — developer-selected uv on PATH.
         cwd=backend_dir,
         capture_output=True,
         text=True,
@@ -219,7 +219,7 @@ def _install_frontend_deps(frontend_dir: Path, /) -> bool:
 
     print_info("node_modules not found — running bun install...")
     result = subprocess.run(
-        ["bun", "install"],
+        ["bun", "install"],  # noqa: S607 — developer-selected Bun on PATH.
         cwd=frontend_dir,
         capture_output=True,
         text=True,
@@ -264,7 +264,9 @@ def _ensure_secret_key(repo_root: Path, /) -> None:
     finally:
         os.close(fd)
     os.environ["SECRET_KEY"] = generated
-    print_info(f"SECRET_KEY not set — generated and saved to {key_file.relative_to(repo_root)}")
+    print_info(
+        f"SECRET_KEY not set — generated and saved to {key_file.relative_to(repo_root)}"
+    )
 
 
 def _load_dotenv(repo_root: Path, /) -> None:
@@ -309,8 +311,8 @@ def _check_port(port: int, name: str, /) -> bool:
     # Port is in use — try to find the PID
     pid_info = ""
     try:
-        result = subprocess.run(
-            ["lsof", "-ti", f":{port}"],
+        result = subprocess.run(  # noqa: S603 — fixed argv with an integer port, no shell.
+            ["lsof", "-ti", f":{port}"],  # noqa: S607 — developer-selected diagnostic utility.
             capture_output=True,
             text=True,
             timeout=5,
@@ -318,7 +320,7 @@ def _check_port(port: int, name: str, /) -> bool:
         if result.stdout.strip():
             pids = result.stdout.strip()
             pid_info = f" (pid={pids}). Kill it with: kill {pids}"
-    except (FileNotFoundError, subprocess.TimeoutExpired):
+    except FileNotFoundError, subprocess.TimeoutExpired:
         pass
 
     print_error(f"Port {port} ({name}) is already in use{pid_info}")

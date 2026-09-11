@@ -2,6 +2,6 @@
 	"$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
 	"root": true,
 	"files": {
-		"includes": ["frontend/**"]
+		"includes": ["frontend/**", ".github/scripts/*.ts"]
 	}
 }

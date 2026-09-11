@@ -164,6 +164,7 @@ onDestroy(() => {
 	<!-- Options -->
 	<div class="options" role="radiogroup" aria-label="Quiz options">
 		{#each options as option, index}
+			<!-- biome-ignore lint/a11y/useSemanticElements: The existing custom radio has explicit checked state and keyboard selection. -->
 			<button
 				type="button"
 				role="radio"

@@ -142,10 +142,10 @@ function handleClick() {
 }
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div
-	class="flex h-9 items-center gap-1.5 border-l-2 px-2 font-mono text-xs transition-colors
+<button
+	type="button"
+	aria-pressed={selected}
+	class="flex w-full text-left h-9 items-center gap-1.5 border-l-2 px-2 font-mono text-xs transition-colors
 		{config.border} {config.row}
 		{selected ? 'bg-accent/50 dark:bg-accent/30' : 'hover:bg-muted/50'}
 		cursor-pointer"
@@ -184,7 +184,7 @@ function handleClick() {
 
 	<!-- Inline field chips -->
 	{#if fieldChips.length > 0}
-		<div class="hidden items-center gap-1 md:flex shrink-0">
+		<span class="hidden items-center gap-1 md:flex shrink-0">
 			{#each fieldChips as chip (chip.key)}
 				<span
 					class="inline-flex max-w-32 items-center truncate rounded bg-muted/80 px-1.5 py-0.5 text-[10px] text-muted-foreground"
@@ -193,6 +193,6 @@ function handleClick() {
 					{chip.key}={chip.value}
 				</span>
 			{/each}
-		</div>
+		</span>
 	{/if}
-</div>
+</button>

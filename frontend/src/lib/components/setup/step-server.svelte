@@ -272,6 +272,7 @@ async function handleSubmit(event: Event) {
 			<!-- Server Type Toggle -->
 			<div class="space-y-2">
 				<Label class="text-cr-text">Server Type</Label>
+				<!-- biome-ignore lint/a11y/useSemanticElements: This ARIA group labels existing controls without introducing native fieldset layout. -->
 				<div class="flex overflow-hidden rounded-lg border border-cr-border" role="group">
 					{#each providerList as provider, i (provider.server_type)}
 						<button
