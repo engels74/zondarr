@@ -20,5 +20,31 @@
 ## WIP
 ...
 
+## Development and production frontend
+
+Use Bun **1.4.2**, matching `frontend/package.json` and CI. `uv run dev_cli`
+remains the launcher for the Python backend and frontend together.
+
+For frontend-only development (with the backend running):
+
+```sh
+cd frontend
+bun install --frozen-lockfile
+bun run dev
+```
+
+Build and start the production frontend from the same directory:
+
+```sh
+bun run build
+bun run start
+```
+
+`start` runs the built SvelteKit server with Bun in production mode. The Python
+backend runs separately; configure `INTERNAL_API_URL` for the frontend's server-side
+API proxy. Leave `PUBLIC_API_URL` empty for same-origin browser requests. See
+[.env.example](.env.example) for backend security, database and bootstrap settings.
+The container keeps both services under s6 and directly runs the same Bun entry point.
+
 ## License
 GNU Affero General Public License v3.0

@@ -74,8 +74,8 @@ with tempfile.TemporaryDirectory(prefix="zondarr-smoke-") as temporary:
             )
             processes.append(
                 subprocess.Popen(
-                    ["bun", "frontend/build/index.js"],
-                    cwd=root,
+                    ["bun", "./build/index.js"],
+                    cwd=root / "frontend",
                     env=env,
                     stdout=log,
                     stderr=log,
@@ -113,10 +113,15 @@ with tempfile.TemporaryDirectory(prefix="zondarr-smoke-") as temporary:
             print(log.read().decode(errors="replace"))
             raise
         finally:
+            shutdown_failed = False
             for process in reversed(processes):
                 process.terminate()
                 try:
-                    process.wait(timeout=5)
+                    if process.wait(timeout=10) != 0:
+                        shutdown_failed = True
                 except subprocess.TimeoutExpired:
+                    shutdown_failed = True
                     process.kill()
                     process.wait()
+            if shutdown_failed:
+                raise RuntimeError("A production server failed to shut down cleanly")
