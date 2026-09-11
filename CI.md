@@ -2,9 +2,9 @@
 
 All pull requests and default-branch pushes run Python, frontend, production
 integration and hygiene checks. `ci / required` requires exactly those jobs and the
-dispatch guard. Missing, skipped, failed or cancelled jobs block merging. Require
-this status with up-to-date branches, include administrators, and prohibit force
-pushes/deletion. Validation is read-only, bounded by timeouts and concurrency, uses
+dispatch guard. Missing, skipped, failed or cancelled jobs block merging. Review every expected job and the exact PR head/base before merging through
+the maintainer merge function. GitHub branch protections and rulesets are not
+configured. Validation is read-only, bounded by timeouts and concurrency, uses
 full version tags, and rejects tracked-file mutation.
 
 ## Local commands and coverage
@@ -43,7 +43,7 @@ handoff over loopback. Both processes and all temporary data are cleaned up.
 The shared default/mixed presets handle Python/uv, Bun, actions, hooks and Biome
 schema/package versions, grouping non-major updates by ecosystem. TypeScript stays
 below 7 until the Svelte compiler API is compatible. Automerge stays off during
-adoption pending corrected shared policy and required-check activation.
+adoption; dependency PRs require the same full CI review.
 
 Biome repair installs from the frontend package directory and migrates both configs.
 It computes with read-only permissions; a separate publisher writes allowlisted
