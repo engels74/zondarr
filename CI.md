@@ -2,8 +2,10 @@
 
 All pull requests and default-branch pushes run Python, frontend, production
 integration and hygiene checks. `ci / required` requires exactly those jobs and the
-dispatch guard. Missing, skipped, failed or cancelled jobs block merging. Review every expected job and the exact PR head/base before merging through
-the maintainer merge function. GitHub branch protections and rulesets are not
+dispatch guard. Missing, skipped, failed or cancelled jobs block merging. Renovate updates merge
+unattended only after all six current-head checks in `.github/merge-policy.json`
+pass. Other changes retain review of the exact head/base, full diff, authors/DCO,
+all expected CI and relevant artifacts before merging through ghmerge. GitHub branch protections and rulesets are not
 configured. Validation is read-only, bounded by timeouts and concurrency, uses
 full version tags, and rejects tracked-file mutation.
 
@@ -41,9 +43,11 @@ handoff over loopback. Both processes and all temporary data are cleaned up.
 ## Renovate and remaining limits
 
 The shared default/mixed presets handle Python/uv, Bun, actions, hooks and Biome
-schema/package versions, grouping non-major updates by ecosystem. TypeScript stays
-below 7 until the Svelte compiler API is compatible. Automerge stays off during
-adoption; dependency PRs require the same full CI review.
+schema/package versions, grouping non-major updates by ecosystem. The v1.1.0
+default, mixed and automerge presets make all update types eligible, including
+majors and shared-policy updates, without dashboard approval. Svelte checks remain
+required to test TypeScript compatibility. The checked merge preserves genuine
+sign-offs and dispatches full CI for the exact merged commit.
 
 Biome repair installs from the frontend package directory and migrates both configs.
 It computes with read-only permissions; a separate publisher writes allowlisted
